@@ -1,0 +1,138 @@
+---
+title: "Cherry Blossom Lollipop Plot"
+format: 
+  html:
+    theme: darkly
+    code-fold: show
+editor: source
+---
+
+Original GitHub repository: <https://github.com/tifa365/CherryBlossomTimeSeries/tree/main>.
+
+The font used in the plot is the Google Font [M Plus 1p](https://fonts.google.com/specimen/M+PLUS+1p).
+
+The cherry blossom tree data is automatically being downloaded in the R script from [ncei.noaa.gov](https://www.ncei.noaa.gov/pub/data/paleo/historical/phenology/japan/KyotoFullFlowerW.xls).
+
+The Python script was created with the `{ggplot2}` equivalent called `{Plotnine}`.
+
+The background image is called "A person in a small boat on a river with Mount Fuji" and was painted by Japanese ukyo-e artist of the Edo period Katshushika Hokusai. It is downloaded from [Wikipedia Commons](https://commons.wikimedia.org/wiki/File:A_person_in_a_small_boat_on_a_river_with_Mount_Fuji_in_the_background_LCCN2009631925.jpg).
+
+## Load packages
+
+Clear your workspace, load all the necessary packages, and define some parameters.
+
+```{r}
+#| label: laod-pkgs
+#| output: false
+
+library(tidyverse)
+library(readxl)
+library(ggpubr) # ?
+library(jpeg)
+library(showtext)
+library(ggimage) # instead of {emoGG}
+
+# Automatically use {showtext} for new devices
+showtext_auto()
+
+# Register the Google Font "M Plus 1p"
+font_add_google("M Plus 1p", "mplus1p")
+
+# Download KyotoFullFlower.xls data file
+
+url_kyotot <- "https://www.ncei.noaa.gov/pub/data/paleo/historical/phenology/japan/KyotoFullFlowerW.xls"
+file_kyoto <- "data/KyotoFullFlowerW.xls"
+
+if (!file.exists(file_kyoto)) {
+  download.file(url = url_kyotot, destfile = file_kyoto, method = "curl", mode = "wb")
+}
+
+# Read in the data file
+cherry <- read_excel(
+  path = file_kyoto, 
+  col_names = TRUE, 
+  col_types = c("numeric", "numeric", "numeric", "text", "text"), 
+  range = "A16:E1226"
+)
+
+# Filter out rows with NA values in the Full-flowering date (DOY) column
+cherry <- cherry[!is.na(cherry$`Full-flowering date (DOY)`), ]
+
+# Add random sizes for sakura icon
+cherry$random_size <- sample(x = c(0.015, 0.02, 0.025, 0.03), size = nrow(cherry), replace = TRUE)
+
+# Rename the first two columns
+colnames(cherry)[1:2] <- c("year", "yday")
+
+
+# Read the background image
+fuji <- readJPEG(source = "images/fuji.jpg")
+
+# Read the sakura icon
+icon_sakura <- "images/sakura.png"
+
+# Calculate y-axis tick positions and labels
+y_dates <- parse_date_time(x = c("3-20", "4-1", "4-10", "4-20", "5-1", "5-10"), orders = "md")
+y_ticks <- yday(y_dates)
+y_lab <- format(y_dates, "%b %d")
+
+# Change language settings
+invisible(Sys.setlocale("LC_TIME", "en_GB.UTF-8"))
+```
+
+Create the plot
+
+```{r}
+#| label: create-plot
+#| warning: false
+
+myplot <- ggplot(data = cherry, mapping = aes(x = year, y = yday)) +
+  theme_bw() +
+  theme(
+    panel.grid = element_blank(),
+    axis.text = element_text(size = 18, family = "mplus1p"),
+    axis.title = element_text(size = 22, family = "mplus1p"),
+    plot.title = element_text(size = 24, family = "mplus1p"),
+    plot.subtitle = element_text(size = 22, family = "mplus1p"),
+    plot.caption = element_text(size = 12, family = "mplus1p"),
+    # specified background color that is closer to image than pure white
+    panel.background = element_rect(fill = "#E0D5C4"),
+    plot.background = element_rect(fill = "#E0D5C4"),
+    legend.background = element_rect(fill = "#E0D5C4")
+  ) +
+  background_image(raster.img = fuji) +
+  geom_line() +
+  geom_image(mapping = aes(size = I(random_size)), image = icon_sakura) +
+  geom_smooth(colour = "black") +
+  scale_y_continuous(breaks = y_ticks, labels = y_lab) +
+  scale_x_continuous(breaks = c(812, 1000, 1250, 1500, 1750, 2000), expand = c(0.01, 0)) +
+  labs(
+    title = "Sakura",
+    subtitle = "Date of cherry-blossom peak-bloom in Kyoto, Japan, 800AD-2010",
+    x = NULL, y = NULL,
+    caption = "Source: Yasuyuki Aono, Osaka Prefecture University"
+  )
+
+# Print the plot
+print(myplot)
+```
+
+Save the plot
+
+```{r}
+#| label: save-plot
+#| output: false
+
+# Set the plot dimensions in inches (width x height)
+plot_width  <- 8
+plot_height <- 4
+
+# Save the plot to a high-resolution file
+ggsave(
+  filename = "images/cherry_blossoms_plot.png",
+  plot = myplot,
+  width = plot_width,
+  height = plot_height,
+  dpi = 300
+)
+```

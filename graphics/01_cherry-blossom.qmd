@@ -1,0 +1,352 @@
+---
+title: "Replicate Series: Cherry Bomb"
+format: 
+  html:
+    theme: darkly
+    code-fold: show
+editor: source
+---
+
+**Original blog post**: <https://algotech.netlify.app/blog/rplicate-series-cherry-bomb/>.
+
+In this article of the "Replicate" series, we will replicate the plot titled **Cherry Bomb** from the article [Japan’s cherry blossoms are emerging increasingly early, 7th April 2017](https://www.economist.com/graphic-detail/2017/04/07/japans-cherry-blossoms-are-emerging-increasingly-early). The raw dataset used for this graph was obtained from a [phenological dataset](http://atmenv.envi.osakafu-u.ac.jp/aono/kyophenotemp4/) that was collected by Dr. Yasuyuki Aono from Osaka Prefecture University.
+
+While replicating the plot, we will also learn how to:
+
+- various data pre-processing tricks such as separate a column into several columns, create date data from several columns, and reverse levels of a categorical column
+
+- create a scatterplot with a custom shape/image as points
+
+- use `geom_smooth()` for visualizing trend in the data
+
+- explore facets and various theme editing on `{ggplot2}`
+
+Let’s dive in below!
+
+## Load packages
+
+These are the basic packages that we will use. Along the way, there will be some packages that we will load just before its use to better understand and remember its functionality.
+
+```{r}
+#| label: load-pkgs
+#| output: false
+
+rm(list = ls(all.names = TRUE))
+
+library(tidyverse)
+library(ggimage)
+
+windowsFonts(`Roboto Condensed` = windowsFont("Roboto Condensed Regular"))
+
+invisible(Sys.setlocale("LC_TIME", "en_GB.UTF-8")) # English date labels
+```
+
+## Import dataset
+
+The first thing we have to do is to load the dataset into R.
+
+```{r}
+#| label: load-data
+
+sakura <- read_rds(file = "data/kyoto.rds")
+
+tail(sakura, n = 5)
+```
+
+These are the descriptions of each column:
+
+- `AD`: year in A.D.
+
+- `full.flowering.doy`: full flowering day of year
+
+- `full.flowering.date`: full flowering date (eg.: 401 = April 1st)
+
+- `source`: source code
+
+- `data.type`: data source code
+
+- `reference`: name of old document/references
+
+## Data wrangling
+
+The next step is *data wrangling* or the process of tidying and transforming data from a raw dataset into another format that is easier for plotting.
+
+```{r}
+#| label: select-columns
+
+sakura <- sakura |> 
+  select(ad, full_flowering_date, full_flowering_date_doy) |> 
+  set_names(c("year", "date", "doy"))
+
+sample_n(sakura, size = 6)
+```
+
+After some exploration, we find that most of the data came from early AD contain missing records of its full flowering date. Therefore, the next step is to obtain the data with no missing values on its `full.flowering.date`, and for better visualization, we can also rename the “AD” column to “Year”.
+
+```{r}
+#| label: remove-nas
+
+sakura_used <- sakura |> 
+  filter(!is.na(doy))
+
+head(sakura_used)
+```
+
+If you see the data above, the *month* and *day of month* information is still stored in one column `full.flowering.date`. Meanwhile, we need both information separately to display it on the y-axis. Moreover, it is still stored in an integer format with no separator between both information. We will need to separate both information into different columns. To do that, we can use the `separate()` function, as seen below:
+
+```{r}
+#| label: separate-month-day
+
+sakura_plot <- sakura_used |> 
+  mutate(
+    month = month(date, label = TRUE, abbr = FALSE),
+    day = day(date)
+  )
+
+head(sakura_plot)
+```
+
+If we look at the order of our month column, it is still in the reverse format. We can reverse the order of the levels by using the function `fct_rev()` from `{forcats}` package. The `{forcats}` package itself contains many functions form working with categorical variables/factors.
+
+```{r}
+#| label: reverse-factor-ordering
+
+unique(sakura_plot$month)
+
+sakura_plot <- sakura_plot |> 
+  mutate(month = forcats::fct_rev(month))
+
+unique(sakura_plot$month)
+```
+
+We have now obtained the data ready for plotting.
+
+## Create plot
+
+In this section, we will display the code for plotting followed by its result below. Try tracking on what has been added to the code and how it gives changes to the plot!
+
+### The canvas
+
+Create a blank canvas
+
+```{r}
+#| label: blank-canvas
+#| warning: false
+
+p <- ggplot(data = sakura_plot, mapping = aes(x = year, y = doy))
+
+print(p)
+```
+
+### Add facets
+
+Add `facet_grid` by month, horizontally.
+
+```{r}
+#| label: add-facet-grid
+#| warning: false
+
+p + 
+  facet_grid(rows = month ~ .)
+```
+
+Customize the facets
+
+```{r}
+#| label: customize-facets
+#| warning: false
+
+p2 <- p + 
+  facet_grid(
+    rows = month ~ ., 
+    scales = "free", # free scales on both x & y axis
+    space = "free", # panel's height & width will vary based on data
+    switch = "y" # facet label to be displayed on the right
+    )
+
+
+print(p2)
+```
+
+### Add geom_point
+
+The idea is to create a scatterplot from the data.
+
+```{r}
+#| label: scatter-plot
+#| warning: false
+
+p2 + 
+  geom_point()
+```
+
+But let’s make it more interesting by changing the point shape into a custom cherry blossom image. There are several ways to add custom shape as point (scatterplot) in `{ggplot}`:
+
+The standard shape in geom_point only has options from shape 1-25. The extended number is actually options for various ASCII characters. We can use the ASCII character number 42 to obtain a flower-like shape as seen below.
+
+```{r}
+#| label: define-shape
+#| warning: false
+
+p3 <- p2 +
+  geom_point(
+    shape = 42,
+    size = 5,
+    colour = "#f64b77"
+  )
+
+print(p3)
+```
+
+We can use `geom_image()` from the package `{ggimage}` to add an image as a point in our plot. For that to work, we need to store the custom image into a column in our data. In this demo, we will use an icon made by [Freepik](https://www.flaticon.com/authors/freepik) from [Flaticon](https://www.flaticon.com/). This is our icon image that has been saved locally:
+
+```{r}
+#| label: geom_image
+#| eval: false
+#| warning: false
+#| error: false
+
+# Add new column to store image
+sakura_plot2 <- sakura_plot |> 
+  mutate(image = "images/sakura.png")
+
+# Create the plot
+ggplot(data = sakura_plot2, mapping = aes(x = year, y = day)) +
+  facet_grid(rows = month ~ ., scales = "free", space = "free_y", switch = "y") +
+  geom_image(mapping = aes(image = image))
+```
+
+The latter option seems to be more flexible, but unfortunately, the image cannot be displayed properly due to the small panel size (result from setting `space = "free"` in facets). For that reason, we will use the first option instead.
+
+### Add geom_smooth
+
+Below we will add a smooth line using `geom_smooth()`. Because we also need legend for our smooth line, we can specify the color and fill label within `aes()`.
+
+```{r}
+#| label: geom_smooth
+#| warning: false
+
+p4 <- p3 + 
+  # add trend line without confidence interval
+  geom_smooth(mapping = aes(fill = "Trend"), method = "loess", formula = "y ~ x", span = 0.1, se = FALSE, colour = "#644128") +
+  # add confidence interval without trend line
+  geom_smooth(mapping = aes(colour = "Confidence Interval"), method = "loess", formula = "y ~ x", span = 0.1, fill = "#a56c56", linetype = 0)
+
+print(p4)
+```
+
+### Customize axes
+
+We can specify our axis manually for our plot that (unfortunately) did not follow a specific sequence.
+
+```{r}
+#| label: customize-axes
+#| warning: false
+
+p5 <- p4 +
+  scale_x_continuous(
+    limits = c(812, 2020),
+    breaks = c(812, seq(from = 900, to = 2000, by = 100), 2020),
+    labels = c("812", "", "1000", "", "1200", "", "1400", "", "1600", "", "1800", "", "", "2020")
+  ) +
+  scale_y_continuous(breaks = c(1, 10, 20), labels = c("1st", "10th", "20th"))
+
+print(p5)
+```
+
+### Add labels
+
+We can add labels and make some of them italics using the function `expression()`:
+
+```{r}
+#| label: add-labels
+#| warning: false
+
+p6 <- p5 + 
+  labs(
+    title = "Cherry Bomb",
+    subtitle = "Date of cherry-blossom peak-bloom in Kyoto, Japan, 800AD-2021",
+    x = expression(italic("Year")),
+    y = expression(italic("Date of cherry-blossom peak-bloom")),
+    caption = "Soruce: Yasuyuki Aono, Osaka Prefecture University"
+  )
+
+print(p6)
+```
+
+### Customize theme
+
+Last but not least is to custom our theme. Below is an extensive list of options we can use to custom our plot theme, and there are still many more. You can try to modify this code and see how it affects our plot to better understand its use. We can also use a custom font which we have discussed in the previous article [“Rplicate Series: Happiness of The Third Age”](https://algotech.netlify.app/blog/rplicate-happiness-of-the-third-age/).
+
+```{r}
+#| label: customize-theme
+#| warning: false
+
+cherrybomb_theme <- theme(
+    # general
+  text = element_text(family = "sans"),
+  
+  # panel
+  panel.background = element_rect(fill = "white"),
+  panel.grid.major.y = element_line(color = "#a56c56", 
+                                    linetype = "solid"),
+  panel.grid.major.x = element_blank(),
+  panel.grid.minor = element_blank(),
+  panel.spacing = unit(0.05, "cm"), # 0.1
+  
+  # axis
+  axis.line.x = element_line(colour = "black"),
+  axis.line.y = element_blank(),
+  axis.text = element_text(size = 8),
+  axis.title = element_text(size = 8),
+  
+  # legends
+  legend.position = c(0.81, 1),
+  legend.key = element_blank(),
+  legend.box = "horizontal",
+  legend.box.spacing = unit(1, "mm"),
+  legend.title = element_blank(),
+  legend.text = element_text(size = 8),
+  legend.background = element_blank(),
+  
+  # labs
+  plot.title = element_text(hjust = 0, face = "bold", size = 12),
+  plot.subtitle = element_text(hjust = 0, face = "plain", size = 10),
+  plot.caption = element_text(size = 8, colour = "#B3B1B1", hjust = 0),
+  
+  # facets title
+  strip.placement = "outside",
+  strip.background = element_rect(fill = "#e8dbd6"),
+  strip.switch.pad.grid = unit(0.2, "cm"),
+  strip.text = element_text(size = 7)
+)
+```
+
+Now plot the final graph
+
+```{r}
+#| label: cherrybomb-plot
+#| warning: false
+
+cherrybomb <- p6 +
+  cherrybomb_theme
+
+print(cherrybomb)
+```
+
+## Save the plot
+
+Let's save the plot
+
+```{r}
+#| label: save-plot
+#| output: false
+
+ggsave("images/cherry_bomb_03.png", width = 12, height = 7, units = "cm", dpi = 350)
+```
+
+## Additional Notes
+
+This graph was both fun and challenging to make. Unfortunately, we have not managed to replicate one minor detail. If you take a more detailed look at the plot, we still have an **uncomplete label for the tickmarks in the y-axis**. I find it difficult to create different y-axis tickmarks and their labels for each facet in the plot. It is very unfortunate that the `facet_grid()` function is not yet provided with the ability to have/set different scales/limits and breaks for each facet. And yet, I also haven’t found a way to assign different breaks and limits for each facet. Thankfully the communities are developing it right now. For more info, you can [click here](https://github.com/zeehio/facetscales).
+
+Thank you for reading and we hope this article can help you to find the delight in exploring data visualization in R. Happy learning and coding!

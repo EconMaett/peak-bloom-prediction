@@ -1,0 +1,189 @@
+---
+title: "KYOTO CHERRY BLOSSOM TREND (812-2015): RECREATING OUR WORLD IN DATA’S VISUALIZATION"
+format: 
+  html:
+    theme: darkly
+    code-fold: show
+editor: source
+---
+
+Original blog post: <https://alierwaidatastudio.com/tutorials/posts/2024/03/09/tutorial-03>.
+
+This tutorial aims to recreate an intriguing visual by Our World in Data named [Day of the year with peak cherry blossom in Kyoto, Japan](https://ourworldindata.org/grapher/date-of-the-peak-cherry-tree-blossom-in-kyoto?time=earliest..2023).
+
+## Load packages
+
+```{r}
+#| label: laod-pkgs
+#| output: false
+
+rm(list = ls(all.names = TRUE))
+
+library(tidyverse)
+library(scales)
+library(ggtext)
+
+file_kyoto  <- "data/KyotoFullFlower7.xls"
+icon_sakura <- "images/blossom.png"
+
+invisible(Sys.setlocale("LC_TIME", "en_GB.UTF-8"))
+```
+
+## Import the data
+
+```{r}
+#| label: load-data
+
+cherry_raw <- readxl::read_excel(path = file_kyoto, skip = 25) |> 
+  set_names(nm = c("year", "full_flowering_date_doy", "full_flowering_date", "source", "type", "reference")) |> 
+  mutate(
+    date = str_c(year, str_sub(full_flowering_date, 1, 1), str_sub(full_flowering_date, 2, 3), sep = "-")
+  ) |> 
+  filter(!is.na(date)) |> 
+  mutate(
+    rolling_day_of_year = slider::slide_dbl(.x = full_flowering_date_doy, .f = mean, .before = 20, .complete = TRUE)
+  )
+
+tail(cherry_raw)
+```
+
+## Writing a function
+
+We can write a function so that we can easily play with other moving average windows.
+
+```{r}
+#| label: define-function
+
+tweak_cherry_trees_data <- function(data, window, cols) {
+  
+  data |> 
+    janitor::clean_names() |> 
+    select({{ cols }}) |> 
+    mutate(
+      date = str_c(
+        year,
+        str_sub(flowering_month, start = 1, end = 1),
+        str_sub(flowering_month, start = 1, end = 1),
+        sep = "-"
+      )
+    ) |> 
+    filter(!is.na(date)) |> 
+    mutate(
+      rolling_day_of_year = slider::slide_dbl(
+        .x = flowering_day_of_year,
+        .f = mean,
+        .before = {{ window }},
+        .complete = TRUE
+      )
+    )
+}
+```
+
+## Test the function
+
+Let's test our new function
+
+```{r}
+#| label: test-function
+
+cherry_trees_raw <- readxl::read_excel(path = file_kyoto, skip = 25)
+
+# Clean and transform the data
+cherry_trees_data_tbl <- tweak_cherry_trees_data(
+  data = cherry_trees_raw, 
+  window = 20, 
+  cols = c(
+    year = ad,
+    flowering_day_of_year = full_flowering_date_doy,
+    flowering_month = full_flowering_date
+  )
+)
+```
+
+## Plotting cherry trees data
+
+```{r}
+#| label: plot-cherry-trees
+#| warning: false
+
+# Plot cherry trees data ------
+myplot <- ggplot(
+  data = cherry_trees_data_tbl, 
+  mapping = aes(x = year, y = flowering_day_of_year)
+  ) +
+  geom_point(na.rm = TRUE, size = 0.8) +
+  geom_line(
+    mapping = aes(y = rolling_day_of_year),
+    na.rm = TRUE,
+    linewidth = 1.2,
+    color = "#5e2ce8"
+  ) +
+  annotate(
+    geom = "text",
+    x = 1990,
+    y = 80,
+    label = "20-Year\n Average",
+    color = "#5e2ce8",
+    size = 4,
+    na.rm = TRUE
+  ) +
+  scale_x_continuous(
+    limits = c(812, 2015),
+    breaks = c(812, 1000, 1200, 1400, 1600, 1800, 2023)
+  ) +
+  scale_y_continuous(
+    limits = c(70, 120),
+    labels = c(
+      "March 11", "March 21", "March 31",
+      "April 10", "April 20", "April 30"
+    )
+  ) +
+  ggthemes::theme_wsj() +
+  labs(
+    title = "Cherry trees have been blossoming earlier due to warmer spring temperatures",
+    subtitle = "Date of peak cherry tree (***Prunus jamasakura***) in Kyoto, Japan",
+    caption = "**Data Source: Yasuk Aono (2021:2024)**<br>**Note:** The <span style='color: #5e2ce8'>20-year average</span> is calculated when there are at least five years with data in the <span style='color: #5e2ce8'>20-year window</span>. The dates are off by one day on the years.<br><br>
+        OurWorldInData.org/biodiversity|CC BY"
+  ) +
+  theme(
+    plot.title = element_textbox_simple(
+      size = 12,
+      margin = margin(t = 15, r = 0, b = 5, l = 0),
+      lineheight = 1.2,
+      linewidth = 0.3
+    ),
+    plot.title.position = "plot",
+    plot.subtitle = element_textbox_simple(
+      size = 10,
+      hjust = 0,
+      margin = margin(t = 15, r = 0, b = 15, l = 0),
+      lineheight = 1.2,
+      linewidth = 0.1
+    ),
+    axis.text = element_text(
+        size = 8,
+        color = "darkgray"
+    ),
+    plot.caption = element_textbox_simple(
+      size = 8,
+      margin = margin(t = 15, r = 0, b = 10, l = 0),
+      lineheight = 1.2,
+      linewidth = 0.1
+    ),
+    axis.line = element_line(color = "darkgray"),
+    axis.ticks = element_line(color = "darkgray"),
+    plot.caption.position = "plot",
+    plot.margin = margin(15, 15, 15, 15)
+  )
+
+print(myplot)
+```
+
+Save the plot
+
+```{r}
+#| label: save-plot
+#| output: false
+
+ggsave("images/cherry_bomb_04.png", width = 25, height = 18, units = "cm", dpi = 300)
+```

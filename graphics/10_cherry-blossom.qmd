@@ -1,0 +1,262 @@
+---
+title: "Cherry Bomb - Economist Plot Remake"
+format: 
+  html:
+    theme: darkly
+    code-fold: show
+editor: source
+---
+
+Original post on RPubs: <https://rpubs.com/nabiilahardini/ecoplot>
+
+## Introduction
+
+In this article, we explore one way to remake the plot by The Economist [Cherry Bomb: the trend in early blosoming date of Sakura trees in Kyoto](https://www.economist.com/graphic-detail/2017/04/07/japans-cherry-blossoms-are-emerging-increasingly-early).
+
+The raw dataset used for this graph can be obtained from the [phenological observations curated by Dr. Yasuyuki Aono from Osaka Prefecture University](http://atmenv.envi.osakafu-u.ac.jp/aono/kyophenotemp4/).
+
+## Load packages
+
+Clear your workspace, load all the necessary packages and define some parameters to use later on.
+
+```{r}
+#| label: load-pkgs
+#| output: false
+
+library(tidyverse)
+library(readxl)
+library(ggimage)
+
+file_kyoto  <- "data/KyotoFullFlower7.xls"
+icon_sakura <- "images/blossom.png"
+
+invisible(Sys.setlocale("LC_TIME", "en_GB.UTF-8"))
+```
+
+## Import dataset
+
+```{r}
+#| label: load-dataset
+#| warning: false
+
+sakura <- read_excel(
+  path = file_kyoto, 
+  skip = 26, 
+  sheet = 1,
+  col_names = c("ad", "full_flowering_date_doy", "full_flowering_date", "source", "type", "reference")
+)
+
+tail(sakura, n = 5)
+```
+
+The data set has the following columns:
+
+- **ad**: year of observation
+- **full_flowering_date_doy**: full flowering date day of year
+- **full_flowering_date**: full flowering date e.g., 401 = April 1st
+- **type**: source code
+- **ref**: reference to original data source
+
+## Data wrangling
+
+```{r}
+#| label: data-wrangling
+
+# Select columns to plot
+sakura <- sakura |> 
+  select(ad, full_flowering_date)
+
+# remove rows with missing values in "full_flowering_date"
+# rename ad to year
+sakura_used <- sakura |> 
+  filter(!is.na(full_flowering_date)) |> 
+  rename(year = ad)
+
+# separate full_flowering_date into month and day columns
+sakura_plot <- sakura_used |> 
+  separate_wider_position(full_flowering_date, widths = c(month = 1, day = 2))
+
+# remove leading zero in day variable
+sakura_plot <- sakura_plot |> 
+  mutate(day = str_remove(day, "^0+"))
+
+# create a new date column
+sakura_plot <- sakura_plot |> 
+  mutate(date = make_date(year, month, day))
+
+# replace the month column with a named variable
+sakura_plot <- sakura_plot |> 
+  mutate(month = month(date, label = TRUE, abbr = FALSE))
+
+tail(sakura_plot, n = 5)
+unique(sakura_plot$month) # April March May
+# We want to reverse the ordering
+
+sakura_plot <- sakura_plot |> 
+  mutate(month = factor(month, levels = rev(levels(month)))) |> 
+  mutate(day = as.numeric(day)) |> 
+  mutate(random_size = sample(x = c(0.015, 0.020, 0.025, 0.030), size = nrow(sakura_plot), replace = TRUE))
+
+
+unique(sakura_plot$month)
+tail(sakura_plot)
+```
+
+## Plot
+
+### Canvas
+
+```{r}
+#| label: create-canvas
+#| warning: false
+
+canvas <- ggplot(data = sakura_plot, mapping = aes(x = year, y = day)) +
+  facet_grid(rows = month ~ ., scales = "free", space = "free", switch = "both")
+
+print(canvas)
+```
+
+### Add the data
+
+```{r}
+#| label: add-data
+#| warning: false
+
+geom1 <- canvas + 
+  geom_point(shape = 42, size = 6, colour = "#af427e")
+
+print(geom1)
+```
+
+### Smooth the data
+
+```{r}
+#| label: smooth-data
+#| warning: false
+#| message: false
+
+geom2 <- geom1 +
+  geom_smooth(mapping = aes(fill = "Trend"), span = 0.1, se = FALSE, colour = "#644128") +
+  geom_smooth(mapping = aes(colour = "Confidence Interval"), span = 0.1, fill = "#a56c56", linetype = 0)
+
+print(geom2)
+```
+
+### Customize axis
+
+```{r}
+#| label: customize-axis
+#| warning: false
+#| message: false
+
+geom3 <- geom2 +
+  scale_x_continuous(
+    limits = c(812, 2020), 
+    breaks = c(seq(from = 800, to = 2000, by = 100), 2016),
+    labels = c("800", "", "1000", "", "1200", "", "1400", "", "1600", "", "1800", "", "", "2016")
+    ) +
+  scale_y_continuous(
+    breaks = c(1, 10, 20), 
+    labels = c("1st", "10th", "20th")
+    )
+
+print(geom3)
+```
+
+### Add labels
+
+```{r}
+#| label: add-labels
+#| message: false
+#| warning: false
+
+geom4 <- geom3 +
+  labs(
+    title = "Cherry Bomb",
+    subtitle = "Date of cherry-blossom peak-bloom in Kyoto, Japan, 800AD-2016",
+    x = expression(italic("Year")),
+    y = expression(italic("Date of cherry-blossom peak-bloom")),
+    caption = "Source: Yasuyuki Aono, Osaka Prefecture University"
+  )
+
+print(geom4)
+```
+
+### Customize theme
+
+```{r}
+#| label: customize-theme
+#| warning: false
+
+theme_cherrybomb <- theme(
+  panel.background = element_rect(fill = "#ffffff"),
+  panel.grid.major.y = element_line(colour = "#a56c56", linetype = "solid"),
+  panel.grid.major.x = element_blank(),
+  panel.grid.minor = element_blank(),
+  panel.spacing = unit(0.1, units = "cm"),
+  axis.line.x = element_line(color = "black"),
+  axis.line.y = element_blank(),
+  axis.text = element_text(size = 8),
+  axis.title = element_text(size = 8),
+  legend.position = c(0.81, 1.04),
+  legend.key = element_blank(),
+  legend.box = "horizontal",
+  legend.box.spacing = unit(1, units = "mm"),
+  legend.title = element_blank(),
+  legend.text = element_text(size = 8),
+  legend.background = element_blank(),
+  plot.title = element_text(hjust = 0, face = "bold", size = 12),
+  plot.subtitle = element_text(hjust = 0, face = "plain", size = 10),
+  plot.caption = element_text(hjust = 0, size = 8, colour = "#b3b1b1"),
+  strip.placement = "outside",
+  strip.background = element_rect(fill = "#e8dbd6"),
+  strip.switch.pad.grid = unit(0.2, units = "cm"),
+  strip.text = element_text(size = 8)
+)
+
+geom5 <- geom4 +
+  theme_cherrybomb
+
+print(geom5)
+```
+
+### Add sakura icon
+
+```{r}
+#| label: add-sakura-icon
+#| warning: false
+
+cherrybomb <- canvas +
+  geom_smooth(mapping = aes(fill = "Trend"), span = 0.1, se = FALSE, colour = "#644128") +
+  geom_image(mapping = aes(size = I(random_size)), image = icon_sakura) +
+  geom_smooth(mapping = aes(colour = "Confidence Interval"), span = 0.1, fill = "#a56c56", linetype = 0) +
+    scale_x_continuous(
+    limits = c(812, 2020), 
+    breaks = c(seq(from = 800, to = 2000, by = 100), 2016),
+    labels = c("800", "", "1000", "", "1200", "", "1400", "", "1600", "", "1800", "", "", "2016")
+    ) +
+  scale_y_continuous(
+    breaks = c(1, 10, 20), 
+    labels = c("1st", "10th", "20th")
+    ) +
+    labs(
+    title = "Cherry Bomb",
+    subtitle = "Date of cherry-blossom peak-bloom in Kyoto, Japan, 800AD-2016",
+    x = expression(italic("Year")),
+    y = expression(italic("Date of cherry-blossom peak-bloom")),
+    caption = "Source: Yasuyuki Aono, Osaka Prefecture University"
+  ) +
+  theme_cherrybomb
+  
+
+print(cherrybomb)
+```
+
+### Save the plot
+
+```{r}
+#| label: save-plot
+#| output: false
+
+ggsave("images/cherry_bomb_01.png", width = 25, height = 18, units = "cm", dpi = 300)
+```

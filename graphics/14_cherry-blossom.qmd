@@ -1,0 +1,631 @@
+---
+title: "rethinking-cherry-blossom"
+format: 
+  html:
+    theme: darkly
+    code-fold: true
+editor: source
+---
+
+This script recreates some of the examples using the cherry-blossom data in the book [Statistical Rethinking](https://xcelab.net/rm/) by Richard McElreath.
+
+The contents of the book are available on GitHub: <https://github.com/rmcelreath/rethinking>.
+
+The Kyoto cherry-blossom data is used in:
+
+- <https://www.stat.cmu.edu/~cshalizi/dst/20/lectures/08/lecture-08.Rmd>
+
+- <https://xcelab.net/rmpubs/sr2/code.txt>
+
+- <https://github.com/corriebar/Statistical-Rethinking/blob/master/Chapter_4/chapter4_Ex.Rmd>
+
+## Install packages
+
+You can install {rethinking} from within R using
+
+```{r}
+#| label: install-pkgs
+#| eval: false
+#| echo: false
+
+install.packages(c("coda", "mvtnorm", "loo", "dagitty", "shape"))
+devtools::install_github("rmcelreath/rethinking")
+```
+
+## Load packages
+
+Clear your workspace, load all the necessary R packages for this exercise and define some parameters.
+
+```{r}
+#| label: load-pkgs
+#| echo: false
+
+rm(list = ls(all.names = TRUE))
+
+library(tidyverse)
+library(rethinking)
+library(splines)
+
+data("cherry_blossoms")
+
+tail(cherry_blossoms, n = 5)
+```
+
+## Linear prediciton for time series
+
+URL: <https://www.stat.cmu.edu/~cshalizi/dst/20/lectures/08/lecture-08.Rmd>
+
+$$
+\[
+\newcommand{\Expect}[1]{\mathbb{E}\left[ #1 \right]}
+\newcommand{\Var}[1]{\mathrm{Var}\left[ #1 \right]}
+\newcommand{\SampleVar}[1]{\widehat{\mathrm{Var}}\left[ #1 \right]}
+\newcommand{\Cov}[1]{\mathrm{Cov}\left[ #1 \right]}
+\newcommand{\TrueRegFunc}{\mu}
+\newcommand{\EstRegFunc}{\widehat{\TrueRegFunc}}
+\DeclareMathOperator{\tr}{tr}
+\DeclareMathOperator*{\argmin}{argmin}
+\DeclareMathOperator{\det}{det}
+\newcommand{\TrueNoise}{\epsilon}
+\newcommand{\EstNoise}{\widehat{\TrueNoise}}
+\]
+$$
+
+### In our last episode
+
+-   General approach to optimal linear prediction
+    -   Predict $Y$ from $\vec{Z} = [Z_1, Z_2, \ldots Z_p]$
+    -   Prediction is $\alpha + \vec{\beta} \cdot \vec{Z}$
+    -   Best $\alpha = \Expect{Y} - \vec{\beta} \cdot \Expect{\vec{Z}}$
+    -   Best $\beta = \Var{\vec{Z}}^{-1} \Cov{\vec{Z}, Y}$
+    -   Prediction is also $\Expect{Y} + \Var{\vec{Z}}^{-1} \Cov{\vec{Z}, Y} \cdot (\vec{Z} - \Expect{\vec{Z}})$
+-   Today: application to time series
+    -   What can this do for us?
+    -   How do we find the covariances?
+
+### Optimal linear prediction for time series
+
+-   Given: $X(t_1), X(t_2), \ldots X(t_n)$
+-   Desired: prediction of $X(t_0)$
+
+$$
+\begin{eqnarray}
+  m(t_0) & = & \alpha + \vec{\beta} \cdot \left[\begin{array}{c} X(t_1) \\ X(t_2) \\ \vdots \\ X(t_n) \end{array}\right]\\
+  \alpha & = & \Expect{X(t_0)} - \vec{\beta} \cdot \left[\begin{array}{c} \Expect{X(t_1)}\\ \Expect{X(t_2)} \\ \vdots \\ \Expect{X(t_n)}\end{array}\right] ~ \text{(goes away if everything's centered)}\\
+  \vec{\beta} & = &  {\left[\begin{array}{cccc} \Var{X(t_1)} & \Cov{X(t_1), X(t_2)} & \ldots & \Cov{X(t_1), X(t_n)}\\
+  \Cov{X(t_1), X(t_2)} & \Var{X(t_2)} & \ldots & \Cov{X(t_2), X(t_n)}\\
+  \vdots & \vdots & \ldots & \vdots\\
+  \Cov{X(t_1), X(t_n)} & \Cov{X(t_2), X(t_n)} & \ldots & \Var{X(t_n)}\end{array}\right]}^{-1} \left[\begin{array}{c} \Cov{X(t_0), X(t_1)}\\
+  \Cov{X(t_0), X(t_2)}\\ \vdots \\ \Cov{X(t_0), X(t_n)}\end{array}\right]
+\end{eqnarray}
+$$
+
+-   What is this good for?
+
+### Interpolation
+
+-   Time series often have gaps
+    -   Instruments fail, people mess up, circumstances...
+-   What happened at the times in between the observations?
+
+### Back to Kyoto
+
+```{r}
+#| label: plot-cherry-blossoms
+#| warning: false
+
+kyoto <- cherry_blossoms
+plot(doy ~ year, data = kyoto, type = "o", pch = 16, cex = 0.5, ylab = "Day in year of full flowering", xlab = "Year (AD)", main = "Cherry blossoms in Kyoto")
+rug(side = 1, x = na.omit(kyoto)$year)
+```
+
+- A lot of what we see in this plot is just made up
+
+### What we3 didn't tell R to make up
+
+```{r}
+#| label: plot-again
+#| warning: false
+
+plot(doy ~ year, data = kyoto, type = "p", pch = 16, cex = 0.3, ylab = "Day in year of full flowering", xlab = "Year (AD)", main = "Cherry blossoms in Kyoto")
+rug(side = 1, x = na.omit(kyoto)$year)
+```
+
+### When *did* the cherries flower in 1015?
+
+> - We need $\Cov{X(1015), X(t_i)}$ for every year $t_i$ where we have data
+> - We need $\Expect{X(t_i)}$, $\Var{X(t_i)}$ and $\Cov{X(t_i), X(t_j)}$ ditto
+> - We need $\Expect{X(1015)}$
+
+### Similarly for extrapolation
+
+- What was $X(800)$? ("retrodiction")
+- What will $X(2021)$ be? ("prediction" or "forecast" in the strictest sense)
+
+### Getting the expectations and covariances
+
+> -   We only see each $X(t_i)$ once
+>     -   *Maybe* gives us an idea of $\Expect{X(t_i)}$
+>     -   but not $\Var{X(t_i)}$ or $\Cov{X(t_i), X(t_j)}$
+>     -   let alone $\Cov{X(t_0), X(t_i)}$
+> -   We could repeat the experiment many times
+> -   We could make assumptions
+
+### Repeating the experiment
+
+```{r}
+#| label: simulation-example
+
+wiener.bridge <- function(n, sigma2 = 1) {
+  # Divide the time interval [0,1] into n equal chunks; on each chunk,
+  # take an independent Gaussian step of variance $\sigma^2/n$;
+  # then subtract the straight-line path from the origin to the end.
+  W <- cumsum(rnorm(n, mean = 0, sd = sqrt(sigma2 / n)))
+  B <- W - W[n] * (1:n) / n
+  B <- c(0, B) # The process always starts at 0
+  return(B)
+}
+
+# Make an empty plot of the right size
+plot(0,
+  type = "n", xlim = c(0, 1), ylim = c(-1, 1), xlab = "t",
+  ylab = expression(X(t))
+)
+# Now fill it in with multiple runs of the process
+invisible(replicate(20, lines((0:100) / 100, wiener.bridge(100), col = "grey")))
+```
+
+$$
+\begin{eqnarray}
+  \overline{x}(t) \equiv \frac{1}{n}\sum_{i=1}^{n}{x^{(i)}(t)} & \rightarrow & \Expect{X(t)}\\
+  \frac{1}{n}\sum_{i=1}^{n}{(x^{(i)}(t) - \overline{x}(t)) (x^{(i)}(s) - \overline{x}(s))} & \rightarrow & \Cov{X(t), X(s)}
+\end{eqnarray}
+$$
+
+### Making assumptions
+
+> -   Assume some covariances (and expectations) are equal
+> -   Weaker: assume some of them are *similar*
+
+#### Stationarity (assuming covariances are equal)
+
+> -   A time series is **weakly stationary** when $\Expect{X(t)} = \Expect{X(s)}$ (constant in time) and $\Cov{X(t), X(s)} = \gamma(|t-s|)$
+>     -   $\gamma(h)$ is the **autocovariance function** at **lag** $h$
+>     -   this is also called "second-order" or "wide-sense" stationarity
+>         -   We'll cover strong / full / strict stationarity later
+> -   Weak stationarity implies all the expectations are the same
+> -   Weak stationarity implies $\Cov{X(t), X(t+h)} = \Cov{X(s), X(s+h)}$ so lots of covariances are the same
+> -   Weak stationarity lets us pool information:
+
+$$
+\begin{eqnarray}
+  \overline{x} \equiv \frac{1}{n}\sum_{i=1}^{n}{X(t_i)} & \rightarrow & \Expect{X(0)}\\
+  \frac{1}{n}\sum_{i=1}^{n}{(x(t_i) - \overline{x})(x(t_i + h) - \overline{x})} & \rightarrow & \gamma(h)
+\end{eqnarray}
+$$
+
+#### The autocovariance function
+
+-   $\gamma(0) = \Var{X(t)}$ (constant in $t$)
+-   $\rho(h) \equiv \frac{\gamma(h)}{\gamma(0)} =$ **autocorrelation** function
+
+#### Assuming stationarity ....
+
+$$
+\begin{eqnarray}
+  \mathbf{v} & \equiv & \left[\begin{array}{ccc} \gamma(0) & \gamma(|t_1 - t_2|) & \ldots & \gamma(|t_1 - t_n|)\\
+  \gamma(|t_2-t_1|) & \gamma(0) & \ldots & \gamma(|t_2-t_n|)\\
+  \vdots & \vdots & \ldots & \vdots\\
+  \gamma(|t_n-t_1|) & \gamma(|t_n-t_2|) & \ldots & \gamma(0)\end{array}\right]\\
+  \mathbf{c} & = & \left[\begin{array}{c} \gamma(|t_0 - t_1|)\\ \gamma(|t_0-t_2|) & \vdots \\ \gamma(|t_0 -t_n|)\end{array} \right]\\
+  \vec{\beta} & = & \mathbf{v}^{-1}\mathbf{c}\\
+  m(t_0) & = & \overline{x} + \vec{\beta} \cdot  \left[\begin{array}{c} X(t_1) -\overline{x}\\
+  X(t_2) - \overline{x} \\ \vdots \\ X(t_n) -\overline{x}\end{array}\right] = \overline{x} + \mathbf{c}^{T}\mathbf{v}^{-1}  \left[\begin{array}{c} X(t_1) -\overline{x}\\
+  X(t_2) - \overline{x} \\ \vdots \\ X(t_n) -\overline{x}\end{array}\right]\\
+  \Var{X(t_0) - m(t_0)} & = & \gamma(0) - \mathbf{c}^T\mathbf{v}^{-1} \mathbf{c}
+\end{eqnarray}
+$$
+
+### In R
+
+```{r}
+#| eval: false
+#| echo: true
+
+acf(x, lag.max, type, plot, na.action, ...)
+```
+
+> -   `x` = a time series (e.g., a vector) *or* a data frame of multiple time series
+> -   `lag.max` = maximum value of lag $h$
+>     -   Calculates $\gamma(0), \gamma(1), \ldots \gamma(h)$ and stops there
+> -   `type` = correlation (default) or covariance?
+> -   `plot` = make a plot? (default)
+> -   `na.action` = how to handle NAs? default is give up, `na.pass` will use complete pairs
+
+### In R
+
+```{r}
+#| echo: true
+
+kyoto.acf <- acf(kyoto$Flowering.DOY, lag.max = 100, type = "covariance", na.action = na.pass)
+```
+
+### In R
+
+```{r}
+#| echo: true
+
+kyoto.acf[0:5] # Why 0?
+kyoto.acf[0:5]$acf
+```
+
+### When was the flowering in 1015?
+
+```{r}
+#| echo: true
+
+# Find years within +- 49 of 1015
+# Why +- 49 when we have covariances out to lag 100?
+available.years <- with(na.omit(kyoto), Year.AD[Year.AD > 1015 - 49 & Year.AD < 1015 + 49])
+historical.mean <- mean(kyoto$Flowering.DOY, na.rm = TRUE)
+CovYZ <- matrix(kyoto.acf[abs(available.years - 1015)]$acf, ncol = 1)
+year.lags <- outer(available.years, available.years, "-")
+year.lags <- abs(year.lags)
+VarZ <- kyoto.acf[year.lags]$acf
+VarZ <- matrix(VarZ, ncol = length(available.years), byrow = FALSE)
+Z <- with(kyoto, Flowering.DOY[Year.AD %in% available.years])
+(fitted.value <- historical.mean + (Z - historical.mean) %*% solve(VarZ) %*% CovYZ)
+(fitted.value.se <- sqrt(as.matrix(kyoto.acf[0]$acf) - t(CovYZ) %*% solve(VarZ) %*% CovYZ))
+```
+
+#### When was the flowering in 1015?
+
+```{r}
+plot(available.years, solve(VarZ) %*% CovYZ,
+  xlab = "Year", ylab = expression(hat(beta)),
+  main = "Coefficient for estimating X(1015)"
+)
+abline(h = 0)
+abline(v = 1015, lty = "dashed")
+```
+
+### This is a lot of work ....
+
+...and we'd need to re-do most of it for every other year
+
+... so we should write a function
+
+```{r}
+#| echo: true
+
+# Assuming stationarity, calculate predictions from the Kyoto flowering
+# data
+# Uses observations up to 49 years on either side of the target time
+# Inputs: vector of years at which predictions are desired (times)
+# Outputs: 3-column matrix giving times, fitted values, and standard errors
+# Presumes:
+# kyoto is in memory (and is a data frame with the right column names)
+# kyoto.acf is in memory (and has covariances out to lag 100 years)
+# Every year in times has at least one data point within 49 years
+kyoto.prediction <- function(times) {
+  # NOTE: Some bad programming practices here: presumes the existence of kyoto,
+  # kyoto.acf, etc. the magic number 49 is written in to the code, etc.
+  # Can you make those arguments to the function, so this
+  # could be used on other, similar time series?
+
+  # Find the global mean
+  historical.mean <- mean(kyoto$Flowering.DOY, na.rm = TRUE)
+  # Find the global variance
+  historical.variance <- as.matrix(kyoto.acf[0]$acf)
+  # Prepare a 3-column matrix for storing times, fits, and standard errors
+  fits <- matrix(0, nrow = length(times), ncol = 3)
+  colnames(fits) <- c("time", "fit", "se")
+  # Filling the first column is easy...
+  fits[, "time"] <- times
+  # ... but it'll  also help to access rows by name
+  rownames(fits) <- paste(times)
+  # Do the calculation for each time
+  for (t in times) {
+    # What years have data to serve as predictors?
+    available.years <- with(na.omit(kyoto), Year.AD[Year.AD > t - 49 & Year.AD < t + 49])
+    # Don't include the year itself
+    # Though you could!
+    available.years <- setdiff(available.years, t)
+    # Covariances between the predictors and the predictand
+    CovYZ <- matrix(kyoto.acf[abs(available.years - t)]$acf, ncol = 1)
+    # What are all the different lags between the predictors?
+    year.lags <- outer(available.years, available.years, "-")
+    year.lags <- abs(year.lags)
+    # What are the implied covariances between the predictors?
+    VarZ <- kyoto.acf[year.lags]$acf
+    VarZ <- matrix(VarZ, ncol = length(available.years), byrow = FALSE)
+    # What are the actual values of the predictors?
+    Z <- with(kyoto, Flowering.DOY[Year.AD %in% available.years])
+    # What's the predicted value?
+    fits[paste(t), "fit"] <- historical.mean + (Z - historical.mean) %*% solve(VarZ) %*% CovYZ
+    # What's the standard error = sqrt of variance of error?
+    # This should be 0 at every point which was in the data used for
+    # estimation, but round-off error sometimes gives small negative
+    # values inside the square root --- rectify those to 0 to avoid
+    # annoying warning messages
+    fits[paste(t), "se"] <- sqrt(max(0, historical.variance - t(CovYZ) %*% solve(VarZ) %*% CovYZ))
+  }
+  return(data.frame(fits))
+}
+```
+
+```{r}
+# Calculate fits for all years
+
+# Avoid some magic numbers...
+first.year <- min(kyoto$Year.AD)
+last.year <- max(kyoto$Year.AD)
+all.fits <- kyoto.prediction(first.year:last.year)
+```
+
+### Finally, some interpolation: close up
+
+```{r}
+plot(Flowering.DOY ~ Year.AD,
+  data = kyoto, type = "p", pch = 16, cex = 0.5,
+  ylab = "Day in year of full flowering", xlab = "Year (AD)",
+  xlim = c(1000, 1050)
+)
+lines(fit ~ time, data = all.fits, col = "blue")
+lines(fit - se ~ time, data = all.fits, col = "blue", lty = "dashed")
+lines(fit + se ~ time, data = all.fits, col = "blue", lty = "dashed")
+legend("bottomleft",
+  legend = c("Observation X(t)", expression(paste("Interpolation ", hat(m)(t))), expression(hat(m)(t) %+-% sqrt(Var(X(t) - hat(m(t)))))), lty = c(NA, "solid", "dashed"),
+  pch = c(16, NA, NA), col = c("black", "blue", "blue"), cex = 0.75
+)
+# lines(all.fits$time, all.fits$fit+all.fits$se, col="blue", lty="dashed")
+```
+
+### Finally, some interpolation: zoom out
+
+```{r}
+plot(Flowering.DOY ~ Year.AD,
+  data = kyoto, type = "p",
+  ylab = "Day in year of full flowering", xlab = "Year (AD)", pch = 16, cex = 0.5
+)
+lines(first.year:last.year, all.fits$fit, col = "blue")
+lines(first.year:last.year, all.fits$fit - all.fits$se, col = "blue", lty = "dashed")
+lines(first.year:last.year, all.fits$fit + all.fits$se, col = "blue", lty = "dashed")
+```
+
+### Some extrapolation
+
+```{r}
+#| echo: true
+
+plot(Flowering.DOY ~ Year.AD, data = kyoto, type = "p", pch = 16, cex = 0.5, xlim = c(1970, 2030))
+new.fits <- kyoto.prediction(1970:2030)
+lines(fit ~ time, data = new.fits, col = "blue")
+lines(fit - se ~ time, data = new.fits, col = "blue", lty = "dashed")
+lines(fit + se ~ time, data = new.fits, col = "blue", lty = "dashed")
+```
+
+### Some further extrapolation
+
+```{r}
+plot(Flowering.DOY ~ Year.AD, data = kyoto, type = "p", pch = 16, cex = 0.5, xlim = c(1970, 2060))
+new.fits <- kyoto.prediction(1970:2060)
+lines(fit ~ time, data = new.fits, col = "blue")
+lines(fit - se ~ time, data = new.fits, col = "blue", lty = "dashed")
+lines(fit + se ~ time, data = new.fits, col = "blue", lty = "dashed")
+abline(h = mean(kyoto$Flowering.DOY, na.rm = TRUE), col = "grey")
+```
+
+### What's going on here?
+
+#### Stationarity and trend-plus-fluctuation
+
+-   We can always say $X(t) = \TrueRegFunc(t) + \TrueNoise(t)$, with $\Expect{X(t)} =\TrueRegFunc(t)$ and $\Expect{\TrueNoise(t)} = 0$
+-   If $X$ is (weakly) stationary, then
+    -   $\TrueRegFunc(t) = \mu(0)$, a constant
+    -   $\Cov{\TrueNoise(t), \TrueNoise(s)} = \Cov{X(t), X(s)} = \gamma(|t-s|)$
+-   Assuming a flat trend is pretty strong...
+
+#### Stationary fluctuations around a trend
+
+-   If $\TrueNoise$ is weakly stationary, then $X - \TrueRegFunc$ is weakly stationary
+-   so $X - \EstRegFunc$ should be (approximately) weakly stationary
+-   Recipe:
+    -   Use smoothing to estimate $\Expect{X(t)}$ as $\EstRegFunc(t)$
+    -   Find ACF from $\EstNoise(t) = X(t) - \EstRegFunc(t)$
+        -   Warning: Yule-Slutsky says there's bound to be some correlations in $\EstNoise$...
+    -   Now get the coefficients and predict
+
+#### Detrending the cherry blossoms with a spline
+
+```{r}
+#| echo: true
+
+kyoto.spline <- with(na.omit(kyoto), smooth.spline(x = Year.AD, y = Flowering.DOY))
+# Calculate residuals but pad them out with NAs for easier plotting
+# Start with a vector of all NAs
+residuals.with.NAs <- rep(NA, times = nrow(kyoto))
+# Replace the entries where we can calculate a sensible residual
+residuals.with.NAs[!is.na(kyoto$Flowering.DOY)] <- na.omit(kyoto$Flowering.DOY) - kyoto.spline$y
+# Add it to the data frame as a new column
+kyoto$fluctuation <- residuals.with.NAs
+```
+
+#### Detrending the cherry blossoms with a spline
+
+```{r}
+plot(Flowering.DOY ~ Year.AD,
+  data = kyoto, type = "l",
+  ylab = "Day in year of full flowering", xlab = "Year (AD)",
+  main = "Cherry blossoms in Kyoto"
+)
+rug(side = 1, x = na.omit(kyoto)$Year.AD)
+lines(kyoto.spline, col = "red", lwd = 2)
+```
+
+#### Detrending the cherry blossoms with a spline
+
+```{r}
+plot(fluctuation ~ Year.AD,
+  data = kyoto, type = "l",
+  ylab = "Deviation from spline fit", xlab = "Year (AD)",
+  main = "Detrended cherry blossoms in Kyoto"
+)
+rug(side = 1, x = na.omit(kyoto)$Year.AD)
+```
+
+#### Detrending the cherry blossoms with a spline
+
+```{r}
+acf(kyoto$fluctuation, type = "covariance", na.action = na.pass, lag.max = 100)
+```
+
+### Covariance estimation
+
+-   `acf` uses the sample covariance
+-   Estimates covariance at each lag separately
+-   Sometimes inefficient
+    -   Covariances might have known form, e.g., $\gamma(h) = \gamma(0)e^{-h/\tau}$
+        -   We'll look more at that next time, in the spatial context
+    -   Even if we don't believe something like that, we might believe that $\gamma(h)$ should be close to $\gamma(h-1)$ and $\gamma(h+1)$ $\Rightarrow$ use smoothing
+
+#### Checking stationarity
+
+-   Divide the data into intervals
+-   Re-estimate ACF on each interval
+-   ACF shouldn't change much
+
+#### Checking stationarity: raw data
+
+```{r}
+par(mfrow = c(1, 2))
+with(kyoto, acf(Flowering.DOY[Year.AD < 1410], lag.max = 100, type = "covariance", na.action = na.pass, main = "ACF from years < 1410"))
+with(kyoto, acf(Flowering.DOY[Year.AD >= 141], lag.max = 100, type = "covariance", na.action = na.pass, main = "ACF from years >= 1410"))
+par(mfrow = c(1, 1))
+```
+
+#### Checking stationarity: after spline detrending
+
+```{r}
+par(mfrow = c(1, 2))
+with(kyoto, acf(fluctuation[Year.AD < 1410], lag.max = 100, type = "covariance", na.action = na.pass, main = "ACF from years < 1410"))
+with(kyoto, acf(fluctuation[Year.AD >= 141], lag.max = 100, type = "covariance", na.action = na.pass, main = "ACF from years >= 1410"))
+par(mfrow = c(1, 1))
+```
+
+#### Checking stationarity
+
+-   Divide the data into intervals
+-   Re-estimate ACF on each interval
+-   Shouldn't change much
+    -   How much difference is too much? (Will answer later with simulation)
+-   Some inherent pitfalls:
+    -   Very slight non-stationarity looks pretty stationary
+    -   Stationary but with $\gamma(h) \rightarrow 0$ as $h\rightarrow\infty$ very slowly looks pretty non-stationary
+        -   "Long-range correlations", "slowly-decaying correlations"
+    -   Trends show up as slowly-decaying correlations
+
+### ultile time series
+
+-   $X$ and $U$ are jointly weakly stationary when
+    -   $X$ is weakly stationary, with ACF $\gamma_X$
+    -   $U$ is weakly stationary, with ACF $\gamma_U$
+    -   $\Cov{X(t), U(s)} = \gamma_{UX}(|t-s|)$
+-   `ccf` in R will calculate the cross-covariance (or cross-correlation) function
+    -   So will `acf` if it's given a matrix or data frame
+-   Plug and chug: if predicting $X$ from $U$
+    -   $\gamma_U$ goes into the variance matrix $\mathbf{v}$
+    -   $\gamma_{UX}$ goes into the covariance matrix $\mathbf{c}$
+
+### Where did this all come from?
+
+-   Norbert Wiener (1894--1964)
+    -   One of the great mathematicians of the 20th century
+        -   If you think you've got issues with parents pushing you to succeed in school, read @Wiener-ex-prodigy
+    -   Worked *very* closely with engineers
+    -   His ideas are why we talk about "feedback"
+
+### Wiener's research in 1942
+
+-   Anti-aircraft fire control
+    -   Aim at where the target aircraft **will** be
+    -   The target moves erratically
+    -   $\Rightarrow$ Need to extrapolate a random process
+-   Wiener's solution: basically what we've just done
+    -   Plus the continuous-time version
+    -   Plus implementation using 1940s electronics
+    -   Declassified after the war as @Wiener-time-series
+    -   Parallel work by @Kolmogorov-interpolation-extrapolation
+-   Wiener and Kolmogorov's big idea was to realize that optimal linear prediction didn't need the usual regression assumptions (Gaussian noise, independent variables, etc.)
+
+### Summing up
+
+-   Optimal linear prediction needs to know the trend and the autocovariance function
+-   Estimating them from one time series needs assumptions
+    -   Remove trend
+    -   Find ACF from residuals / estimated fluctuations
+-   Once we have the ACF, finding coefficients is just linear algebra
+
+### Backup: Not inverting the variance matrix
+
+-   $\vec{\beta} = \Var{\vec{Z}}^{-1} \Cov{\vec{Z}, Y}$
+-   But inverting an $n\times n$ matrix takes $O(n^3)$ operations
+    -   Then matrix multiplying $\Var{\vec{Z}}^{-1}$ by $\Cov{\vec{Z}, Y}$ is $O(n^2)$, and multiplying $\vec{\beta}$ by $Z$ is $O(n)$, and we need to do everything $n$ times so over-all time complexity of getting $n$ fits is $n(O(n^3) + O(n^2) + O(n)) = O(n^4)$
+-   Strictly speaking we don't *need* to invert $\Var{\vec{Z}}$; we just need to find the $\vec{\beta}$ which solves the equation $\Var{\vec{Z}} \vec{\beta} = \Cov{\vec{Z}, Y}$
+-   There are algorithms for solving a linear system of equations like this which take only $O(n^2)$ time
+    -   So getting all $n$ predictions is just $O(n^3)$
+    -   May not sound impressive but if $n=1000$ you'll be very glad of that factor of $n$
+-   Details of how to solve without inverting are left to numerical linear algebra texts
+    -   Programming exercise: re-do my code for the optimal linear predictor so it doesn't invert the variance matrix but does `solve()` for the optimal coefficients
+
+### Backup: How good is the optimal linear predictor?
+
+```{r}
+#| echo: true
+
+all.fits$std.residuals <- (kyoto$Flowering.DOY - all.fits$fit) / all.fits$se
+mean(all.fits$std.residuals, na.rm = TRUE)
+sd(all.fits$std.residuals, na.rm = TRUE)
+```
+
+Ideally: mean 0, standard deviation 1
+
+### Backup: How good is the optimal linear predictor?
+
+```{r}
+par(mfrow = c(1, 2))
+plot(kyoto$Year.AD, all.fits$std.residuals,
+  type = "p", pch = 16, cex = 0.5,
+  xlab = "Year (AD)", ylab = "Standardized residuals from Wiener interpolation",
+  main = "Actual residuals"
+)
+plot(kyoto$Year.AD, sample(all.fits$std.residuals),
+  type = "p", pch = 16,
+  cex = 0.5, col = "red", ylab = "", main = "Randomly shuffled residuals", xlab = ""
+)
+par(mfrow = c(1, 1))
+```
+
+This is a pretty good random scatter of points
+
+### Backup: fancier covariance estimation
+
+-   Two (equivalent) definitions of the covariance: \[ \Cov{X(t), X(s)} = \Expect{X(t) X(s)} - \Expect{X(t)}\Expect{X(s)} = \Expect{(X(t) - \Expect{X(t)}) (X(s) - \Expect{X(s)})} \]
+-   Use the 2nd form: *define* \[ \Gamma(t,s) \equiv (X(t) - \Expect{X(t)})(X(s) - \Expect{X(s)}) \] so $\Cov{X(t), X(s)} = \Expect{\Gamma(t,s)}$
+-   Now assume constant mean so we can estimate \[ \widehat{\Gamma}(t,s) = (X(t) - \overline{x}) (X(s) - \overline{x}) \]
+-   Now assume stationarity so $\Cov{X(t), X(s)} = \Expect{\Gamma(t,s)} = \gamma(|t-s|)$
+-   Finally assume $\gamma(h)$ changes slowly in $h$
+-   We can *estimate* $\gamma(h)$ by finding pairs $t, s$ with $|t-s| \approx h$ and averaging $\widehat{\Gamma}(t,s)$
+    -   Or kernel smoothing or spline smoothing or...
+
+### Backup: stationary linear predictor vs. spline
+
+```{r}
+par(pty = "s")
+plot(all.fits$fit, predict(kyoto.spline, x = first.year:last.year)$y,
+  xlab = "Fitted value from Wiener interpolation",
+  ylab = "Fitted value from spline smoothing"
+)
+abline(a = 0, b = 1, col = "grey")
+par(pty = "m")
+```

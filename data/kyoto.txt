@@ -1,0 +1,1222 @@
+STNNo. A.D.     FiFD FuFD WORK TYPE Name of reference
+47759  801   PJ                     -     
+47759  802   PJ                     -     
+47759  803   PJ                     -     
+47759  804   PJ                     -     
+47759  805   PJ                     -     
+47759  806   PJ                     -     
+47759  807   PJ                     -     
+47759  808   PJ                     -     
+47759  809   PJ                     -     
+47759  810   PJ                     -     
+47759  811   PJ                     -     
+47759  812   PJ      0401    1    2 NIHON-KOKI
+47759  813   PJ                     -     
+47759  814   PJ                     -     
+47759  815   PJ      0415    1    2 NIHON-KOKI
+47759  816   PJ                     -     
+47759  817   PJ                     -     
+47759  818   PJ                     -     
+47759  819   PJ                     -     
+47759  820   PJ                     -     
+47759  821   PJ                     -     
+47759  822   PJ                     -     
+47759  823   PJ                     -     
+47759  824   PJ                     -     
+47759  825   PJ                     -     
+47759  826   PJ                     -     
+47759  827   PJ                     -     
+47759  828   PJ                     -     
+47759  829   PJ                     -     
+47759  830   PJ                     -     
+47759  831   PJ      0406    1    2 NIHON-KOKI
+47759  832   PJ                     -     
+47759  833   PJ                     -     
+47759  834   PJ                     -     
+47759  835   PJ                     -     
+47759  836   PJ                     -     
+47759  837   PJ                     -     
+47759  838   PJ                     -     
+47759  839   PJ                     -     
+47759  840   PJ                     -     
+47759  841   PJ                     -     
+47759  842   PJ                     -     
+47759  843   PJ                     -     
+47759  844   PJ                     -     
+47759  845   PJ                     -     
+47759  846   PJ                     -     
+47759  847   PJ                     -     
+47759  848   PJ                     -     
+47759  849   PJ                     -     
+47759  850   PJ                     -     
+47759  851   PJ      0418    1    2 MONTOKUTENNO-JITSUROKU
+47759  852   PJ                     -     
+47759  853   PJ      0414    1    2 MONTOKUTENNO-JITSUROKU
+47759  854   PJ                     -     
+47759  855   PJ                     -     
+47759  856   PJ                     -     
+47759  857   PJ                     -     
+47759  858   PJ                     -     
+47759  859   PJ                     -     
+47759  860   PJ                     -     
+47759  861   PJ                     -     
+47759  862   PJ                     -     
+47759  863   PJ                     -     
+47759  864   PJ      0409    1    2 NIPPON-SANDAI-JITSUROKU
+47759  865   PJ                     -     
+47759  866   PJ      0416    1    2 NIPPON-SANDAI-JITSUROKU
+47759  867   PJ                     -     
+47759  868   PJ                     -     
+47759  869   PJ      0405    5    2 KANKE-BUNSOU     
+47759  870   PJ                     -     
+47759  871   PJ                     -     
+47759  872   PJ                     -     
+47759  873   PJ                     -     
+47759  874   PJ                     -     
+47759  875   PJ                     -     
+47759  876   PJ                     -     
+47759  877   PJ                     -     
+47759  878   PJ                     -     
+47759  879   PJ                     -     
+47759  880   PJ                     -     
+47759  881   PJ                     -     
+47759  882   PJ                     -     
+47759  883   PJ                     -     
+47759  884   PJ                     -     
+47759  885   PJ                     -     
+47759  886   PJ                     -     
+47759  887   PJ                     -     
+47759  888   PJ                     -     
+47759  889   PJ      0414    5    2 NIPPON-SANDAI-JITSUROKU
+47759  890   PJ                     -     
+47759  891   PJ      0419    5    4 NIHONKIRYAKU     
+47759  892   PJ      0417    5    3 FUSHIMIIN-GOKIROKKU
+47759  893   PJ                     -     
+47759  894   PJ      0416    5    2 KANKE-BUNSOU     
+47759  895   PJ      0414    5    4 NIHONKIRYAKU     
+47759  896   PJ      0413    5    4 NIPPON-SANDAI-JITSUROKU 
+47759  897   PJ                     -     
+47759  898   PJ                     -     
+47759  899   PJ                     -     
+47759  900   PJ                     -     
+47759  901   PJ                     -     
+47759  902   PJ      0412    5    8 EST-from-WF(NIHONGI-RYAKU)
+47759  903   PJ                     -     
+47759  904   PJ                     -     
+47759  905   PJ                     -     
+47759  906   PJ                     -     
+47759  907   PJ                     -     
+47759  908   PJ      0407    5    8 EST-from-WF(KIMITADA-SHU)
+47759  909   PJ                     -     
+47759  910   PJ                     -     
+47759  911   PJ                     -     
+47759  912   PJ      0404    1    2 SHINGISHIKI
+47759  913   PJ      0420    5    2 SHUI-WAKASHU
+47759  914   PJ                     -     
+47759  915   PJ                     -     
+47759  916   PJ                     -     
+47759  917   PJ      0405    1    2 KINHISHO
+47759  918   PJ                     -     
+47759  919   PJ                     -     
+47759  920   PJ                     -     
+47759  921   PJ                     -     
+47759  922   PJ                     -     
+47759  923   PJ      0414    5    4 ZOKU-KOKIN-WAKASHU
+47759  924   PJ                     -     
+47759  925   PJ                     -     
+47759  926   PJ      0408    1    2 NIHONKIRYAKU
+47759  927   PJ                     -     
+47759  928   PJ                     -     
+47759  929   PJ                     -     
+47759  930   PJ      0407    5    8 EST-from-WF(SHIRYO-SORAN)
+47759  931   PJ                     -     
+47759  932   PJ                     -     
+47759  933   PJ      0416    5    8 EST-from-WF(SHIRYO-SORAN)
+47759  934   PJ                     -     
+47759  935   PJ                     -     
+47759  936   PJ                     -     
+47759  937   PJ                     -     
+47759  938   PJ                     -     
+47759  939   PJ                     -     
+47759  940   PJ                     -     
+47759  941   PJ      0419    1    2 NIHONKIRYAKU
+47759  942   PJ                     -     
+47759  943   PJ                     -     
+47759  944   PJ                     -     
+47759  945   PJ                     -     
+47759  946   PJ                     -     
+47759  947   PJ                     -     
+47759  948   PJ                     -     
+47759  949   PJ      0417    1    2 NIHONKIRYAKU
+47759  950   PJ      0405    4    2 DAINIHON-SHIRYO
+47759  951   PJ                     -     
+47759  952   PJ                     -     
+47759  953   PJ                     -     
+47759  954   PJ                     -     
+47759  955   PJ      0330    5    4 SHUISHO
+47759  956   PJ                     -     
+47759  957   PJ      0422    1    2 NIHONKIRYAKU
+47759  958   PJ      0419    1    2 NIHONKIRYAKU
+47759  959   PJ      0407    3    2 KYUREKI
+47759  960   PJ      0410    3    2 KYUREKI
+47759  961   PJ      0328    1    2 NIHONKIRYAKU
+47759  962   PJ                     -     
+47759  963   PJ      0404    1    2 NIHONKIRYAKU
+47759  964   PJ                     -     
+47759  965   PJ      0414    1    2 NIHONKIRYAKU
+47759  966   PJ      0408    1    2 NIHONKIRYAKU
+47759  967   PJ      0413    1    2 NIHONKIRYAKU
+47759  968   PJ                     -     
+47759  969   PJ      0408    5    4 NIHONKIRYAKU     
+47759  970   PJ                     -     
+47759  971   PJ                     -     
+47759  972   PJ      0416    5    8 EST-from-WF(SHIRYO-SORAN)
+47759  973   PJ                     -     
+47759  974   PJ      0418    1    2 NIHONKIRYAKU
+47759  975   PJ      0411    5    2 NIHONKIRYAKU
+47759  976   PJ                     -     
+47759  977   PJ      0422    2    2 FUSO-RYAKKI
+47759  978   PJ                     -     
+47759  979   PJ      0414    4    3 DAINIHON-SHIRYO
+47759  980   PJ                     -     
+47759  981   PJ                     -     
+47759  982   PJ                     -     
+47759  983   PJ                     -     
+47759  984   PJ                     -     
+47759  985   PJ      0404    4    2 SHOYUKI
+47759  986   PJ                     -     
+47759  987   PJ                     -     
+47759  988   PJ                     -     
+47759  989   PJ      0410    4    2 SHOYUKI
+47759  990   PJ                     -     
+47759  991   PJ      0414    7    1 EIGA-MONOGATARI(MIHATENUYUME)
+47759  992   PJ                     -     
+47759  993   PJ                     -     
+47759  994   PJ                     -     
+47759  995   PJ                     -     
+47759  996   PJ                     -     
+47759  997   PJ                     -     
+47759  998   PJ                     -     
+47759  999   PJ                     -     
+47759 1000   PJ      0415    3    2 MIDO-KAMPAKUKI
+47759 1001   PJ                     -     
+47759 1002   PJ                     -     
+47759 1003   PJ                     -     
+47759 1004   PJ      0426    3    2 MIDO-KAMPAKUKI
+47759 1005   PJ                     -     
+47759 1006   PJ      0410    1    2 NIHONKIRYAKU
+47759 1007   PJ      0416    5    4 MIDO-KAMPAKUKI
+47759 1008   PJ                     -     
+47759 1009   PJ                     -     
+47759 1010   PJ                     -     
+47759 1011   PJ                     -     
+47759 1012   PJ                     -     
+47759 1013   PJ                     -     
+47759 1014   PJ      0425    5    2 DAI-SAIIN-GYOSHU
+47759 1015   PJ                     -     
+47759 1016   PJ      0420    2    2 MIDO-KAMPAKUKI
+47759 1017   PJ      0409    3    2 MIDO-KAMPAKUKI
+47759 1018   PJ      0423    2    2 MIDO-KAMPAKUKI
+47759 1019   PJ      0408    4    2 SHOYUKI
+47759 1020   PJ                     -     
+47759 1021   PJ                     -     
+47759 1022   PJ                     -     
+47759 1023   PJ                     -     
+47759 1024   PJ                     -     
+47759 1025   PJ                     -     
+47759 1026   PJ                     -     
+47759 1027   PJ                     -     
+47759 1028   PJ                     -     
+47759 1029   PJ      0426    1    2 REKIDAI-HENNEN-SHUSEI
+47759 1030   PJ                     -     
+47759 1031   PJ      0407    4    2 SHOYUKI
+47759 1032   PJ      0420    5    2 NIHONKIRYAKU   
+47759 1033   PJ      0412    5    4 NIHONKIRYAKU    
+47759 1034   PJ      0406    5    8 EST-from-WF(EIGA-MONOGATARI)
+47759 1035   PJ                     -     
+47759 1036   PJ      0413    5    4 NIHONKIRYAKU   
+47759 1037   PJ                     -     
+47759 1038   PJ                     -     
+47759 1039   PJ                     -     
+47759 1040   PJ                     -     
+47759 1041   PJ      0413    1    2 FUSO-RYAKKI
+47759 1042   PJ                     -     
+47759 1043   PJ                     -     
+47759 1044   PJ                     -     
+47759 1045   PJ                     -     
+47759 1046   PJ      0413    7    1 EIGA-MONOGATARI(NEAWASE)
+47759 1047   PJ                     -     
+47759 1048   PJ      0421    6    3 IETSUNE-ASON-SHU
+47759 1049   PJ                     -     
+47759 1050   PJ      0415    7    2 EIGA-MONOGATARI(NEAWASE)
+47759 1051   PJ                     -     
+47759 1052   PJ                     -     
+47759 1053   PJ                     -     
+47759 1054   PJ                     -     
+47759 1055   PJ                     -     
+47759 1056   PJ                     -     
+47759 1057   PJ                     -     
+47759 1058   PJ                     -     
+47759 1059   PJ                     -     
+47759 1060   PJ      0417    5    4 SHIN-SENZAI-WAKASHU
+47759 1061   PJ      0402    6    4 MOROZANE-SHU
+47759 1062   PJ                     -     
+47759 1063   PJ                     -     
+47759 1064   PJ                     -     
+47759 1065   PJ                     -     
+47759 1066   PJ      0415    3    2 SUISAKI
+47759 1067   PJ                     -     
+47759 1068   PJ                     -     
+47759 1069   PJ                     -     
+47759 1070   PJ                     -     
+47759 1071   PJ      0423    7    2 SHUGAKKAIKI
+47759 1072   PJ                     -     
+47759 1073   PJ      0413    7    2 EIGA-MONOGATARI(MATSUNO-SHIDUE)
+47759 1074   PJ                     -     
+47759 1075   PJ                     -     
+47759 1076   PJ                     -     
+47759 1077   PJ                     -     
+47759 1078   PJ                     -     
+47759 1079   PJ                     -     
+47759 1080   PJ      0411    3    2 SUISAKI
+47759 1081   PJ                     -     
+47759 1082   PJ                     -     
+47759 1083   PJ      0406    3    1 GONIJO-MOROMICHIKI
+47759 1084   PJ      0429    5    4 ZOKU-GOSEN-WAKASHU
+47759 1085   PJ                     -     
+47759 1086   PJ                     -     
+47759 1087   PJ                     -     
+47759 1088   PJ      0413    3    2 GONIJO-MOROMICHIKI
+47759 1089   PJ                     -     
+47759 1090   PJ      0415    3    2 GONIJO-MOROMICHIKI
+47759 1091   PJ                     -     
+47759 1092   PJ                     -     
+47759 1093   PJ      0415    3    2 GONIJO-MOROMICHIKI
+47759 1094   PJ                     -     
+47759 1095   PJ      0410    5    4 CHUYUKI
+47759 1096   PJ      0405    3    2 GONIJO-MOROMICHIKI
+47759 1097   PJ                     -     
+47759 1098   PJ      0410    4    2 CHUYUKI
+47759 1099   PJ      0413    3    1 GONIJO-MOROMICHIKI
+47759 1100   PJ                     -     
+47759 1101   PJ                     -     
+47759 1102   PJ      0414    4    3 CHUYUKI
+47759 1103   PJ                     -     
+47759 1104   PJ      0417    4    2 DENRYAKU
+47759 1105   PJ      0424    1    2 CHUYUKI
+47759 1106   PJ                     -     
+47759 1107   PJ      0415    3    2 CHUYUKI
+47759 1108   PJ                     -     
+47759 1109   PJ                     -     
+47759 1110   PJ                     -     
+47759 1111   PJ      0423    3    2 EISHOKI
+47759 1112   PJ      0413    5    1 CHUYUKI     
+47759 1113   PJ                     -     
+47759 1114   PJ      0410    4    2 DENRYAKU
+47759 1115   PJ                     -     
+47759 1116   PJ                     -     
+47759 1117   PJ      0419    4    2 DENRYAKU
+47759 1118   PJ      0412    3    2 MISSHU-KETSUMYAKUSHO
+47759 1119   PJ                     -     
+47759 1120   PJ      0413    3    2 DAIGO-ZOJIKI
+47759 1121   PJ                     -     
+47759 1122   PJ                     -     
+47759 1123   PJ      0422    3    2 DAIGO-ZOJIKI
+47759 1124   PJ      0407    3    2 DAIGO-ZOJIKI
+47759 1125   PJ      0421    4    2 DAIGOJI-ZATSUYO
+47759 1126   PJ      0418    4    2 DAIGOJI-ZATSUYO
+47759 1127   PJ      0417    3    2 DAIGO-ZOJIKI
+47759 1128   PJ      0420    3    2 DAIGO-ZOJIKI
+47759 1129   PJ      0416    3    2 DAIGO-ZOJIKI
+47759 1130   PJ      0413    3    2 DAIGO-ZOJIKI
+47759 1131   PJ      0413    4    2 DAIGOJI-ZATSUYO
+47759 1132   PJ                     -     
+47759 1133   PJ                     -     
+47759 1134   PJ      0416    4    2 DAIGOJI-ZATSUYO
+47759 1135   PJ                     -     
+47759 1136   PJ                     -     
+47759 1137   PJ                     -     
+47759 1138   PJ                     -     
+47759 1139   PJ      0423    4    2 DAIGOJI-ZATSUYO
+47759 1140   PJ      0412    3    2 DAIGO-ZOJIKI
+47759 1141   PJ      0421    4    2 DAIGOJI-ZATSUYO
+47759 1142   PJ                     -     
+47759 1143   PJ      0420    4    2 DAIGOJI-ZATSUYO
+47759 1144   PJ                     -     
+47759 1145   PJ      0417    5    2 TAIKI
+47759 1146   PJ                     -     
+47759 1147   PJ                     -     
+47759 1148   PJ                     -     
+47759 1149   PJ                     -     
+47759 1150   PJ                     -     
+47759 1151   PJ      0419    7    8 EST-from-WF(HONCHO-SEIKI)
+47759 1152   PJ                     -     
+47759 1153   PJ                     -     
+47759 1154   PJ      0406    5    2 TAIKI
+47759 1155   PJ                     -     
+47759 1156   PJ      0330    2    2       
+47759 1157   PJ                     -     
+47759 1158   PJ                     -     
+47759 1159   PJ      0413    4    2 DAIGOJI-ZATSUYO
+47759 1160   PJ                     -     
+47759 1161   PJ      0422    4    2 DAIGOJI-ZATSUYO
+47759 1162   PJ                     -     
+47759 1163   PJ      0422    4    2 DAIGOJI-ZATSUYO
+47759 1164   PJ      0409    4    2 DAIGOJI-ZATSUYO
+47759 1165   PJ      0416    4    2 DAIGOJI-ZATSUYO
+47759 1166   PJ      0405    4    2 DAIGOJI-ZATSUYO
+47759 1167   PJ      0421    4    2 DAIGOJI-ZATSUYO
+47759 1168   PJ                     -     
+47759 1169   PJ      0422    4    2 DAIGOJI-ZATSUYO
+47759 1170   PJ      0423    4    2 DAIGOJI-ZATSUYO
+47759 1171   PJ                     -     
+47759 1172   PJ      0412    4    2 DAIGOJI-ZATSUYO
+47759 1173   PJ      0427    4    2 DAIGOJI-ZATSUYO
+47759 1174   PJ      0422    4    2 DAIGOJI-ZATSUYO
+47759 1175   PJ      0423    4    2 DAIGOJI-ZATSUYO
+47759 1176   PJ      0422    3    2 TAKAKURAIN-ANGEN-ONGAKI
+47759 1177   PJ                     -     
+47759 1178   PJ                     -     
+47759 1179   PJ      0413    1    2 SANKAIKI
+47759 1180   PJ      0407    5    1 MEIGETSUKI
+47759 1181   PJ                     -     
+47759 1182   PJ      0414    6    4 TSUKIMOUDE-WAKASHU(PART-3)
+47759 1183   PJ      0411    4    2 DAIGOJI-ZATSUYO
+47759 1184   PJ      0424    5    1 GYOKUYO
+47759 1185   PJ      0425    3    2 DAIGO-ZOJIKI
+47759 1186   PJ                     -     
+47759 1187   PJ      0414    4    2 SAKURAE-RUIJU
+47759 1188   PJ      0416    3    2 SAKURAE-RUIJU
+47759 1189   PJ                     -     
+47759 1190   PJ      0422    5    4 SHUGYOKU-SHU
+47759 1191   PJ      0416    3    2 GYOKUYO     
+47759 1192   PJ                     -     
+47759 1193   PJ                     -     
+47759 1194   PJ      0429    4    2 NAKASUKEOKI
+47759 1195   PJ                     -     
+47759 1196   PJ                     -     
+47759 1197   PJ                     -     
+47759 1198   PJ                     -     
+47759 1199   PJ      0419    4    1 INOKUMA-KAMPAKUKI
+47759 1200   PJ      0413    4    1 INOKUMA-KAMPAKUKI
+47759 1201   PJ      0406    5    4 INOKUMA-KAMPAKUKI
+47759 1202   PJ      0416    5    1 MEIGETSUKI   
+47759 1203   PJ      0415    3    2 (SHIRYO-SORAN)     
+47759 1204   PJ      0419    5    2 MEIGETSUKI  
+47759 1205   PJ      0415    5    2 MEIGETSUKI    
+47759 1206   PJ                     -     
+47759 1207   PJ      0414    5    2 MEIGETSUKI    
+47759 1208   PJ                     -     
+47759 1209   PJ                     -     
+47759 1210   PJ      0422    3    2 ASUKAI-SHU     
+47759 1211   PJ                     -     
+47759 1212   PJ      0407    5    2 GYOKUSOU
+47759 1213   PJ      0417    3    2 SHIKIN-WAKASO
+47759 1214   PJ      0412    3    2 (SHIRYO-SORAN)
+47759 1215   PJ      0418    5    2 MICHIIEKO-MARINIKKI
+47759 1216   PJ      0410    5    4 JUNTOKUIN-GYOSHU
+47759 1217   PJ                     -     
+47759 1218   PJ                     -     
+47759 1219   PJ      0411    5    4 JUNTOKUIN-GYOSHU
+47759 1220   PJ      0418    7    9 EST-from-KJ(NORIMUNE-SHU)
+47759 1221   PJ      0409    5    4 SHUI-GUSO
+47759 1222   PJ                     -     
+47759 1223   PJ      0426    5    4 MITSUTSUNE-SHU
+47759 1224   PJ                     -     
+47759 1225   PJ      0415    5    1 MEIGETSUKI
+47759 1226   PJ      0416    5    2 MEIGETSUKI
+47759 1227   PJ      0421    5    2 MEIGETSUKI
+47759 1228   PJ                     -     
+47759 1229   PJ      0407    5    2 MEIGETSUKI
+47759 1230   PJ      0412    1    1 MEIGETSUKI
+47759 1231   PJ      0411    4    1 MINKEIKI
+47759 1232   PJ      0401    5    1 MINKEIKI
+47759 1233   PJ      0415    5    2 MEIGETSUKI
+47759 1234   PJ                     -     
+47759 1235   PJ      0420    5    1 MEIGETSUKI
+47759 1236   PJ      0327    7    4 SHIIBA-WAKASHU
+47759 1237   PJ                     -     
+47759 1238   PJ                     -     
+47759 1239   PJ                     -     
+47759 1240   PJ      0415    5    2 SAMPOIN-MONJO
+47759 1241   PJ                     -     
+47759 1242   PJ                     -     
+47759 1243   PJ                     -     
+47759 1244   PJ      0417    4    2 HEIKOKI
+47759 1245   PJ      0418    4    2 HEIKOKI
+47759 1246   PJ      0408    5    1 MASUKAGAMI
+47759 1247   PJ      0416    1    2 ZOKU-HONCHOTSUKAN
+47759 1248   PJ                     -     
+47759 1249   PJ      0418    3    2 BENN-NO-NAISHI-NIKKI
+47759 1250   PJ      0426    3    1 BENN-NO-NAISHI-NIKKI
+47759 1251   PJ      0410    3    1 BENN-NO-NAISHI-NIKKI
+47759 1252   PJ                     -     
+47759 1253   PJ                     -     
+47759 1254   PJ      0420    4    2 SAKURAE-RUIJU
+47759 1255   PJ                     -     
+47759 1256   PJ                     -     
+47759 1257   PJ      0404    3    2 TSUNETOSHI-KYOKI
+47759 1258   PJ                     -     
+47759 1259   PJ      0406    3    1 MASUKAGAMI     
+47759 1260   PJ                     -     
+47759 1261   PJ                     -     
+47759 1262   PJ      0407    7    9 EST-from-KJ(KUJOKE-REKISEI-KIROKU)
+47759 1263   PJ      0430    1    2 ZOKU-HONCHOTSUKAN
+47759 1264   PJ      0412    5    2 ZOKU-SHIGUSHO
+47759 1265   PJ      0408    6    4 TAMEIE-SHU
+47759 1266   PJ                     -     
+47759 1267   PJ      0415    4    2 MISININ-KAMPAKUKI
+47759 1268   PJ      0412    6    4 TAMEIE-SHU
+47759 1269   PJ      0410    3    4 ZOKU-SHIGUSHO
+47759 1270   PJ                     -     
+47759 1271   PJ      0410    5    4 DAINAGON-TAMEIE-SHU
+47759 1272   PJ                     -     
+47759 1273   PJ                     -     
+47759 1274   PJ                     -     
+47759 1275   PJ      0417    7    3 TOWAZUGATARI
+47759 1276   PJ                     -     
+47759 1277   PJ                     -     
+47759 1278   PJ      0423    1    2 ZOKU-SHIGUSHO(DAIGO)
+47759 1279   PJ      0411    3    2 KANCHUKI
+47759 1280   PJ      0411    5    2 HARUNO-MIYAMAJI
+47759 1281   PJ                     -     
+47759 1282   PJ                     -     
+47759 1283   PJ      0413    3    2 (SHIRYO-SORAN)     
+47759 1284   PJ      0411    3    1 NAKANOTSUKASA-NIKKI
+47759 1285   PJ      0415    1    2 ZOKU-HONCHOTSUKAN
+47759 1286   PJ      0422    1    2 ZOKU-SHIGUSHO
+47759 1287   PJ      0420    3    2 SANEMI-KYOKI
+47759 1288   PJ      0417    3    2 NAKANOTSUKASA-NIKKI
+47759 1289   PJ      0417    3    4 NAKANOTSUKASA-NIKKI
+47759 1290   PJ                     -     
+47759 1291   PJ                     -     
+47759 1292   PJ      0416    4    2 SANEMI-KYOKI
+47759 1293   PJ                     -     
+47759 1294   PJ      0411    3    2 KANCHUKI
+47759 1295   PJ      0412    4    2 (DAINIHON-SHIRYO)
+47759 1296   PJ                     -     
+47759 1297   PJ                     -     
+47759 1298   PJ                     -     
+47759 1299   PJ                     -     
+47759 1300   PJ                     -     
+47759 1301   PJ      0405    4    4 SANEMI-KYOKI
+47759 1302   PJ      0406    1    2 ZOKU-SHIGUSHO
+47759 1303   PJ                     -     
+47759 1304   PJ                     -     
+47759 1305   PJ                     -     
+47759 1306   PJ                     -     
+47759 1307   PJ      0414    1    2 ZOKU-SHIGUSHO
+47759 1308   PJ                     -     
+47759 1309   PJ                     -     
+47759 1310   PJ                     -     
+47759 1311   PJ      0404    3    2 ENTAIRYAKU     
+47759 1312   PJ      0409    3    2 HANAZONOTENNO-SHINKI
+47759 1313   PJ                     -     
+47759 1314   PJ      0411    3    2 HANAZONOTENNO-SHINKI
+47759 1315   PJ      0421    3    2 ZOKU-SHIGUSHO
+47759 1316   PJ      0412    1    2 ZOKU-SHIGUSHO
+47759 1317   PJ      0412    2    2 HANAZONOTENNO-SHINKI
+47759 1318   PJ                     -     
+47759 1319   PJ      0426    3    2 HANAZONOTENNO-SHINKI
+47759 1320   PJ                     -     
+47759 1321   PJ      0412    3    2 HANAZONOTENNO-SHINKI
+47759 1322   PJ      0416    1    2 HANAZONOTENNO-SHINKI
+47759 1323   PJ      0504    1    2 HANAZONOTENNO-SHINKI
+47759 1324   PJ      0407    5    4 HANAZONOTENNO-SHINKI
+47759 1325   PJ                     -     
+47759 1326   PJ      0417    1    2 ZOKU-SHIGUSHO
+47759 1327   PJ                     -     
+47759 1328   PJ                     -     
+47759 1329   PJ      0422    7    9 EST-from-KJ(SHOKA-WAKASHU)
+47759 1330   PJ      0418    7    4 RINEI-WAKASHU
+47759 1331   PJ      0422    1    2 ZOKU-SHIGUSHO
+47759 1332   PJ      0424    1    2 ZOKU-HONCHOTSUKAN
+47759 1333   PJ                     -     
+47759 1334   PJ                     -     
+47759 1335   PJ                     -     
+47759 1336   PJ                     -     
+47759 1337   PJ                     -     
+47759 1338   PJ                     -     
+47759 1339   PJ                     -     
+47759 1340   PJ                     -     
+47759 1341   PJ                     -     
+47759 1342   PJ      0420    3    2 MICHIFUYU-KYOKI
+47759 1343   PJ                     -     
+47759 1344   PJ      0411    1    2 ZOKU-SHIGUSHO
+47759 1345   PJ                     -     
+47759 1346   PJ      0417    1    2 ENTAIRYAKU
+47759 1347   PJ      0419    1    2 MOROMORIKI
+47759 1348   PJ                     -     
+47759 1349   PJ      0422    3    2 ZOKU-SHIGUSHO
+47759 1350   PJ      0411    3    2 (SHIRYO-SORAN)     
+47759 1351   PJ      0425    3    2 (SHIRYO-SORAN)
+47759 1352   PJ                     -     
+47759 1353   PJ                     -     
+47759 1354   PJ                     -     
+47759 1355   PJ                     -     
+47759 1356   PJ      0426    3    2 MOROMORIKI
+47759 1357   PJ      0417    2    2 ENTAIRYAKU
+47759 1358   PJ      0420    3    2 GUKANKI
+47759 1359   PJ      0415    3    2 GUKANKI
+47759 1360   PJ      0410    3    2 GUKANKI
+47759 1361   PJ      0418    3    2 GUKANKI
+47759 1362   PJ                     -     
+47759 1363   PJ      0417    3    2 MOROMORIKI
+47759 1364   PJ      0419    3    2 MOROMORIKI
+47759 1365   PJ                     -     
+47759 1366   PJ      0422    2    2 ZOKU-HONCHOTSUKAN
+47759 1367   PJ      0407    3    2 GUKANKI
+47759 1368   PJ      0328    3    1 GUKANKI
+47759 1369   PJ      0404    3    2 GOGUMAISHO
+47759 1370   PJ      0419    3    2 GOGUMAISHO     
+47759 1371   PJ                     -     
+47759 1372   PJ      0411    7    8 EST-from-WF(GUKANKI)
+47759 1373   PJ      0420    3    2 GUKANKI
+47759 1374   PJ                     -     
+47759 1375   PJ      0413    3    2 GUKANKI
+47759 1376   PJ      0408    3    2 GUKANKI
+47759 1377   PJ      0415    5    1 KUJO-TADAMOTO-NIKKI
+47759 1378   PJ      0414    3    2 (SHIRYO-SORAN)     
+47759 1379   PJ      0413    3    1 GUKANKI
+47759 1380   PJ      0411    7    8 EST-from-WF(ZOKU-SHIGUSHO)
+47759 1381   PJ      0418    3    2 EITOKU-GANNEN-GYOKO-SHIIKA
+47759 1382   PJ      0415    3    2 KUGE-NICHIYO-KUFU-RYAKUSHU
+47759 1383   PJ      0412    3    1 KUGE-NICHIYO-KUFU-RYAKUSHU
+47759 1384   PJ      0407    3    2 KUGE-NICHIYO-KUFU-RYAKUSHU
+47759 1385   PJ      0409    3    2 ATOKAGAMI     
+47759 1386   PJ      0415    3    2 ATOKAGAMI     
+47759 1387   PJ      0410    3    2 SANEFUYU-KOKI
+47759 1388   PJ      0408    3    1 KANENOBU-KOKI
+47759 1389   PJ                     -     
+47759 1390   PJ                     -     
+47759 1391   PJ                     -     
+47759 1392   PJ                     -     
+47759 1393   PJ                     -     
+47759 1394   PJ                     -     
+47759 1395   PJ                     -     
+47759 1396   PJ                     -     
+47759 1397   PJ                     -     
+47759 1398   PJ      0416    4    2 GEIYOKI
+47759 1399   PJ                     -     
+47759 1400   PJ                     -     
+47759 1401   PJ      0411    3    2 ATOKAGAMI     
+47759 1402   PJ      0413    3    2 YOSHIDAKE-HINAMIKI
+47759 1403   PJ      0414    4    2 YOSHIDAKE-HINAMIKI
+47759 1404   PJ                     -     
+47759 1405   PJ                     -     
+47759 1406   PJ      0412    3    2 (SHIRYO-SORAN)
+47759 1407   PJ      0411    3    2 (SHIRYO-SORAN) 
+47759 1408   PJ      0420    3    2 ZOKU-HONCHOTSUKAN
+47759 1409   PJ      0327    4    2 (DAINIHON-SHIRYO)
+47759 1410   PJ      0412    4    2 NORITOKI-KYOKI
+47759 1411   PJ                     -     
+47759 1412   PJ      0402    4    2 (DAINIHON-SHIRYO)
+47759 1413   PJ      0401    4    2 ATOKAGAMI
+47759 1414   PJ                     -     
+47759 1415   PJ      0415    4    2 (DAINIHON-SHIRYO)
+47759 1416   PJ      0410    3    1 KANMON-GYOKI(FUSHIMI)
+47759 1417   PJ      0419    4    2 (DAINIHON-SHIRYO)
+47759 1418   PJ      0408    3    2 KANMON-GYOKI
+47759 1419   PJ      0410    3    2 KANMON-GYOKI(FUSHIMI)
+47759 1420   PJ      0421    3    2 KANMON-GYOKI(FUSHIMI)
+47759 1421   PJ      0409    3    1 KANMON-GYOKI(FUSHIMI)
+47759 1422   PJ      0419    1    2 YASUTOMIKI
+47759 1423   PJ      0406    3    1 KANMON-GYOKI(FUSHIMI)
+47759 1424   PJ      0412    3    2 KANMON-GYOKI(FUSHIMI)
+47759 1425   PJ      0408    3    1 KANMON-GYOKI(FUSHIMI)
+47759 1426   PJ      0409    1    2 MANZAIJUNGO-NIKKI(DAIGO)
+47759 1427   PJ      0412    4    1 MANZAIJUNGO-NIKKI(DAIGO)
+47759 1428   PJ                     -     
+47759 1429   PJ      0408    3    1 MANZAIJUNGO-NIKKI(DAIGO)
+47759 1430   PJ      0418    1    2 MANZAIJUNGO-NIKKI(DAIGO)
+47759 1431   PJ      0412    3    2 MANZAIJUNGO-NIKKI(DAIGO)
+47759 1432   PJ      0413    1    2 MANZAIJUNGO-NIKKI(DAIGO)
+47759 1433   PJ      0408    3    2 MANZAIJUNGO-NIKKI(DAIGO)
+47759 1434   PJ 0415 0423    3    1 MANZAIJUNGO-NIKKI(DAIGO)
+47759 1435   PJ      0405    3    1 KANMON-GYOKI(FUSHIMI)
+47759 1436   PJ      0410    3    2 KANMON-GYOKI(FUSHIMI)
+47759 1437   PJ      0413    3    1 KANMON-GYOKI
+47759 1438   PJ      0409    3    2 INRYOGEN-NICHIROKU
+47759 1439   PJ      0411    3    2 INRYOGEN-NICHIROKU
+47759 1440   PJ      0407    4    2 MOROSATOKI
+47759 1441   PJ      0415    3    2 INRYOGEN-NICHIROKU
+47759 1442   PJ                      -     
+47759 1443   PJ      0417    1    2 KANMON-GYOKI
+47759 1444   PJ      0418    3    2 YASUTOMIKI
+47759 1445   PJ                     -     
+47759 1446   PJ      0418    3    2 GYOUKO-HOIN-NIKKI
+47759 1447   PJ      0421    3    4 SOKONSHU     
+47759 1448   PJ      0405    3    2 YASUTOMIKI
+47759 1449   PJ      0405    3    2 ZOKU-HONCHOTSUKAN
+47759 1450   PJ      0410    2    1 YASUTOMIKI
+47759 1451   PJ      0413    2    1 YASUTOMIKI
+47759 1452   PJ      0401    1    2 ZOKU-SHIGUSHO
+47759 1453   PJ      0417    3    4 SOKONSHU     
+47759 1454   PJ      0415    3    4 SOKONSHU     
+47759 1455   PJ      0406    3    1 GAUN-NIKKENROKU-BATSUYU
+47759 1456   PJ      0415    1    2 MOROSATOKI
+47759 1457   PJ      0415    1    2 ZOKU-HONCHOTSUKAN
+47759 1458   PJ      0422    1    2 INRYOGEN-NICHIROKU
+47759 1459   PJ      0423    1    2 INRYOGEN-NICHIROKU
+47759 1460   PJ      0420    1    2 INRYOGEN-NICHIROKU
+47759 1461   PJ      0416    3    2 INRYOGEN-NICHIROKU
+47759 1462   PJ      0416    1    2 INRYOGEN-NICHIROKU
+47759 1463   PJ      0411    3    2 INRYOGEN-NICHIROKU
+47759 1464   PJ      0413    1    2 INRYOGEN-NICHIROKU
+47759 1465   PJ      0408    1    2 INRYOGEN-NICHIROKU
+47759 1466   PJ      0415    1    2 INRYOGEN-NICHIROKU
+47759 1467   PJ      0411    7    8 EST-from-WF(GOHOKOINKI)
+47759 1468   PJ      0410    1    1 HEKIZAN-NICHIROKU
+47759 1469   PJ                     -     
+47759 1470   PJ                     -     
+47759 1471   PJ                     -     
+47759 1472   PJ      0423    3    2 CHIKANAGA-KYOKI
+47759 1473   PJ                     -     
+47759 1474   PJ      0408    3    4 ENROKUCHOKASHU
+47759 1475   PJ                     -     
+47759 1476   PJ      0409    3    2 SANETAKA-KOKI
+47759 1477   PJ      0420    3    1 OYUDONONO-UENO-NIKKI
+47759 1478   PJ      0425    3    1 SANETAKA-KOKI
+47759 1479   PJ      0420    3    2 SANETAKA-KOKI
+47759 1480   PJ      0413    4    3 OYUDONONO-UENO-NIKKI [EDA]
+47759 1481   PJ      0416    1    2 SANETAKA-KOKI
+47759 1482   PJ      0418    3    1 OYUDONONO-UENO-NIKKI
+47759 1483   PJ      0411    3    2 OYUDONONO-UENO-NIKKI
+47759 1484   PJ      0406    1    2 OYUDONONO-UENO-NIKKI
+47759 1485   PJ      0404    1    1 OYUDONONO-UENO-NIKKI
+47759 1486   PJ      0409    1    1 OYUDONONO-UENO-NIKKI
+47759 1487   PJ      0403    1    1 SANETAKA-KOKI
+47759 1488   PJ      0412    3    1 OYUDONONO-UENO-NIKKI
+47759 1489   PJ      0410    3    2 (SHIRYO-SHORAN)
+47759 1490   PJ      0407    3    1 INRYOGEN-NICHIROKU
+47759 1491   PJ      0417    3    2 SANETAKA-KOKI
+47759 1492   PJ      0417    3    2 OYUDONONO-UENO-NIKKI
+47759 1493   PJ      0410    3    2 OYUDONONO-UENO-NIKKI
+47759 1494   PJ      0416    3    2 OYUDONONO-UENO-NIKKI
+47759 1495   PJ      0404    1    2 OYUDONONO-UENO-NIKKI
+47759 1496   PJ      0406    3    2 OYUDONONO-UENO-NIKKI
+47759 1497   PJ      0418    3    2 CHIKANAGA-KYOKI
+47759 1498   PJ      0407    1    2 OYUDONONO-UENO-NIKKI
+47759 1499   PJ      0421    1    2 OYUDONONO-UENO-NIKKI
+47759 1500   PJ      0407    1    2 OYUDONONO-UENO-NIKKI
+47759 1501   PJ      0413    1    2 SANETAKA-KOKI
+47759 1502   PJ      0425    3    1 NOBUTANE-KYOKI
+47759 1503   PJ      0418    3    2 SANETAKA-KOKI
+47759 1504   PJ      0423    3    1 SANETAKA-KOKI
+47759 1505   PJ      0416    1    2 NISUIKI
+47759 1506   PJ      0416    1    1 MOTONAGA-KYOKI
+47759 1507   PJ      0418    1    2 MOTONAGA-KYOKI
+47759 1508   PJ      0420    1    2 SANETAKA-KOKI
+47759 1509   PJ      0412    1    2 SANETAKA-KOKI
+47759 1510   PJ      0420    1    2 SANETAKA-KOKI
+47759 1511   PJ      0421    1    2 SANETAKA-KOKI
+47759 1512   PJ      0418    1    2 SANETAKA-KOKI
+47759 1513   PJ      0420    1    2 SANETAKA-KOKI
+47759 1514   PJ      0415    2    2 MORIMITSU-KOKI
+47759 1515   PJ      0421    3    2 SAISHOSO     
+47759 1516   PJ      0413    3    2 SAISHOSO      
+47759 1517   PJ      0416    1    2 NISUIKI
+47759 1518   PJ      0425    1    1 NISUIKI
+47759 1519   PJ      0421    1    2 NISUIKI
+47759 1520   PJ      0414    1    2 NISUIKI
+47759 1521   PJ      0417    1    1 NISUIKI
+47759 1522   PJ      0413    1    2 NISUIKI
+47759 1523   PJ      0419    3    2 SANETAKA-KOKI
+47759 1524   PJ      0418    1    1 SANETAKA-KOKI
+47759 1525   PJ      0414    1    2 NISUIKI
+47759 1526   PJ      0423    7    2 NISUIKI
+47759 1527   PJ      0415    1    2 NISUIKI
+47759 1528   PJ      0415    1    2 NISUIKI
+47759 1529   PJ      0417    1    2 SANETAKA-KOKI
+47759 1530   PJ      0417    1    2 NISUIKI
+47759 1531   PJ      0413    1    2 NISUIKI
+47759 1532   PJ      0417    1    2 SANETAKA-KOKI
+47759 1533   PJ      0421    3    3 OYUDONONO-UENO-NIKKI [EDA]
+47759 1534   PJ      0418    3    4 GONARAIN-GYOSEI-BASSHO      
+47759 1535   PJ      0405    3    1 GONARAIN-SHINNKI
+47759 1536   PJ      0417    4    3 OYUDONONO-UENO-NIKKI [EDA]
+47759 1537   PJ      0418    4    3 OYUDONONO-UENO-NIKKI [EDA]
+47759 1538   PJ      0422    3    2 NINAGAWA-CHIKATOSHI-NIKKI
+47759 1539   PJ      0430    4    3 OYUDONONO-UENO-NIKKI [EDA]
+47759 1540   PJ      0501    3    3 OYUDONONO-UENO-NIKKI [EDA]
+47759 1541   PJ      0419    3    3 OYUDONONO-UENO-NIKKI [EDA]
+47759 1542   PJ      0412    3    1 TOKITSUGU-KYOKI
+47759 1543   PJ      0429    3    3 OYUDONONO-UENO-NIKKI [EDA]
+47759 1544   PJ      0416    2    2 TOKITSUGU-KYOKI
+47759 1545   PJ      0407    4    3 OYUDONONO-UENO-NIKKI [EDA]
+47759 1546   PJ      0422    3    2 TOKITSUGU-KYOKI
+47759 1547   PJ      0414    4    3 OYUDONONO-UENO-NIKKI [EDA]
+47759 1548   PJ      0427    3    2 TOKITSUGU-KYOKI
+47759 1549   PJ      0427    4    3 (SHIRYO-SORAN)
+47759 1550   PJ      0421    3    2 TOKITSUGU-KYOKI
+47759 1551   PJ      0419    4    3 OYUDONONO-UENO-NIKKI [EDA]
+47759 1552   PJ      0413    3    2 TOKITSUGU-KYOKI
+47759 1553   PJ      0429    4    3 OYUDONONO-UENO-NIKKI [EDA]
+47759 1554   PJ                     -     
+47759 1555   PJ      0411    3    2 OYUDONONO-UENO-NIKKI
+47759 1556   PJ      0429    4    3 OYUDONONO-UENO-NIKKI [EDA]
+47759 1557   PJ      0403    3    2 TOKITSUGU-KYOKI
+47759 1558   PJ      0421    4    3 OYUDONONO-UENO-NIKKI [EDA]
+47759 1559   PJ      0406    3    2 OYUDONONO-UENO-NIKKI
+47759 1560   PJ      0409    2    2 DAINIHON-SHIRYO
+47759 1561   PJ      0412    3    2 OYUDONONO-UENO-NIKKI
+47759 1562   PJ      0409    3    2 OYUDONONO-UENO-NIKKI [EDA]
+47759 1563   PJ      0409    4    2 (SHIRYO-SORAN)
+47759 1564   PJ      0418    3    2 OYUDONONO-UENO-NIKKI
+47759 1565   PJ      0424    2    2 (SHIRYO-SORAN)
+47759 1566   PJ      0407    2    2 (SHIRYO-SORAN)
+47759 1567   PJ      0418    3    2 OYUDONONO-UENO-NIKKI
+47759 1568   PJ      0415    3    2 ATOKAGAMI     
+47759 1569   PJ                     -     
+47759 1570   PJ      0422    3    1 TOKITSUGU-KYOKI
+47759 1571   PJ      0418    4    3 OYUDONONO-UENO-NIKKI [EDA]
+47759 1572   PJ      0416    4    3 OYUDONONO-UENO-NIKKI [EDA]
+47759 1573   PJ                     -     
+47759 1574   PJ      0408    7    8 EST-from-WF(MASAATSUKYO-EISO)
+47759 1575   PJ                     -     
+47759 1576   PJ      0418    3    3 OYUDONONO-UENO-NIKKI [EDA]
+47759 1577   PJ      0410    3    1 SHINCHO-KOKI
+47759 1578   PJ                     -     
+47759 1579   PJ      0412    2    2 DAINIHON-SHIRYO
+47759 1580   PJ      0406    2    2 DAINIHON-SHIRYO
+47759 1581   PJ      0415    4    3 OYUDONONO-UENO-NIKKI [EDA]
+47759 1582   PJ                     -     
+47759 1583   PJ      0418    3    1 OYUDONONO-UENO-NIKKI
+47759 1584   PJ      0415    3    2 SHUNKYUKI(DAIGO)
+47759 1585   PJ      0415    1    2 UNONOMONDOKI
+47759 1586   PJ      0416    3    2 OYUDONONO-UENO-NIKKI
+47759 1587   PJ      0415    3    3 OYUDONONO-UENO-NIKKI
+47759 1588   PJ      0415    2    2       
+47759 1589   PJ      0415    3    2 OYUDONONO-UENO-NIKKI
+47759 1590   PJ      0412    4    2 (SHIRYO-SORAN)
+47759 1591   PJ      0404    4    2 HARETOYOKI
+47759 1592   PJ      0407    4    4 TOKITSUNE-KYOKI
+47759 1593   PJ      0423    4    2 TOKITSUNE-KYOKI(DAIGO)
+47759 1594   PJ      0403    4    2 (DAINIHON-SHIRYO(FUSHIMI))
+47759 1595   PJ      0421    3    3 OYUDONONO-UENO-NIKKI
+47759 1596   PJ      0413    3    2 GIENJUNKO-NIKKI(DAIGO)
+47759 1597   PJ      0424    1    2 GIENJUNKO-NIKKI(DAIGO)
+47759 1598   PJ      0420    3    2 GIENJUNKO-NIKKI(DAIGO)
+47759 1599   PJ      0413    3    2 GIENJUNKO-NIKKI(DAIGO)
+47759 1600   PJ      0410    3    2 GIENJUNKO-NIKKI(DAIGO)
+47759 1601   PJ      0403    3    1 GIENJUNKO-NIKKI(DAIGO)
+47759 1602   PJ      0417    3    1 GIENJUNKO-NIKKI(DAIGO)
+47759 1603   PJ      0409    3    1 GIENJUNKO-NIKKI(DAIGO)
+47759 1604   PJ      0404    3    1 GIENJUNKO-NIKKI(DAIGO)
+47759 1605   PJ      0415    1    1 TOKIYOSHI-KYOKI
+47759 1606   PJ      0416    1    2 TOKIYOSHI-KYOKI
+47759 1607   PJ      0420    3    2 SHUNKYUKI(DAIGO)
+47759 1608   PJ                     -     
+47759 1609   PJ      0418    1    2 TOKIYOSHI-KYOKI
+47759 1610   PJ      0420    3    2 KEICHO-NIKKENROKU
+47759 1611   PJ                     -     
+47759 1612   PJ      0327    1    1 GIENJUNKO-NIKKI(DAIGO)
+47759 1613   PJ      0416    1    2 TOKIYOSHI-KYOKI
+47759 1614   PJ      0413    3    1 TOKIYOSHI-KYOKI
+47759 1615   PJ      0420    4    2 YASUSHIGE-KYOKI    
+47759 1616   PJ      0501    4    2 YASUSHIGE-KYOKI
+47759 1617   PJ      0417    4    2 YASUSHIGE-KYOKI
+47759 1618   PJ      0412    3    1 TOKIYOSHI-KYOKI
+47759 1619   PJ      0403    3    2 (DAINIHON-SHIRYO)
+47759 1620   PJ                     -     
+47759 1621   PJ      0419    4    2 (DAINIHON-SHIRYO)
+47759 1622   PJ      0416    1    2 RYOGEN-IN-KI
+47759 1623   PJ      0423    4    2 YASUSHIGE-KYOKI
+47759 1624   PJ      0421    4    1 YASUSHIGE-KYOKI
+47759 1625   PJ      0405    3    2 OYUDONONO-UENO-NIKKI
+47759 1626   PJ      0410    3    2 (SHIRYO-SORAN)
+47759 1627   PJ                     -     
+47759 1628   PJ      0413    3    1 ROKUON-NICHIROKU
+47759 1629   PJ      0422    4    1 YASUSHIGE-KYOKI
+47759 1630   PJ                     -     
+47759 1631   PJ                     -     
+47759 1632   PJ      0413    3    1 TOKIYOSHI-KYOKI
+47759 1633   PJ      0408    1    2 OUCHI-NIKKI
+47759 1634   PJ      0406    4    2 MICHIFUSA-KOKI
+47759 1635   PJ      0407    3    2 (SHIRYO-SORAN)
+47759 1636   PJ                     -     
+47759 1637   PJ      0415    3    2 TOKIYOSHI-KYOKI
+47759 1638   PJ      0415    3    2 KAKUMEIKI
+47759 1639   PJ      0418    3    2 KAKUMEIKI
+47759 1640   PJ      0412    3    4 KYOHAKUSHU     
+47759 1641   PJ      0427    4    2 HIRAMATSUKE-HINAMI-SHIKI
+47759 1642   PJ      0424    4    2 HIRAMATSUKE-HINAMI-SHIKI
+47759 1643   PJ      0424    3    2 KAKUMEIKI
+47759 1644   PJ      0414    4    2 HIRAMATSU-TOKIMORIKI
+47759 1645   PJ      0409    4    2 HIRAMATSU-TOKIMORIKI
+47759 1646   PJ      0328    4    2 SHOHO-2-NEN-IKO-NIKKI
+47759 1647   PJ      0422    3    2 KAKUMEIKI
+47759 1648   PJ                     -     
+47759 1649   PJ      0414    4    2 KAKUMEIKI
+47759 1650   PJ      0412    3    2 KAKUMEIKI
+47759 1651   PJ      0417    1    2 ZOKU-SHIGUSHO
+47759 1652   PJ      0416    3    2 KAKUMEIKI
+47759 1653   PJ      0422    3    2 KAKUMEIKI
+47759 1654   PJ      0414    3    2 KAKUMEIKI
+47759 1655   PJ      0414    3    2 ISHIKAWA-NIKKI
+47759 1656   PJ      0412    3    1 ISHIKAWA-NIKKI
+47759 1657   PJ                     -     
+47759 1658   PJ      0418    4    2 KAKUMEIKI    
+47759 1659   PJ                     -     
+47759 1660   PJ      0420    3    2 KAKUMEIKI
+47759 1661   PJ      0403    7    4 BURUI-GENYO-WAKASHU
+47759 1662   PJ      0420    4    1 KAKUMEIKI
+47759 1663   PJ      0415    3    2 KAKUMEIKI
+47759 1664   PJ      0414    3    2 KAKUMEIKI
+47759 1665   PJ      0422    3    2 KAKUMEIKI
+47759 1666   PJ      0418    4    2 KIMITOSHI-KYOKI
+47759 1667   PJ      0422    7    2 HAMURO-YORINARI-KI
+47759 1668   PJ      0419    3    2 GYOJO-HOSSINNO-NIKKI [TOYOKUNI]
+47759 1669   PJ      0414    7    2 HAMURO-YORINARI-KI
+47759 1670   PJ      0412    3    1 GYOJO-HOSSINNO-NIKKI
+47759 1671   PJ      0426    3    2 GYOJO-HOSSINNO-NIKKI [KINDAI]
+47759 1672   PJ      0421    3    1 GYOJO-HOSSINNO-NIKKI [SEIRYODEN]
+47759 1673   PJ      0415    6    1 MUJOHOINDONO-GONIKKI
+47759 1674   PJ      0425    3    2 GYOJO-HOSSINNO-NIKKI 
+47759 1675   PJ      0421    3    1 GYOJO-HOSSINNO-NIKKI [TOJI]
+47759 1676   PJ      0412    3    2 GYOJO-HOSSINNO-NIKKI  
+47759 1677   PJ      0406    7    1 MUJOHOINDONO-GONIKKI
+47759 1678   PJ      0419    3    1 GYOJO-HOSSINNO-NIKKI [HIGASHI-IWAKURA]
+47759 1679   PJ      0424    7    2 MUJOHOINDONO-GONIKKI
+47759 1680   PJ      0418    3    1 GYOJO-HOSSINNO-NIKKI [KIYOMIZU-CHIONIN]
+47759 1681   PJ      0420    3    3 OYUDONONO-UENO-NIKKI [EDA]
+47759 1682   PJ      0414    3    1 GYOJO-HOSSINNO-NIKKI [HIGASHIYAMA]
+47759 1683   PJ      0418    3    2 ITO-JINSAI-NIKKI
+47759 1684   PJ      0427    3    1 GYOJO-HOSSINNO-NIKKI [HIGASHIYAMA]
+47759 1685   PJ      0416    3    3 OYUDONONO-UENO-NIKKI [EDA]
+47759 1686   PJ      0414    3    1 GYOJO-HOSSINNO-NIKKI
+47759 1687   PJ      0414    3    1 GYOJO-HOSSINNO-NIKKI [HIGASHIYAMA]
+47759 1688   PJ      0423    3    2 GYOJO-HOSSINNO-NIKKI 
+47759 1689   PJ      0407    3    1 GYOJO-HOSSINNO-NIKKI [KOSAKATEI]
+47759 1690   PJ      0403    3    2 GYOJO-HOSSINNO-NIKKI [KOSAKATEI]
+47759 1691   PJ      0413    3    2 GYOJO-HOSSINNO-NIKKI [HIGASHIYAMA]
+47759 1692   PJ      0418    3    2 GYOJO-HOSSINNO-NIKKI [CHIONIN]
+47759 1693   PJ      0417    3    2 GYOJO-HOSSINNO-NIKKI [HIGASHIYAMA]
+47759 1694   PJ      0419    3    2 MYOHOIN-HINAMIKI
+47759 1695   PJ      0430    3    2 MYOHOIN-HINAMIKI
+47759 1696   PJ      0423    4    1 MOTOKAZU-KYOKI
+47759 1697   PJ      0421    4    2 SADAMOTO-KYOKI  
+47759 1698   PJ      0411    4    2 MOTOKAZU-KYOKI
+47759 1699   PJ      0407    4    2 MOTOHIRO-KOKI
+47759 1700   PJ      0426    3    2 CHIONIN-NICHIKAGAMI     
+47759 1701   PJ      0422    4    2 MOTOKAZU-KYOKI
+47759 1702   PJ      0426    4    2 MOTOHIRO-KOKI 
+47759 1703   PJ      0413    3    1 MYOHOIN-HINAMIKI
+47759 1704   PJ      0422    3    2 MYOHOIN-HINAMIKI
+47759 1705   PJ      0419    3    1 MYOHOIN-HINAMIKI
+47759 1706   PJ      0425    4    1 KANEKA-KYOKI
+47759 1707   PJ      0421    3    1 MYOHOIN-HINAMIKI
+47759 1708   PJ      0412    4    1 MOTOHIRO-KOKI   
+47759 1709   PJ      0416    4    2 MOTOHIRO-KOKI
+47759 1710   PJ                     -     
+47759 1711   PJ                     -     
+47759 1712   PJ                     -     
+47759 1713   PJ      0414    3    1 MYOHOIN-HINAMIKI
+47759 1714   PJ      0418    3    1 MYOHOIN-HINAMIKI
+47759 1715   PJ      0417    3    2 CHIONIN-NICHIKAGAMI
+47759 1716   PJ      0419    3    1 MYOHOIN-HINAMIKI
+47759 1717   PJ      0408    4    1 MOTOHIRO-KOKI
+47759 1718   PJ      0412    4    1 MOTOHIRO-KOKI
+47759 1719   PJ      0412    4    1 MOTOHIRO-KOKI
+47759 1720   PJ      0423    4    1 NAKANOIN-MICHIEDAKI
+47759 1721   PJ      0405    4    1 MOTOHIRO-KOKI
+47759 1722   PJ      0410    4    1 MOTOHIRO-KOKI
+47759 1723   PJ      0414    4    1 KIMIAKI-KYOKI 
+47759 1724   PJ      0408    3    2 MYOHOIN-HINAMIKI
+47759 1725   PJ      0416    4    2 MOTONAGA-KYOKI
+47759 1726   PJ      0426    3    2 KAIKI
+47759 1727   PJ      0422    3    2 KAIKI
+47759 1728   PJ      0413    3    2 KAIKI
+47759 1729   PJ      0415    4    1 MYOHOIN-HINAMIKI
+47759 1730   PJ                     -     
+47759 1731   PJ      0414    4    2 MITSUTSUNA-KYOKI
+47759 1732   PJ      0417    3    2 GYOKYO-HOSSINNO-NIKKI 
+47759 1733   PJ      0417    3    2 MYOHOIN-HINAMIKI 
+47759 1734   PJ      0412    3    2 MYOHOIN-HINAMIKI [ARASHIYAMA]
+47759 1735   PJ      0411    3    2 MYOHOIN-HINAMIKI 
+47759 1736   PJ      0415    4    1 MICHIE-KOKI 
+47759 1737   PJ      0403    3    2 MYOHOIN-HINAMIKI 
+47759 1738   PJ      0411    4    2 MYOHOIN-HINAMIKI 
+47759 1739   PJ      0420    4    2 MICHIE-KOKI 
+47759 1740   PJ      0424    4    2 MYOHOIN-HINAMIKI 
+47759 1741   PJ      0419    4    2 MYOHOIN-HINAMIKI 
+47759 1742   PJ      0419    4    2 MYOHOIN-HINAMIKI
+47759 1743   PJ      0418    4    2 MYOHOIN-HINAMIKI 
+47759 1744   PJ      0407    4    1 MYOHOIN-HINAMIKI
+47759 1745   PJ      0415    4    1 MICHIE-KOKI
+47759 1746   PJ      0420    4    2 MICHIE-KOKI
+47759 1747   PJ      0411    4    1 MICHIE-KOKI
+47759 1748   PJ      0405    4    2 MYOHOIN-HINAMIKI
+47759 1749   PJ      0410    4    1 MYOHOIN-HINAMIKI
+47759 1750   PJ      0420    4    2 MYOHOIN-HINAMIKI
+47759 1751   PJ      0413    4    2 NAKANOIN-MICHIEDAKI
+47759 1752   PJ      0419    4    1 NAKANOIN-MICHIEDAKI
+47759 1753   PJ      0406    4    1 NAKANOIN-MICHIEDAKI
+47759 1754   PJ      0425    4    2 SADAYUKI-KYOKI
+47759 1755   PJ      0430    4    1 SADAYUKI-KYOKI
+47759 1756   PJ      0418    3    1 NORINAGA-ZAIKYO-NIKKI
+47759 1757   PJ      0422    4    2 MYOHOIN-HINAMIKI
+47759 1758   PJ      0411    4    2 MYOHOIN-HINAMIKI
+47759 1759   PJ      0419    4    2 MYOHOIN-HINAMIKI
+47759 1760   PJ      0412    4    2 MYOHOIN-HINAMIKI
+47759 1761   PJ      0330    4    2 MYOHOIN-HINAMIKI
+47759 1762   PJ      0416    4    2 MYOHOIN-HINAMIKI
+47759 1763   PJ      0422    4    1 MYOHOIN-HINAMIKI
+47759 1764   PJ      0407    4    2 GOSAKURAMACHI-TENNNOU-SHINKI
+47759 1765   PJ      0416    4    2 GOSAKURAMACHI-TENNNOU-SHINKI
+47759 1766   PJ      0423    4    2 GOSAKURAMACHI-TENNNOU-SHINKI
+47759 1767   PJ      0411    4    2 GOSAKURAMACHI-TENNNOU-SHINKI
+47759 1768   PJ      0426    4    1 SADAHARU-KYOKI
+47759 1769   PJ      0415    6    2 YANAGIHARA-KOREMITSU-NIKKI
+47759 1770   PJ      0415    4    2 (SHIRYO-KOHON)
+47759 1771   PJ      0414    4    2 (SHIRYO-KOHON)
+47759 1772   PJ      0415    4    2 GOSAKURAMACHI-TENNNOU-SHINKI  
+47759 1773   PJ      0410    3    2 ZOKU-SHIGUSHO     
+47759 1774   PJ      0420    4    2 GOSAKURAMACHI-TENNNOU-SHINKI
+47759 1775   PJ      0409    4    2 GOMOMOZONO-TENNNOU-SHINKI
+47759 1776   PJ      0417    4    2 TERUYOSHI-KOKI
+47759 1777   PJ      0414    3    1 MORIYAMA-TAKAMORI-NIKKI
+47759 1778   PJ      0421    4    3 TERUYOSHI-KOKI
+47759 1779   PJ      0406    4    2 MYOHOIN-HINAMIKI
+47759 1780   PJ      0418    4    2 TERUYOSHI-KOKI
+47759 1781   PJ      0401    4    3 MYOHOIN-HINAMIKI
+47759 1782   PJ      0419    4    2 TERUYOSHI-KOKI
+47759 1783   PJ      0413    3    1 SUGIURAKE-NIKKI
+47759 1784   PJ      0414    3    1 SUGIURAKE-NIKKI
+47759 1785   PJ      0418    3    1 SUGIURAKE-NIKKI
+47759 1786   PJ      0416    3    1 SUGIURAKE-NIKKI
+47759 1787   PJ      0415    3    1 SUGIURAKE-NIKKI 
+47759 1788   PJ      0418    4    1 TERUYOSHI-KOKI
+47759 1789   PJ      0416    4    1 KOUKANSIYU-NIKKI
+47759 1790   PJ      0429    4    2 SUGIURAKE-NIKKI
+47759 1791   PJ      0409    3    1 SUGIURAKE-NIKKI
+47759 1792   PJ      0410    4    1 TERUYOSHI-KOKI
+47759 1793   PJ      0416    4    2 TERUYOSHI-KOKI
+47759 1794   PJ      0414    3    1 SUGIURAKE-NIKKI
+47759 1795   PJ      0423    4    1 TERUYOSHI-KOKI 
+47759 1796   PJ      0412    4    2 SUGIURAKE-NIKKI
+47759 1797   PJ      0407    4    2 TADAYOSHI-KOKI
+47759 1798   PJ      0420    3    1 SUGIURAKE-NIKKI
+47759 1799   PJ      0413    3    1 SUGIURAKE-NIKKI
+47759 1800   PJ      0413    3    1 SUGIURAKE-NIKKI
+47759 1801   PJ      0415    3    1 SUGIURAKE-NIKKI
+47759 1802   PJ      0406    4    1 SUGIURAKE-NIKKI
+47759 1803   PJ      0420    3    1 SUGIURAKE-NIKKI
+47759 1804   PJ      0413    3    1 SUGIURAKE-NIKKI
+47759 1805   PJ      0403    3    1 SUGIURAKE-NIKKI
+47759 1806   PJ      0424    3    1 SUGIURAKE-NIKKI
+47759 1807   PJ      0426    3    1 SUGIURAKE-NIKKI
+47759 1808   PJ      0407    3    1 SUGIURAKE-NIKKI
+47759 1809   PJ      0417    3    1 SUGIURAKE-NIKKI
+47759 1810   PJ      0410    3    1 SUGIURAKE-NIKKI
+47759 1811   PJ      0420    3    1 SUGIURAKE-NIKKI
+47759 1812   PJ      0429    3    1 SUGIURAKE-NIKKI
+47759 1813   PJ      0417    4    2 SANEHISA-KYOKI
+47759 1814   PJ      0423    3    1 RAI-SANYO-NIPPU
+47759 1815   PJ      0421    4    1 SADANAKA-KYOKI
+47759 1816   PJ      0412    4    1 HARU-NO-NISHIKI
+47759 1817   PJ      0420    4    1 SADANAKA-KYOKI
+47759 1818   PJ      0416    4    1 HIRAMATSUKE-NIKKI
+47759 1819   PJ      0416    3    1 RAI-BAISHI-NIKKI
+47759 1820   PJ      0404    3    2 RAI-SANYO-NIPPU
+47759 1821   PJ      0419    4    2 SANEHISA-KYOKI
+47759 1822   PJ      0412    3    2 RAI-SANYO-NIPPU
+47759 1823   PJ      0416    3    2 RAI-SANYO-NIPPU
+47759 1824   PJ      0417    3    1 RAI-BAISHI-NIKKI
+47759 1825   PJ      0424    4    2 SANEHISA-KYOKI
+47759 1826   PJ      0419    3    2 RAI-SANYO-NIPPU
+47759 1827   PJ      0410    3    2 RAI-BAISHI-NIKKI
+47759 1828   PJ      0422    3    2 RAI-SANYO-NIPPU
+47759 1829   PJ      0422    3    1 RAI-BAISHI-NIKKI
+47759 1830   PJ      0415    3    2 RAI-SANYO-NIPPU
+47759 1831   PJ      0424    3    2 RAI-SANYO-NIPPU
+47759 1832   PJ      0422    3    1 GAKUSUI-NIKKI
+47759 1833   PJ      0417    3    2 GAKUSUI-NIKKI
+47759 1834   PJ      0421    3    2 SUGIURAKE-NIKKI
+47759 1835   PJ      0422    3    2 SUGIURAKE-NIKKI
+47759 1836   PJ      0421    4    1 FUDEMAKASE
+47759 1837   PJ      0421    3    2 SUGIURAKE-NIKKI
+47759 1838   PJ      0419    3    2 SUGIURAKE-NIKKI
+47759 1839   PJ      0430    3    2 SUGIURAKE-NIKKI
+47759 1840   PJ      0414    3    2 SUGIURAKE-NIKKI 
+47759 1841   PJ      0417    3    2 KYOJIN-HOSSINNO-NIKKI 
+47759 1842   PJ      0406    3    2 KYOJIN-HOSSINNO-NIKKI 
+47759 1843   PJ      0416    4    1 SANEAKIRA-KYOKI 
+47759 1844   PJ      0415    4    2 SANEAKIRA-KYOKI
+47759 1845   PJ      0412    4    2 SANEAKIRA-KYOKI
+47759 1846   PJ      0408    4    4 TEIEN-EISO
+47759 1847   PJ      0417    1    1 MADENOKOJI-NIKKI
+47759 1848   PJ      0411    3    2 MIAKE-SHONOSUKE-NIKKI 
+47759 1849   PJ      0410    4    1 SANEAKIRA-KYOKI
+47759 1850   PJ      0419    3    1 SUGIURAKE-NIKKI
+47759 1851   PJ      0412    1    2 MADENOKOJI-NIKKI
+47759 1852   PJ      0422    4    1 SADANAKA-KYOKI
+47759 1853   PJ      0412    1    1 MADENOKOJI-NIKKI
+47759 1854   PJ      0412    3    2 TAKOYAKUSHI-MACHINIKKI
+47759 1855   PJ      0411    4    1 SADANAKA-KYOKI    
+47759 1856   PJ      0420    7    1 TAKAGI-ZAICHU-NIKKI
+47759 1857   PJ      0418    4    1 HANA-NO-SHITABUSHI
+47759 1858   PJ      0414    7    1 TAKAGI-ZAICHU-NIKKI
+47759 1859   PJ      0420    3    2 NAKAYAMAISAKO-NIKKI
+47759 1860   PJ      0422    7    2 TAKAGI-ZAICHU-NIKKI
+47759 1861   PJ      0410    7    1 TAKAGI-ZAICHU-NIKKI
+47759 1862   PJ      0427    3    2 KOMEI-TENNOKI
+47759 1863   PJ      0428    4    4 YATAKA-SHU
+47759 1864   PJ      0414    1    1 MADENOKOJI-NIKKI
+47759 1865   PJ      0407    7    1 TAKAGI-ZAICHU-NIKKI
+47759 1866   PJ      0412    3    2 KOMEI-TENNOKI
+47759 1867   PJ      0411    4    2 OZAKITADAMASA-NIKKI
+47759 1868   PJ      0413    7    2 GAKKAI-NICHIROKU
+47759 1869   PJ      0415    7    2 TAKAGI-ZAICHU-NIKKI
+47759 1870   PJ      0409    7    1 TAKAGI-ZAICHU-NIKKI
+47759 1871   PJ      0414    7    1 TAKAGI-ZAICHU-NIKKI
+47759 1872   PJ                     -
+47759 1873   PJ      0414    7    2 HAYAMIKE-NIKKI
+47759 1874   PJ      0417    7    2 HAYAMIKE-NIKKI
+47759 1875   PJ      0413    7    2 HAYAMIKE-NIKKI
+47759 1876   PJ      0420    7    2 HAYAMIKE-NIKKI
+47759 1877   PJ      0414    3    1 SUGIURAKE-NIKKI
+47759 1878   PJ      0411    7    2 HAYAMIKE-NIKKI
+47759 1879   PJ      0412    3    2 SUGIURAKE-NIKKI
+47759 1880   PJ      0419    3    2 SUGIURAKE-NIKKI
+47759 1881   PJ      0422    3    1 UEKI-SHISEI-NIKKI
+47759 1882   PJ      0407    3    1 SUGIURAKE-NIKKI
+47759 1883   PJ      0417    3    2 SUGIURAKE-NIKKI
+47759 1884   PJ      0418    3    2 SUGIURAKE-NIKKI
+47759 1885   PJ      0423    4    2 NEWS-PAPER(ARASHIYAMA)
+47759 1886   PJ      0418    3    2 SUGIURAKE-NIKKI
+47759 1887   PJ      0419    4    2 NEWS-PAPER(ARASHIYAMA)
+47759 1888   PJ      0416    4    0 NEWS-PAPER(ARASHIYAMA)
+47759 1889   PJ      0419    4    0 NEWS-PAPER(ARASHIYAMA)
+47759 1890   PJ      0408    4    0 UEKI-SHISEI-NIKKI
+47759 1891   PJ      0409    4    0 NEWS-PAPER(ARASHIYAMA)
+47759 1892   PJ      0424    4    0 NEWS-PAPER(ARASHIYAMA)
+47759 1893   PJ      0419    4    0 NEWS-PAPER(ARASHIYAMA)
+47759 1894   PJ      0408    4    0 NEWS-PAPER(ARASHIYAMA)
+47759 1895   PJ                     -
+47759 1896   PJ      0415    4    0 NEWS-PAPER(ARASHIYAMA)
+47759 1897   PJ      0416    4    0 NEWS-PAPER(ARASHIYAMA)
+47759 1898   PJ      0418    4    0 NEWS-PAPER(ARASHIYAMA)
+47759 1899   PJ      0409    4    0 NEWS-PAPER(ARASHIYAMA) 
+47759 1900   PJ      0412    4    0 NEWS-PAPER(ARASHIYAMA)
+47759 1901   PJ      0412    4    0 NEWS-PAPER(ARASHIYAMA)
+47759 1902   PJ      0408    4    0 KYOTO-TETUDO-KANRIKYOKU ADV(ARASHIYAMA)
+47759 1903   PJ      0409    4    0 NEWS-PAPER(ARASHIYAMA)
+47759 1904   PJ      0417    4    0 NEWS-PAPER(ARASHIYAMA)
+47759 1905   PJ      0415    4    0 NEWS-PAPER(ARASHIYAMA)
+47759 1906   PJ      0415    4    0 KYOTO-TETUDO-KANRIKYOKU ADV(ARASHIYAMA)
+47759 1907   PJ      0413    4    0 KYOTO-TETUDO-KANRIKYOKU ADV(ARASHIYAMA)
+47759 1908   PJ      0411    4    0 TETUDOUIN AVD(ARASHIYAMA)
+47759 1909   PJ      0418    4    0 TETUDOUIN AVD(ARASHIYAMA)
+47759 1910   PJ      0414    4    0 TETUDOUIN AVD(ARASHIYAMA)
+47759 1911   PJ      0408    4    0 ARASHIYAMA-TETSUDO ADV(ARASHIYAMA)
+47759 1912   PJ      0414    4    0 TETUDOUIN AVD(ARASHIYAMA)
+47759 1913   PJ      0413    4    0 SEIBU-TETSUDO-KANRIKYOKU ADV(ARASHIYAMA)
+47759 1914   PJ      0412    4    0 KOBE-TETSUDO-KANRIKYOKU ADV(ARASHIYAMA)
+47759 1915   PJ      0412    4    0 NEWS-PAPER(ARASHIYAMA)
+47759 1916   PJ      0421    4    0 SEIBU-TETSUDO-KANRIKYOKU ADV(ARASHIYAMA)
+47759 1917   PJ      0413    4    0 NEWS-PAPER(ARASHIYAMA)
+47759 1918   PJ      0414    4    0 SEKI-HAJIME-NIKKI
+47759 1919   PJ                     -
+47759 1920   PJ      0413    4    0 NEWS-PAPER(ARASHIYAMA)
+47759 1921   PJ                     -
+47759 1922   PJ      0411    4    0 KAJII-MOTOJIRO-SHOKAN
+47759 1923   PJ      0407    4    0 NEWS-PAPER(ARASHIYAMA)
+47759 1924   PJ      0420    4    0 MITAMURA-ENGYO-NIKKI(ARASHIYAMA)
+47759 1925   PJ      0418    4    0 KEIHAN RAILWAY ADV(ARASHIYAMA)
+47759 1926   PJ      0418    4    0 KEIHAN RAILWAY ADV(ARASHIYAMA)
+47759 1927   PJ      0417    4    0 KEIHAN RAILWAY ADV(ARASHIYAMA)
+47759 1928   PJ      0416    4    0 KEIHAN RAILWAY ADV(ARASHIYAMA)
+47759 1929   PJ      0413    4    0 SHIN-KEIHAN RAILWAY ADV(ARASHIYAMA)
+47759 1930   PJ      0405    4    0 SHIN-KEIHAN RAILWAY ADV(ARASHIYAMA)
+47759 1931   PJ      0415    4    0 NEWS-PAPER(ARASHIYAMA)
+47759 1932   PJ      0414    4    0 KEIHAN RAILWAY ADV(ARASHIYAMA)
+47759 1933   PJ      0416    3    0 NEWS-PAPER(ARASHIYAMA)
+47759 1934   PJ      0414    4    0 NEWS-PAPER(ARASHIYAMA)
+47759 1935   PJ 0404 0412    3    0 NHK(ARASHIYAMA)
+47759 1936   PJ 0415 0420    3    0 NHK(ARASHIYAMA)
+47759 1937   PJ      0410    4    0 NEWS-PAPER(ARASHIYAMA)
+47759 1938   PJ      0408    4    0 KEIHAN RAILWAY ADV(ARASHIYAMA)
+47759 1939   PJ      0414    4    0 KEIHAN RAILWAY ADV(ARASHIYAMA)
+47759 1940   PJ      0419    4    0 KEIHAN RAILWAY ADV(ARASHIYAMA)
+47759 1941   PJ      0410    4    0 KEIHAN RAILWAY ADV(ARASHIYAMA)
+47759 1942   PJ      0406    7    0 ASADA-TAKASHI-NIKKI
+47759 1943   PJ      0411    7    0 ASADA-TAKASHI-NIKKI
+47759 1944   PJ      0409    7    0 ASADA-TAKASHI-NIKKI
+47759 1945   PJ                     -
+47759 1946   PJ      0407    4    0 NEWS-PAPER(ARASHIYAMA)
+47759 1947   PJ      0417    4    0 NEWS-PAPER(ARASHIYAMA)
+47759 1948   PJ      0411    4    0 NEWS-PAPER(ARASHIYAMA)
+47759 1949   PJ      0417    4    0 NEWS-PAPER(ARASHIYAMA)
+47759 1950   PJ      0409    4    0 NEWS-PAPET(DAIGO-JI)
+47759 1951   PJ 0330 0408    4    0 NEWS-PAPER(ARASHIYAMA)
+47759 1952   PJ 0407 0414    3    0 NEWS-PAPER(ARASHIYAMA)
+47759 1953   PJ 0403 0411    3    0 NEWS-PAPER(ARASHIYAMA)
+47759 1954   PJ 0329 0408    3    0 NEWS-PAPER(ARASHIYAMA)
+47759 1955   PJ 0329 0407    3    0 NEWS-PAPER(ARASHIYAMA)
+47759 1956   PJ 0331 0408    3    0 NEWS-PAPER(ARASHIYAMA)
+47759 1957   PJ 0407 0413    3    0 NEWS-PAPER(ARASHIYAMA)
+47759 1958   PJ 0401 0409    3    0 NEWS-PAPER(ARASHIYAMA)
+47759 1959   PJ 0321 0402    3    0 NEWS-PAPER(ARASHIYAMA)
+47759 1960   PJ 0331 0404    3    0 NEWS-PAPER(ARASHIYAMA)
+47759 1961   PJ 0404 0409    3    0 NEWS-PAPER(ARASHIYAMA)
+47759 1962   PJ 0404 0412    3    0 NEWS-PAPER(ARASHIYAMA)
+47759 1963   PJ 0405 0411    3    0 NEWS-PAPER(ARASHIYAMA)
+47759 1964   PJ 0405 0408    3    0 NEWS-PAPER(ARASHIYAMA)
+47759 1965   PJ 0412 0420    3    0 NEWS-PAPER(ARASHIYAMA)
+47759 1966   PJ 0328 0407    3    0 NEWS-PAPER(ARASHIYAMA)
+47759 1967   PJ 0402 0407    3    0 NEWS-PAPER(ARASHIYAMA)
+47759 1968   PJ 0403 0408    3    0 NEWS-PAPER(ARASHIYAMA)
+47759 1969   PJ 0407 0411    3    0 NEWS-PAPER(ARASHIYAMA)
+47759 1970   PJ 0409 0417    3    0 NEWS-PAPER(ARASHIYAMA)
+47759 1971   PJ 0404 0408    3    0 NEWS-PAPER(ARASHIYAMA)
+47759 1972   PJ 0402 0408    3    0 NEWS-PAPER(ARASHIYAMA)
+47759 1973   PJ 0401 0407    3    0 NEWS-PAPER(ARASHIYAMA)
+47759 1974   PJ 0406 0409    3    0 NEWS-PAPER(ARASHIYAMA)
+47759 1975   PJ 0406 0410    3    0 NEWS-PAPER(ARASHIYAMA)
+47759 1976   PJ 0330 0408    3    0 NEWS-PAPER(ARASHIYAMA)
+47759 1977   PJ 0330 0403    3    0 NEWS-PAPER(ARASHIYAMA)
+47759 1978   PJ 0408 0414    3    0 NEWS-PAPER(ARASHIYAMA)
+47759 1979   PJ 0331 0407    3    0 NEWS-PAPER(ARASHIYAMA)
+47759 1980   PJ 0406 0411    3    0 NEWS-PAPER(ARASHIYAMA)
+47759 1981   PJ 0401 0409    3    0 NEWS-PAPER(ARASHIYAMA)
+47759 1982   PJ 0328 0403    3    0 NEWS-PAPER(ARASHIYAMA)
+47759 1983   PJ 0406 0409    3    0 NEWS-PAPER(ARASHIYAMA)
+47759 1984   PJ 0412 0418    3    0 NEWS-PAPER(ARASHIYAMA)
+47759 1985   PJ 0330 0409    3    0 NEWS-PAPER(ARASHIYAMA)
+47759 1986   PJ 0405 0412    3    0 NEWS-PAPER(ARASHIYAMA)
+47759 1987   PJ 0329 0405    3    0 NEWS-PAPER(ARASHIYAMA)
+47759 1988   PJ 0408 0415    3    0 NEWS-PAPER(ARASHIYAMA)
+47759 1989   PJ 0327 0403    3    0 NEWS-PAPER(ARASHIYAMA)
+47759 1990   PJ 0324 0329    3    0 NEWS-PAPER(ARASHIYAMA)
+47759 1991   PJ 0401 0407    4    0 NEWS-PAPER(ARASHIYAMA)
+47759 1992   PJ 0329 0403    4    0 NEWS-PAPER(ARASHIYAMA)
+47759 1993   PJ 0401 0407    4    0 NEWS-PAPER(ARASHIYAMA)
+47759 1994   PJ 0404 0409    4    0 NEWS-PAPER(ARASHIYAMA)
+47759 1995   PJ 0406 0409    4    0 NEWS-PAPER(ARASHIYAMA)
+47759 1996   PJ      0412    4    0 NEWS-PAPER(ARASHIYAMA)
+47759 1997   PJ      0407    4    0 NEWS-PAPER(ARASHIYAMA)
+47759 1998   PJ      0401    4    0 NEWS-PAPER(ARASHIYAMA)
+47759 1999   PJ      0404    4    0 NEWS-PAPER(ARASHIYAMA)
+47759 2000   PJ      0409    4    0 NEWS-PAPER(ARASHIYAMA)
+47759 2001   PJ 0326 0406    4    0 NEWS-PAPER(ARASHIYAMA)
+47759 2002   PJ 0323 0401    4    0 NEWS-PAPER(ARASHIYAMA)
+47759 2003   PJ 0401 0408    4    0 NEWS-PAPER(ARASHIYAMA)
+47759 2004   PJ      0401    4    0 NEWS-PAPER(ARASHIYAMA)
+47759 2005   PJ 0405 0409    4    0 NEWS-PAPER(ARASHIYAMA)
+47759 2006   PJ 0331 0408    5    0 NEWS-PAPER(ARASHIYAMA)
+47759 2007   PJ 0402 0407    5    0 NEWS-PAPER(ARASHIYAMA)
+47759 2008   PJ 0328 0404    6    0 NEWS-PAPER(ARASHIYAMA)
+47759 2009   PJ      0405    6    0 NEWS-PAPER(ARASHIYAMA)
+47759 2010   PJ      0405    7    0 NEWS-PAPER(ARASHIYAMA)
+47759 2011   PJ 0405 0409    8    0 NEWS-PAPER(ARASHIYAMA)
+47759 2012   PJ      0410    8    0 NEWS-PAPER(ARASHIYAMA)
+47759 2013   PJ      0403    8    0 NEWS-PAPER(ARASHIYAMA)
+47759 2014   PJ      0404    8    0 NEWS-PAPER(ARASHIYAMA)
+47759 2015   PJ      0403    8    0 NEWS-PAPER(ARASHIYAMA)
+47759 2016   PJ      0404    8    0 NEWS-PAPER(ARASHIYAMA)
+47759 2017   PJ      0409    8    0 NEWS-PAPER(ARASHIYAMA)
+47759 2018   PJ      0330    8    0 NEWS-PAPER(ARASHIYAMA)
+47759 2019   PJ      0405    8    0 NEWS-PAPER(ARASHIYAMA)
+47759 2020   PJ 0325 0401    8    0 NEWS-PAPER(ARASHIYAMA)
+47759 2021   PJ      0326    8    0 NEWS-PAPER(ARASHIYAMA)
