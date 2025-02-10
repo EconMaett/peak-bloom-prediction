@@ -1,20 +1,24 @@
 ---
 title: "Peak Bloom Prediction Demo"
 author: "Eager Learner"
-date: "01/05/2024"
+date: "01/05/2025"
 lang: en-US
 format:
   html:
     embed-resources: true
+editor: source
 ---
 
 ```{r}
 #| label: setup
 #| include: false
-knitr::opts_chunk$set(echo = TRUE, warning = FALSE, error = FALSE, 
-                      message = FALSE,
-                      fig.align = 'center',
-                      out.width = '80%')
+
+knitr::opts_chunk$set(
+  echo = TRUE, warning = FALSE, error = FALSE,
+  message = FALSE,
+  fig.align = "center",
+  out.width = "80%"
+)
 ```
 
 ## Instructions
@@ -23,17 +27,21 @@ In this analysis we demonstrate a simple way of predicting the peak bloom date o
 The models are simple in that they only use the past bloom dates observed at each location---no other covariates or additional information are considered.
 At the end of this document ([Appendix A](#appendix-rnoaa)), we demonstrate a simple way to get historic temperature data for the four locations via the [NOAA web API](https://www.ncdc.noaa.gov/cdo-web/).
 
-For this demo analysis we are using methods from the _tidyverse_ of R packages.
+For this demo analysis we are using methods from the `{tidyverse}` family of R packages.
 They can be installed via
 
 ```{r}
 #| eval: false
-install.packages('tidyverse')
+
+install.packages("tidyverse")
 ```
 
 and then loaded via
 
 ```{r}
+#| label: load-pkgs
+#| output: false
+
 library(tidyverse)
 ```
 
@@ -73,21 +81,20 @@ cherry |>
 
 ## Visualizing the time series
 
-
 ```{r}
 #| fig-width: 8
 #| fig-height: 3
 #| out-width: 100%
 #| fig-cap: |
 #|   Time series of peak bloom of cherry trees since 1880 at four different sites.
+
 cherry |> 
-  filter(year >= 1880) |>
-  ggplot(aes(x = year, y = bloom_doy)) +
-  geom_point() +
-  geom_step(linetype = 'dotted', color = 'gray50') +
-  scale_x_continuous(breaks = seq(1880, 2020, by = 20)) +
+  filter(year >= 1880) |> 
+  ggplot(mapping = aes(x = year, y = bloom_doy)) +
+  geom_step(linetype = "dotted", colour = "gray50") +
+  scale_x_continuous(breaks = c(seq(1880, 2020, by = 20), 2024)) +
   facet_grid(cols = vars(str_to_title(location))) +
-  labs(x = "Year", y = "Peak bloom (days since Jan 1st)")
+  labs(x = "Year", y = "Peak bloom (since Jan 1st)")
 ```
 
 ## Predicting the peak bloom
@@ -99,10 +106,15 @@ Since for New York City we only have one observed bloom date, which is not enoug
 
 ```{r}
 # Fit simple least-squares lines for all sites.
-cherry_no_nyc <- cherry |> 
-  filter(location != 'newyorkcity')
-ls_fit <- lm(bloom_doy ~ 0 + location + location : year, 
-             data = cherry_no_nyc, subset = year >= 1880)
+
+cherry_no_nyc <- cherry |>
+  filter(location != "newyorkcity")
+
+ls_fit <- lm(
+  formula = bloom_doy ~ 0 + location + location:year,
+  data = cherry_no_nyc, 
+  subset = year >= 1880
+)
 ```
 
 This simple linear regression functions suggest a trend toward earlier peak bloom at the sites.
@@ -116,21 +128,27 @@ We can compute the actual predictions using the `predict()` function and
 #|   Predictions and 90% prediction intervals from simple linear regression models fitted to
 #|   four sites.
 # Compute the predictions for all 4 sites
-cherry_no_nyc_grid <- expand_grid(location = unique(cherry_no_nyc$location),
-                                  year = 1880:2025)
-predictions <- cherry_no_nyc_grid |> 
-  bind_cols(predict(ls_fit, newdata = cherry_no_nyc_grid, 
-                    interval = 'prediction', level = 0.9)) |> 
+
+cherry_no_nyc_grid <- expand_grid(
+  location = unique(cherry_no_nyc$location),
+  year = 1880:2025
+)
+
+predictions <- cherry_no_nyc_grid |>
+  bind_cols(predict(
+    object = ls_fit,
+    newdata = cherry_no_nyc_grid,
+    interval = "prediction", level = 0.9
+  )) |>
   rename(prediction = fit, lower = lwr, upper = upr)
 
 # Plot the predictions alongside the actual observations for 2015 up to 2023.
-cherry |> 
-  right_join(predictions, by = c('year', 'location')) |>
-  filter((location == 'vancouver' & year >= 2021) |
-           (location != 'vancouver' & year >= 2015)) |>
+cherry |>
+  right_join(predictions, by = c("year", "location")) |>
+  filter((location == "vancouver" & year >= 2021) | (location != "vancouver" & year >= 2015)) |>
   ggplot(aes(x = year, y = prediction, ymin = lower, ymax = upper)) +
   geom_line(linewidth = 1) +
-  geom_ribbon(color = 'black', linetype = '22', linewidth = 0.8, fill = NA) +
+  geom_ribbon(color = "black", linetype = "22", linewidth = 0.8, fill = NA) +
   geom_point(aes(y = bloom_doy)) +
   scale_x_continuous(breaks = c(2015, 2018, 2021, 2024)) +
   facet_grid(cols = vars(str_to_title(location))) +
@@ -140,23 +158,25 @@ cherry |>
 Based on this very simple model, the peak bloom dates at these sites are:
 
 ```{r}
-#' Small helper function to convert the day of year to
-#' the actual date.
-#' 
+#' Small helper function to convert the day of year to the actual date.
+#'
 #' @param year year as an integer
 #' @param doy day of the year as integer (1 means January 1st)
 #' @return date string
-doy_to_date <- function (year, doy) {
-  strptime(paste(year, doy, sep = '-'), '%Y-%j') |> # create date object
-    strftime('%Y-%m-%d') # translate back to date string in ISO 8601 format
+
+doy_to_date <- function(year, doy) {
+  strptime(paste(year, doy, sep = "-"), "%Y-%j") |> # create date object
+    strftime("%Y-%m-%d") # translate back to date string in ISO 8601 format
 }
 
-predictions |> 
-  filter(year == 2025) |> 
-  mutate(prediction = round(prediction),
-         lower = floor(lower),
-         upper = ceiling(upper),
-         prediction_date = doy_to_date(year, prediction))
+predictions |>
+  filter(year == 2025) |>
+  mutate(
+    prediction = round(prediction),
+    lower = floor(lower),
+    upper = ceiling(upper),
+    prediction_date = doy_to_date(year, prediction)
+  )
 ```
 
 ## Extrapolating to Vancouver, BC and New York City
@@ -176,15 +196,28 @@ Hence, we want to fit a straight line through the peak bloom dates, ignoring the
 ```{r}
 # Fit simple least-squares lines for all sites.
 # We use larger weights for observations from Vancouver than for the other sites
-ls_fit_for_van <- lm(bloom_doy ~ year, data = cherry, subset = year >= 1880,
-                     weights = (location == 'vancouver') +
-                       0.2 * (location != 'vancouver'))
 
-vancouver_grid <- tibble(location = 'vancouver', year = 2023:2025)
-predictions_vancouver <- vancouver_grid |> 
-  bind_cols(predict(ls_fit_for_van, newdata = vancouver_grid,
-                    interval = 'prediction', level = 0.9)) |> 
-  rename(prediction = fit, lower = lwr, upper = upr)
+ls_fit_for_van <- lm(
+  formula = bloom_doy ~ year,
+  data = cherry, subset = year >= 1880,
+  weights = (location == "vancouver") + 0.2 * (location != "vancouver")
+)
+
+vancouver_grid <- tibble(location = "vancouver", year = 2023:2025)
+
+predictions_vancouver <- vancouver_grid |>
+  bind_cols(predict(
+    object = ls_fit_for_van,
+    newdata = vancouver_grid,
+    interval = "prediction", level = 0.9
+  )) |>
+  rename(prediction = fit, lower = lwr, upper = upr) |> 
+  mutate(
+    prediction = round(prediction),
+    lower = floor(lower),
+    upper = ceiling(upper),
+    prediction_date = doy_to_date(year, prediction)
+  )
 ```
 
 Not surprisingly, the predicted peak bloom date for Vancouver and NYC is now very similar to the other 3 sites:
@@ -193,6 +226,7 @@ predictions_vancouver
 ```
 
 We can check the predictions against the data from previous competition years.
+
 ```{r}
 #| fig-width: 8
 #| fig-height: 3
@@ -201,11 +235,12 @@ We can check the predictions against the data from previous competition years.
 #|   Predictions and 90% prediction intervals from a simple linear regression model for
 #|   Vancouver using data from all four sites.
 # Plot the predictions alongside the actual observations for 2015 up to 2023.
-cherry |> 
-  right_join(predictions_vancouver, by = c('year', 'location')) |> 
+
+cherry |>
+  right_join(y = predictions_vancouver, by = c("year", "location")) |>
   ggplot(aes(x = year, y = prediction, ymin = lower, ymax = upper)) +
   geom_line(linewidth = 1) +
-  geom_ribbon(color = 'black', linetype = '22', linewidth = 0.8, fill = NA) +
+  geom_ribbon(color = "black", linetype = "22", linewidth = 0.8, fill = NA) +
   geom_point(aes(y = bloom_doy)) +
   scale_x_continuous(breaks = 2022:2024) +
   facet_grid(cols = vars(str_to_title(location))) +
@@ -213,9 +248,10 @@ cherry |>
 ```
 
 If satisfied with the predictions, we can use them instead of the predictions from before.
+
 ```{r}
-predictions <- predictions |> 
-  filter(location != 'vancouver') |> 
+predictions <- predictions |>
+  filter(location != "vancouver") |>
   bind_rows(predictions_vancouver)
 ```
 
@@ -225,12 +261,14 @@ Similar to Vancouver, BC, only few historical observations are available for our
 There are some historical observations dating back to 2019 in the data provided by USA-NPN.
 The Washington Square Park has site id 32789 and the Yoshino cherry you should predict has species id 228.
 
+Note: `lubridate::as_date(Observation_Date, format = "%m/%d/%y")` returns `NA`s. Use `as.Date(Observation_Date, format = "%m/%d/%y")` or `lubridate::mdy(Observation_Date)` instead.
+
 ```{r}
 #| label: load-historical-data-nyc
+
 nyc_data_npn <- read_csv("data/USA-NPN_status_intensity_observations_data.csv") |> 
-  filter(Site_ID == 32789,
-         Species_ID == 228) |> 
-  mutate(Observation_Date = as_date(Observation_Date, format = '%m/%d/%y'))
+  filter(Site_ID == 32789, Species_ID == 228) |> 
+  mutate(Observation_Date = mdy(Observation_Date))
 ```
 
 This data, however, needs to be transformed as it only contains individual observations of the phenophase and not the actual peak bloom date.
@@ -239,42 +277,60 @@ This could be done in a more sophisticated way by also looking at the reported i
 
 ```{r}
 #| warning: true
-nyc_data <- nyc_data_npn |> 
-  arrange(Observation_Date) |> 
-  mutate(year = year(Observation_Date)) |> 
-  group_by(year) |> 
-  summarize(first_flower_index = min(which(Phenophase_Status == 1)),
-            bloom_date = strftime(Observation_Date[first_flower_index], format = '%Y-%m-%d'),
-            bloom_doy = Day_of_Year[first_flower_index],
-            .groups = 'drop') |> 
-  filter(!is.na(bloom_doy)) |> 
-  select(-first_flower_index) |> 
-  mutate(location = 'newyorkcity')
 
-cherry_with_nyc <- cherry |> 
+nyc_data <- nyc_data_npn |>
+  arrange(Observation_Date) |>
+  mutate(year = year(Observation_Date)) |>
+  group_by(year) |>
+  summarize(
+    first_flower_index = min(which(Phenophase_Status == 1)),
+    bloom_date = strftime(Observation_Date[first_flower_index], format = "%Y-%m-%d"),
+    bloom_doy = Day_of_Year[first_flower_index],
+    .groups = "drop"
+  ) |>
+  filter(!is.na(bloom_doy)) |>
+  select(-first_flower_index) |>
+  mutate(location = "newyorkcity")
+
+cherry_with_nyc <- cherry |>
   bind_rows(nyc_data)
 ```
 
 For 2020, no bloom was reported, hence the warning.
 
-Using the same steps as for Vancouver, BC, a simple linear model can be fitted.
+Using the same steps as for Vancouver, BC, a simple linear model can be fitted for New York City.
+
 ```{r}
 # Fit simple least-squares lines for all sites.
 # We use larger weights for observations from NYC than for the other sites
-ls_fit_for_nyc <- lm(bloom_doy ~ year, data = cherry_with_nyc, subset = year >= 1880,
-                     weights = (location == 'newyorkcity') +
-                       0.2 * (location != 'newyorkcity'))
 
-nyc_grid <- tibble(location = 'newyorkcity', year = 2022:2025)
-predictions_nyc <- nyc_grid |> 
-  bind_cols(predict(ls_fit_for_nyc, newdata = nyc_grid,
-                    interval = 'prediction', level = 0.9)) |> 
-  rename(prediction = fit, lower = lwr, upper = upr)
+ls_fit_for_nyc <- lm(
+  formula = bloom_doy ~ year,
+  data = cherry_with_nyc, subset = year >= 1880,
+  weights = (location == "newyorkcity") + 0.2 * (location != "newyorkcity")
+)
+
+nyc_grid <- tibble(location = "newyorkcity", year = 2022:2025)
+
+predictions_nyc <- nyc_grid |>
+  bind_cols(predict(
+    object = ls_fit_for_nyc,
+    newdata = nyc_grid,
+    interval = "prediction", level = 0.9
+  )) |>
+  rename(prediction = fit, lower = lwr, upper = upr) |> 
+    mutate(
+    prediction = round(prediction),
+    lower = floor(lower),
+    upper = ceiling(upper),
+    prediction_date = doy_to_date(year, prediction)
+  )
 
 predictions_nyc
 ```
 
 We can check the predictions against the data from previous competition years.
+
 ```{r}
 #| fig-width: 8
 #| fig-height: 3
@@ -283,11 +339,12 @@ We can check the predictions against the data from previous competition years.
 #|   Predictions and 90% prediction intervals from a simple linear regression model for
 #|   Washington Square Park in NYC using data from all five sites.
 # Plot the predictions alongside the actual observations for 2015 up to 2023.
-cherry_with_nyc |> 
-  right_join(predictions_nyc, by = c('year', 'location')) |>
+
+cherry_with_nyc |>
+  right_join(predictions_nyc, by = c("year", "location")) |>
   ggplot(aes(x = year, y = prediction, ymin = lower, ymax = upper)) +
   geom_line(linewidth = 1) +
-  geom_ribbon(color = 'black', linetype = '22', linewidth = 0.8, fill = NA) +
+  geom_ribbon(color = "black", linetype = "22", linewidth = 0.8, fill = NA) +
   geom_point(aes(y = bloom_doy)) +
   scale_x_continuous(breaks = 2022:2025) +
   facet_grid(cols = vars(str_to_title(location))) +
@@ -295,9 +352,10 @@ cherry_with_nyc |>
 ```
 
 If satisfied with the predictions, we can use them instead of the predictions from before.
+
 ```{r}
-predictions <- predictions |> 
-  filter(location != 'newyorkcity') |> 
+predictions <- predictions |>
+  filter(location != "newyorkcity") |>
   bind_rows(predictions_nyc)
 ```
 
@@ -306,13 +364,10 @@ predictions <- predictions |>
 To submit your entries, enter the predicted bloom dates from your models in the submission form.
 
 ```{r}
-predictions |> 
-  filter(year == 2025) |> 
-  mutate(predicted_date = strptime(paste(year, prediction), "%Y %j") |> 
-           as_date())
+predictions |>
+  filter(year == 2025) |>
+  mutate(prediction_date = strptime(paste(year, prediction), "%Y %j") |> as_date())
 ```
-
-
 
 ## Appendix: Adding Covariates {#appendix-rnoaa}
 
@@ -324,17 +379,10 @@ You can request this token (free of charge) via <https://www.ncdc.noaa.gov/cdo-w
 Once you have been issued the token, note it somewhere in your code (or make it available through an environment variable):
 
 ```{r}
-#| eval: false
-NOAA_WEB_API_TOKEN <- '...'
-# or
-NOAA_WEB_API_TOKEN <- Sys.getenv("NOAA_WEB_API_TOKEN")
-```
-
-```{r}
 #| echo: false
+
 NOAA_WEB_API_TOKEN <- Sys.getenv("NOAA_WEB_API_TOKEN")
 ```
-
 
 To connect to and use the web API you may use the following R packages:
 
@@ -347,11 +395,14 @@ install.packages("jsonlite")
 and the loaded via
 
 ```{r}
+#| label: load-api-pkgs
+#| output: false
+
 library(httr2)
 library(jsonlite)
 ```
 
-The stations closest to the sites for the competition with continuously collected maximum temperatures are USC00186350 (Washington D.C.), GME00127786 (Liestal), JA000047759 (Kyoto), CA001108395 (Vancouver) and 
+The stations closest to the sites for the competition with continuously collected maximum temperatures are `USC00186350` (Washington D.C.), `GME00127786` (Liestal), `JA000047759` (Kyoto), `CA001108395` (Vancouver) and 
 
 ```{r}
 NOAA_API_BASE_URL <- "https://www.ncei.noaa.gov/cdo-web/api/v2/data"
@@ -362,47 +413,54 @@ stations <- c(
   "vancouver"    = "GHCND:CA001108395",
   "newyorkcity"  = "GHCND:USW00014732",
   "liestal"      = "GHCND:SZ000001940",
-  "kyoto"        = "GHCND:JA000047759")
+  "kyoto"        = "GHCND:JA000047759"
+)
 ```
 
-As a simple demonstration, we retrieve the average seasonal maximum daily temperature (in 1/10 °C) from these stations using our own `get_temperature()` function, which wraps the `ghcnd_search()` function in the `rnoaa` package. (N.b. `ghcnd_search()` returns a list. Each element of the list corresponds to an element of the `var` argument.)
+As a simple demonstration, we retrieve the average seasonal maximum daily temperature (in 1/10 °C) from these stations using our own `get_temperature()` function, which wraps the `ghcnd_search()` function in the `{rnoaa}` package. (N.b. `ghcnd_search()` returns a list. Each element of the list corresponds to an element of the `var` argument.)
+
+Note: The `{rnoaa}` package is not on CRAN anymore. The following functions allow you to use the NOAA API without the package.
 
 ```{r}
-nested_to_tibble <- function (x) {
-  # Determine the variable names in the response
-  variable_names <- map(x, names) |> 
-    unlist(use.names = FALSE) |> 
-    unique()
+nested_to_tibble <- function(x) {
   
+  # Determine the variable names in the response
+  variable_names <- map(.x = x, .f = names) |>
+    unlist(use.names = FALSE) |>
+    unique()
+
   names(variable_names) <- variable_names
 
   # Reshape the response from a nested list into a table
-  map(variable_names, \(i) {
-    map(x, \(y) {
+  map(.x = variable_names, .f = \(i) {
+    map(.x = x, .f = \(y) {
       if (is.null(y[[i]])) {
         NA_character_
       } else {
         y[[i]]
       }
-    }) |> 
+    }) |>
       unlist(use.names = FALSE)
-  }) |> 
+  }) |>
     as_tibble()
 }
 
 get_daily_avg_temp <- function(station_id, start_date, end_date,
                                api_key, base_url, window_size = 300) {
-  windows <- seq(as_date(start_date),
-                 as_date(end_date) + days(window_size + 1),
-                 by = sprintf("%d days", window_size))
   
-  batches <- map2(windows[-length(windows)], windows[-1] - days(1), \(from, to) {
+  windows <- seq(
+    from = as_date(start_date),
+    to = as_date(end_date) + days(window_size + 1),
+    by = sprintf("%d days", window_size)
+  )
+
+  batches <- map2(.x = windows[-length(windows)], .y = windows[-1] - days(1), .f = \(from, to) {
     if (from > Sys.Date()) {
       return(NULL)
     }
     response <- tryCatch(
-      request(base_url) |> 
-        req_headers(token = api_key) |> 
+      request(base_url) |>
+        req_headers(token = api_key) |>
         req_url_query(
           datasetid = "GHCND",
           stationid = station_id,
@@ -411,47 +469,60 @@ get_daily_avg_temp <- function(station_id, start_date, end_date,
           enddate = min(as_date(to), Sys.Date()),
           units = "metric",
           limit = 1000
-        ) |> 
-        req_retry(max_tries = 10) |> 
-        req_perform() |> 
+        ) |>
+        req_retry(max_tries = 10) |>
+        req_perform() |>
         resp_body_json(),
-      
       httr2_http = \(cnd) {
-        rlang::warn(sprintf("Failed to retrieve data for station %s in time window %s--%s",
-                            station_id, from, to),
-                    parent = cnd)
+        rlang::warn(
+          sprintf(
+            "Failed to retrieve data for station %s in time window %s--%s",
+            station_id, from, to
+          ),
+          parent = cnd
+        )
         NULL
-      })
+      }
+    )
   })
-  
-  map(batches, \(x) nested_to_tibble(x$results)) |> 
-    list_rbind() |> 
+
+  map(.x = batches, .f = \(x) nested_to_tibble(x$results)) |>
+    list_rbind() |>
     mutate(date = as_date(date))
 }
 ```
 
+Get historic temperatures for the five locations and add them to the `cherry` tibble. Cache this operation so that you don't have to redo it every time you run the script.
+
 ```{r}
 #| cache: true
-historic_temperatures <- cherry |> 
-  group_by(location) |> 
-  summarize(start_date = sprintf('%d-01-01', pmax(1970, min(year)) - 1)) |> 
-  left_join(tibble(location = names(stations),
-                   station_id = stations),
-            by = 'location') |> 
-  group_by(location) |> 
-  group_modify(\(x, gr) {
-    get_daily_avg_temp(station_id = x$station_id,
-                       start_date = x$start_date,
-                       end_date = Sys.Date(),
-                       api_key = NOAA_WEB_API_TOKEN,
-                       base_url = NOAA_API_BASE_URL)
+
+historic_temperatures <- cherry |>
+  group_by(location) |>
+  summarize(start_date = sprintf("%d-01-01", pmax(1970, min(year)) - 1)) |>
+  left_join(
+    y = tibble(
+      location = names(stations),
+      station_id = stations
+    ),
+    by = "location"
+  ) |>
+  group_by(location) |>
+  group_modify(.f = \(x, gr) {
+    get_daily_avg_temp(
+      station_id = x$station_id,
+      start_date = x$start_date,
+      end_date = Sys.Date(),
+      api_key = NOAA_WEB_API_TOKEN,
+      base_url = NOAA_API_BASE_URL
+    )
   })
 ```
 
 ```{r}
 historic_temperatures |>
-  filter(datatype == 'TMAX') |> 
-  ggplot(aes(x = date, y = value)) + 
+  filter(datatype == "TMAX") |>
+  ggplot(aes(x = date, y = value)) +
   geom_line() +
   labs(x = "Year", y = "Average maximum temperature (°C)") +
   facet_grid(rows = vars(location))
@@ -460,22 +531,24 @@ historic_temperatures |>
 A simple model may simply take the average maximum winter temperature (Dec. 1st of the previous year until end of February) into account:
 
 ```{r}
-avg_winter_temp <- historic_temperatures |> 
-  filter(datatype == 'TMAX') |> 
+avg_winter_temp <- historic_temperatures |>
+  filter(datatype == "TMAX") |>
   mutate(year = case_when(
     month(date) < 3 ~ year(date),
     month(date) == 12 ~ year(date) + 1,
     TRUE ~ NA_integer_
-  )) |> 
-  filter(!is.na(year), year >= 1970) |> 
-  group_by(location, year) |> 
-  summarize(avg_tmax = mean(value),
-            .groups = 'drop')
+  )) |>
+  filter(!is.na(year), year >= 1970) |>
+  group_by(location, year) |>
+  summarize(
+    avg_tmax = mean(value),
+    .groups = "drop"
+  )
 ```
 
 ```{r}
 avg_winter_temp |>
-  ggplot(aes(x = year, y = avg_tmax)) + 
+  ggplot(aes(x = year, y = avg_tmax)) +
   geom_line() +
   labs(x = "Year", y = "Average maximum temperature (°C)") +
   facet_grid(rows = vars(location))
@@ -486,20 +559,25 @@ Using these average temperature, we can predict the peak bloom date again using 
 ```{r}
 ls_fit_with_temp <- cherry |>
   inner_join(avg_winter_temp,
-             by = c("location", "year")) |>
+    by = c("location", "year")
+  ) |>
   lm(formula = bloom_doy ~ year * location + avg_tmax)
 
-cherry_grid <- expand_grid(location = unique(cherry$location),
-                           year = 1990:2025) |> 
+cherry_grid <- expand_grid(
+  location = unique(cherry$location),
+  year = 1990:2025
+) |>
   inner_join(avg_winter_temp,
-             by = c("location", "year"))
+    by = c("location", "year")
+  )
 
-predictions_from_temp <- cherry_grid |> 
+predictions_from_temp <- cherry_grid |>
   mutate(pred_bloom = predict(ls_fit_with_temp, newdata = cherry_grid))
 
-predictions_from_temp |> 
+predictions_from_temp |>
   left_join(cherry,
-             by = c("location", "year")) |> 
+    by = c("location", "year")
+  ) |>
   ggplot(aes(x = year)) +
   geom_point(aes(y = bloom_doy)) +
   geom_line(aes(y = pred_bloom)) +
@@ -511,19 +589,21 @@ The following plot shows a comparison of predictions for Vancouver using the two
 ```{r}
 predictions_vancouver |>
   left_join(predictions_from_temp,
-            by = c("location", "year")) |> 
-  select(year, pred_temporal = prediction, pred_temp = pred_bloom) |> 
-  pivot_longer(cols = -year) |> 
-  mutate(name = if_else(name == "pred_temporal", 
-                        "Method 1: location-based model", 
-                        "Method 2: temperature-based model")) |>
+    by = c("location", "year")
+  ) |>
+  select(year, pred_temporal = prediction, pred_temp = pred_bloom) |>
+  pivot_longer(cols = -year) |>
+  mutate(name = if_else(name == "pred_temporal",
+    "Method 1: location-based model",
+    "Method 2: temperature-based model"
+  )) |>
   ggplot() +
   aes(x = year, y = value, linetype = name) +
   geom_line() +
   scale_x_continuous(breaks = 2022:2024) +
-  labs(x = "Year", linetype = "",
-       y = "Predicted peak bloom (days since Jan 1st) for Vancouver") +
+  labs(
+    x = "Year", linetype = "",
+    y = "Predicted peak bloom (days since Jan 1st) for Vancouver"
+  ) +
   theme(legend.position = "bottom")
 ```
-
-
