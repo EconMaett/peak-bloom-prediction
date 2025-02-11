@@ -12,6 +12,8 @@ date-modified: 01/18/2025
 bibliography: references.bib
 image: images/quetelet-flowers.png
 image-alt: Portrait of Adolphe Quetelet, superimposed on a photo of blooming purple lilacs. Quetelet portrait from Wikimedia Commons, Public Domain. Lilacs photo by Arina Bogachyova/iStock.
+fig-cap-location: bottom
+tbl-cap-location: bottom
 toc: true
 lightbox: true
 link-bibliography: true
@@ -61,49 +63,48 @@ Check out the `{GSOD}` package <https://docs.ropensci.org/GSODR/>.
 
 We begin by reviewing the law of the flowering plants as it was stated by Adolphe Quetelet. You may already know Quetelet as the inventor of the body mass index. Less known is that Quetelet recorded the bloom dates of hundreds of different plants between 1833 and 1852 at the Brussels Observatory, which he founded and directed. Quetelet reported that a plant flowers when exposed to a specific quantity of heat, measured in degrees of Celsius squared (°C²). For example, he calculated that a lilac blooms when the sum of the daily temperatures squared exceeds 4264°C² following the last frost. 
 
-He communicated this law in his *Letters addressed to HRH the grand duke of Saxe-Coburg and Gotha* [Number 33, -@quetelet1846lettres; translated -@quetelet_1849] and in his reporting *On the climate of Belgium* [Chapter 4, Part 4, -@observatoire1834annales; data updated in Part 7, -@quetelet_1857]. A picture of Quetelet and the title page of *On the climate of Belgium* are displayed in Figure 1.
+He communicated this law in his *Letters addressed to HRH the grand duke of Saxe-Coburg and Gotha* [Number 33, -@quetelet1846lettres; translated -@quetelet_1849] and in his reporting *On the climate of Belgium* [Chapter 4, Part 4, -@observatoire1834annales; data updated in Part 7, -@quetelet_1857]. A picture of Quetelet and the title page of *On the climate of Belgium* are displayed in @fig-01.
 
-:::{layout-ncol=2}
+::: {#fig-01 layout-ncol=2}
+
 ![](images/quetelet_1875400.jpg){fig-alt="Portrait of Adolphe Quetelet." description="Source: [Wikimedia Commons](https://en.wikipedia.org/wiki/Adolphe_Quetelet#/media/File:Adolphe_Qu%C3%A9telet_by_Joseph-Arnold_Demannez.jpg)" height=400px group="Quetelet"}
 
 ![](images/sur_le_climat400.jpeg){fig-alt="Title page of Adolphe Quetelet's 'On the climate of Belgium'." description="Source: [Gallica](https://gallica.bnf.fr/ark:/12148/bpt6k95028d)" height=400px group="Quetelet"}
-:::
 
-:::{.figure-caption}
-**Figure 1:** Quetelet reported on the law of the flowering plants in *On the climate of Belgium* (1857). Sources: [Wikimedia Commons](https://en.wikipedia.org/wiki/Adolphe_Quetelet#/media/File:Adolphe_Qu%C3%A9telet_by_Joseph-Arnold_Demannez.jpg), [Gallica](https://gallica.bnf.fr/ark:/12148/bpt6k95028d).
+Quetelet reported on the law of the flowering plants in *On the climate of Belgium* (1857). Sources: [Wikimedia Commons](https://en.wikipedia.org/wiki/Adolphe_Quetelet#/media/File:Adolphe_Qu%C3%A9telet_by_Joseph-Arnold_Demannez.jpg), [Gallica](https://gallica.bnf.fr/ark:/12148/bpt6k95028d).
 :::
 
 Quetelet was not the first to study bloom dates. Anthophiles have recorded the dates that flowers bloom for centuries. Written records of cherry trees go back as far as 812 AD in Japan and peach and plum trees as far as 1308 AD in China. Systematic record keeping began a century before Quetelet with Robert Marsham's *Indications of Spring* [-@marsham_1789].
 
-Quetelet was also not the first to study the relationship between temperature and bloom dates. René Réaumur [-@deréaumur_1735], an early adopter of the thermometer, noted the relationship before Marsham published his *Indications*. But Quetelet was the first to systematically study the relationship across a wide variety of plants and derive the amount of heat needed to bloom. An example of Quetelet's careful record keeping can be seen in Figure 2, one of many tables he reported in his publications.
+Quetelet was also not the first to study the relationship between temperature and bloom dates. René Réaumur [-@deréaumur_1735], an early adopter of the thermometer, noted the relationship before Marsham published his *Indications*. But Quetelet was the first to systematically study the relationship across a wide variety of plants and derive the amount of heat needed to bloom. An example of Quetelet's careful record keeping can be seen in @fig-02, one of many tables he reported in his publications.
 
+::: {#fig-02}
 ![](images/quetelet_bloom.png){width="600" fig-align="center" fig-alt="A table of bloom dates at Brussels Observatory observed by Quetelet between 1839 and 1852." description="Source: [Gallica](https://gallica.bnf.fr/ark:/12148/bpt6k95028d)"}
 
-::: {.figure-caption}
-**Figure 2:** Bloom dates at Brussels Observatory observed by Quetelet between 1839 and 1852. Source: [Gallica](https://gallica.bnf.fr/ark:/12148/bpt6k95028d).
+Bloom dates at Brussels Observatory observed by Quetelet between 1839 and 1852. Source: [Gallica](https://gallica.bnf.fr/ark:/12148/bpt6k95028d).
 :::
+
 
 ## Reproducing Quetelet's law of the flowering plants
 
-To reproduce Quetelet's law, we combine the data in Figure 2 with additional observations from his *Letters*. We focus on Quetelet's primary example, the bloom date of the common lilac, *Syringa vulgaris*, row 18 of Figure 2. We do this because Quetelet carefully describes his methodology for measuring the bloom date of lilacs. For example, Quetelet considers a lilac to have bloomed when "the first corolla opens and shows the stamina." That event is closest to what the USA Phenology Network describes as "open flowers", depicted in the center image of Figure 3 below. This detail will become relevant when we attempt to replicate Quetelet's law in a later section. Note that although we focus on lilacs in this tutorial, the R code is easily edited to predict the day that other plants will bloom.
+To reproduce Quetelet's law, we combine the data in @fig-02 with additional observations from his *Letters*. We focus on Quetelet's primary example, the bloom date of the common lilac, *Syringa vulgaris*, row 18 of @fig-02. We do this because Quetelet carefully describes his methodology for measuring the bloom date of lilacs. For example, Quetelet considers a lilac to have bloomed when "the first corolla opens and shows the stamina." That event is closest to what the USA Phenology Network describes as "open flowers", depicted in the center image of @fig-03 below. This detail will become relevant when we attempt to replicate Quetelet's law in a later section. Note that although we focus on lilacs in this tutorial, the R code is easily edited to predict the day that other plants will bloom.
 
-:::{layout-ncol=3}
+:::{layout-ncol=3 #fig-03}
+
 ![](images/buds250.jpg){height=250px group="flowers" fig-alt="Photo of lilac flower buds." description="Source: [USA National Phenology Network](https://www.usanpn.org/nn/TrackaLilac)"}
 
 ![](images/open_flowers250.jpg){height=250px group="flowers" fig-alt="Photo of open lilac flowers." description="Source: [USA National Phenology Network](https://www.usanpn.org/nn/TrackaLilac)"}
 
 ![](images/full_flowers250.jpg){height=250px group="flowers" fig-alt="Photo of full lilac flowers." description="Source: [USA National Phenology Network](https://www.usanpn.org/nn/TrackaLilac)"}
-:::
 
-:::{.figure-caption}
-**Figure 3:** The bloom date occurs when the first corolla opens and shows the stamina (center image). Source: [USA National Phenology Network](https://www.usanpn.org/nn/TrackaLilac).
+The bloom date occurs when the first corolla opens and shows the stamina (center image). Source: [USA National Phenology Network](https://www.usanpn.org/nn/TrackaLilac).
 :::
 
 In the R code below, the five-column tibble `lilac` contains the date each year that Quetelet observed the lilacs bloom at Brussels Observatory. The first three columns are the month, day, and year the lilacs bloomed between 1839 and 1852. These columns are combined to form the fourth column, the full date the lilacs bloomed. The last column converts the date to the day of the year the lilacs bloomed, abbreviated "doy." That is, "doy" is the number of days it took for the lilacs bloom following January 1. Both "date" and "doy" representations of Quetelet's observations will be useful throughout this tutorial.
 
 ```{r}
 #| label: tbl-01
-#| tbl-cap: "Table 1: Bloom dates of lilacs observed by Quetelet between 1839 and 1852."
+#| tbl-cap: "Bloom dates of lilacs observed by Quetelet between 1839 and 1852."
 
 lilac <- tibble(
   month = c(
@@ -133,7 +134,7 @@ The result is a five-column tibble `temp`, which contains the year of the temper
 
 ```{r}
 #| label: tbl-02
-#| tbl-cap: "Table 2: Temperature observed at Brussels Observatory between 1839 and 1852."
+#| tbl-cap: "Temperature observed at Brussels Observatory between 1839 and 1852."
 #| message: false
 
 temp <- ghcnd_search(
@@ -167,7 +168,7 @@ Reproducing Quetelet's law is now a simple matter of calculating the sum of the 
 
 ```{r}
 #| label: tbl-03
-#| tbl-cap: "Table 3: Last frost date and lilac bloom date at Brussels Observatory in 1839."
+#| tbl-cap: "Last frost date and lilac bloom date at Brussels Observatory in 1839."
 
 doy_last_frost <- function(tmax, doy_max = 100) {
   dof <- which(tmax[1:doy_max] <= 0)
@@ -198,7 +199,7 @@ If Quetelet's law of the flowering plants is correct, @tbl-03 has the following 
 
 ```{r}
 #| label: fig-04
-#| fig-cap: "Figure 4: According to Quetelet's law, the lilacs bloom when exposed to 4264°C² following the last frost."
+#| fig-cap: "According to Quetelet's law, the lilacs bloom when exposed to 4264°C² following the last frost."
 
 (temp |> 
    filter(date < as.Date("1839-06-01")) |> 
@@ -233,7 +234,7 @@ We now have all the ingredients necessary to reproduce Quetelet's findings. Our 
 
 ```{r}
 #| label: tbl-04
-#| tbl-cap: "Table 4: Reproduction of Quetelet's analysis."
+#| tbl-cap: "Reproduction of Quetelet's analysis."
 
 quetelet <- temp %>%
   group_by(year) %>%
@@ -272,7 +273,7 @@ These unobserved factors limit the accuracy of predictions made using the law. T
 
 ```{r}
 #| label: tbl-05
-#| tbl-cap: "Table 5: Predictions using Quetelet's law are accurate within a week on average."
+#| tbl-cap: "Predictions using Quetelet's law are accurate within a week on average."
 
 doy_prediction <- function(temp, tmax) {
   doy_last_frost(tmax) + which.max(cumsum(pmax(temp[(doy_last_frost(tmax) + 1):365], 0, na.rm = TRUE)^2) > 4264)
@@ -298,7 +299,7 @@ quetelet %>%
 
 ```{r}
 #| label: tbl-06
-#| tbl-cap: "Table 6: Predictions using the average bloom date are off by a week or more on average."
+#| tbl-cap: "Predictions using the average bloom date are off by a week or more on average."
 
 quetelet %>%
   summarize(
@@ -353,7 +354,7 @@ In this section, we replicate the law of the flowering plants using lilac bloom 
 
 ```{r}
 #| label: tbl-07
-#| tbl-cap: "Table 7: Bloom dates of lilacs observed in pacific northwest between 1956 and 2009."
+#| tbl-cap: "Bloom dates of lilacs observed in pacific northwest between 1956 and 2009."
 
 load(url("https://github.com/jauerbach/miscellaneous/blob/main/usa_npn.RData?raw=true"))
 
@@ -379,7 +380,7 @@ The seventh column we review is `temp`. Each row of `temp` is a tibble of temper
 
 ```{r}
 #| label: tbl-08
-#| tbl-cap: "Table 8: Temperature observed at an example pacific northwest site in 1956."
+#| tbl-cap: "Temperature observed at an example pacific northwest site in 1956."
 
 usa_npn %>%
   pull(temp) %>%
@@ -404,7 +405,7 @@ We are now prepared to replicate Quetelet's findings. We will use R code nearly 
 
 ```{r}
 #| label: tbl-09
-#| tbl-cap: "Table 9: Replication of Quetelet's analysis."
+#| tbl-cap: "Replication of Quetelet's analysis."
 
 usa_npn %>%
   group_by(rownames(usa_npn)) %>%
@@ -438,7 +439,7 @@ We now investigate the accuracy of Quetelet's law when applied to the USA lilac 
 
 ```{r}
 #| label: tbl-10
-#| tbl-cap: "Table 10: Predictions using Quetelet's law are accurate within about two weeks on average."
+#| tbl-cap: "Predictions using Quetelet's law are accurate within about two weeks on average."
 
 usa_npn <- usa_npn %>%
   mutate(pred = map(temp, ~ doy_prediction(.$temp, .$tmax))) %>%
@@ -468,7 +469,7 @@ Although the accuracy of the predictions made using Quetelet's law is lower when
 
 ```{r}
 #| label: fig-05
-#| fig-cap: "Figure 5: Predictions using Quetelet's law are accurate within about two weeks on average."
+#| fig-cap: "Predictions using Quetelet's law are accurate within about two weeks on average."
 
 (usa_npn %>%
   mutate(doy = first_yes_doy) %>%
@@ -504,7 +505,7 @@ An average accuracy of two weeks might not sound impressive. But it is far more 
 
 ```{r}
 #| label: tbl-11
-#| tbl-cap: "Table 11: Predictions using the average bloom date are off by three weeks or more on average."
+#| tbl-cap: "Predictions using the average bloom date are off by three weeks or more on average."
 
 usa_npn %>%
   mutate(doy = first_yes_doy) %>%
@@ -531,13 +532,13 @@ usa_npn %>%
 
 Any weather forecast can become a flower forecast by applying the law of the flowering plants. In this section, we use the AccuWeather forecast to predict the day a hypothetical lilac will bloom in Brussels in 2023. AccuWeather forecasts daily maximum and minimum temperatures three months into the future. We do not evaluate the quality of these forecasts. The purpose of this section is to simply convert them into flower forecasts.
 
-We use the AccuWeather forecast as it appeared on the webpage [AccuWeather.com](https://www.accuweather.com/en/be/brussels/27581/january-weather/27581?year=2023) on February 19, 2023. AccuWeather reports the forecast for each month on a separate webpage. For reproducibility, we saved each page on the [Internet Archive](https://web.archive.org/web/20230219151906/https://www.accuweather.com/en/be/brussels/27581/january-weather/27581?year=2023&unit=c). The following R code creates the function `get_weather_table` to retrieve each page we saved, extract the forecast contained within that page, and arrange the data as a tibble. The `get_weather_table` function combines several functions from the `rvest` package, which is yet another member of the "tidyverse". In particular, the forecast on each page is contained within the div "monthly-calendar" and can be extracted with the `html_nodes` and `html_text2` functions.
+We use the AccuWeather forecast as it appeared on the webpage [AccuWeather.com](https://www.accuweather.com/en/be/brussels/27581/january-weather/27581?year=2023) on February 19, 2023. AccuWeather reports the forecast for each month on a separate webpage. For reproducibility, we saved each page on the [Internet Archive](https://web.archive.org/web/20230219151906/https://www.accuweather.com/en/be/brussels/27581/january-weather/27581?year=2023&unit=c). The following R code creates the function `get_weather_table()` to retrieve each page we saved, extract the forecast contained within that page, and arrange the data as a tibble. The `get_weather_table()` function combines several functions from the `{rvest}` package, which is yet another member of the `{tidyverse}`. In particular, the forecast on each page is contained within the div `monthly-calendar` and can be extracted with the `html_nodes()` and `html_text2()` functions.
 
 Applying the `get_weather_table()` function to the url for each page yields a five column tibble `temp_br`, with columns defined in the same way as the tibble `temp`, discussed in previous sections. The first 10 rows are below; the data are also available on the author's [GitHub](https://raw.githubusercontent.com/jauerbach/miscellaneous/main/temp_br.csv).
 
 ```{r}
 #| label: tbl-12
-#| tbl-cap: "Table 12: Temperature forecast for Brussels, retrieved on February 19, 2023."
+#| tbl-cap: "Temperature forecast for Brussels, retrieved on February 19, 2023."
 
 get_weather_table <- function(url) {
   read_html(url) %>%
@@ -593,7 +594,7 @@ We now predict the day the lilacs will bloom. The R code below uses the `doy_pre
 
 ```{r}
 #| label: tbl-13
-#| tbl-cap: "Table 13: Last frost date and lilac bloom date in Brussels in 2023."
+#| tbl-cap: "Last frost date and lilac bloom date in Brussels in 2023."
 
 bloom_day_br <- temp_br %>%
   summarize(date = doy_prediction(temp, tmax) + as.Date("2023-01-01")) %>%
@@ -617,7 +618,7 @@ We visualize the predictions in @fig-06, which has the same interpretation as @f
 
 ```{r}
 #| label: fig-06
-#| fig-cap: "Figure 6: According to Quetelet's law, the lilacs will bloom once exposed to 4264°C² following the last frost."
+#| fig-cap: "According to Quetelet's law, the lilacs will bloom once exposed to 4264°C² following the last frost."
 
 (temp_br %>%
   ggplot() +
@@ -657,7 +658,7 @@ Although Quetelet did not discover the law, he did much to advance it. Quetelet 
 
 In recent years, the observations collected through phenology networks have become an important resource for understanding the impacts of climate change. For example, the USA National Phenology Network calculates the Spring Bloom Index, which measures the "first day of spring" using the days lilacs are observed to bloom at locations across the United States. The index is then compared to previous years. @fig-07 shows one comparison, called the Return Interval. The Return Interval is much like a p-value, calculating how frequently more extreme spring indices were observed in previous decades. Bloom dates that are uncommonly early (green) or late (purple) may indicate environments stressed by changing climate. Scientists exploit the relationship between temperature and bloom date to extrapolate the index to areas with few observations.
 
-![](images/six-bloom-return-interval-2020.png){fig-alt="A map of the United States showing the Spring Bloom Index Return Interval 2020, which measures whether spring is typical when compared to recent decades." description="Source: [USA National Phenology Network](https://www.usanpn.org/files/npn/maps/six-bloom-return-interval-2020.png)"}
+![](images/six-bloom-return-interval-2020.png){#fig-07 fig-alt="A map of the United States showing the Spring Bloom Index Return Interval 2020, which measures whether spring is typical when compared to recent decades." description="Source: [USA National Phenology Network](https://www.usanpn.org/files/npn/maps/six-bloom-return-interval-2020.png)"}
 
 :::{.figure-caption}
 **Figure 7:** The Spring Bloom Index Return Interval measures whether spring is typical when compared to recent decades. Source: [USA National Phenology Network](https://www.usanpn.org/files/npn/maps/six-bloom-return-interval-2020.png).

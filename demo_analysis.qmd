@@ -34,6 +34,7 @@ They can be installed via
 #| eval: false
 
 install.packages("tidyverse")
+install.packages("kableExtra")
 ```
 
 and then loaded via
@@ -43,6 +44,7 @@ and then loaded via
 #| output: false
 
 library(tidyverse)
+library(kableExtra)
 ```
 
 
@@ -74,14 +76,20 @@ cherry <- read.csv("data/washingtondc.csv") |>
 For example, the latest 3 observations for each location can be extracted with:
 
 ```{r}
+#| label: tbl-01
+#| tbl-cap: "latest 3 observations for each location"
+
 cherry |> 
   group_by(location) |> 
-  slice_tail(n = 3)
+  slice_tail(n = 3) |> 
+  kable() |> 
+  kable_styling()
 ```
 
 ## Visualizing the time series
 
 ```{r}
+#| label: fig-01
 #| fig-width: 8
 #| fig-height: 3
 #| out-width: 100%
@@ -92,7 +100,8 @@ cherry |>
   filter(year >= 1880) |> 
   ggplot(mapping = aes(x = year, y = bloom_doy)) +
   geom_step(linetype = "dotted", colour = "gray50") +
-  scale_x_continuous(breaks = c(seq(1880, 2020, by = 20), 2024)) +
+  geom_smooth(method = "loess", se = FALSE) +
+  scale_x_continuous(breaks = c(seq(1880, 2020, by = 40), NA)) +
   facet_grid(cols = vars(str_to_title(location))) +
   labs(x = "Year", y = "Peak bloom (since Jan 1st)")
 ```

@@ -21,7 +21,7 @@ The peak bloom date is defined as the day when **70%** of the Yoshino Cherry (Pr
 
 ###### Copyright notice
 
-Sourced from EPA's Climate Change Indicators in the United States: https://www.epa.gov/climate-indicators/cherry-blossoms.
+Sourced from EPA's Climate Change Indicators in the United States: <https://www.epa.gov/climate-indicators/cherry-blossoms>.
 See the source for copyright details.
 
 ### Liestal-Weideli (Switzerland)
@@ -41,7 +41,7 @@ Copyright by *Landwirtschaftliches Zentrum Ebenrain, Sissach and MeteoSwiss.*
 
 ### Kyoto (Japan)
 
-The data has been obtained from http://atmenv.envi.osakafu-u.ac.jp/aono/kyophenotemp4/.
+The data has been obtained from <http://atmenv.envi.osakafu-u.ac.jp/aono/kyophenotemp4/>.
 The geographical location (longitude, latitude, altitude) roughly corresponds to the Nakanoshima area of the Arashiyama Park in Kyoto, Japan.
 
 The peak bloom date of the Prunus jamasakura is determined by a local news paper in Arashiyama (Kyoto, JP).
@@ -51,7 +51,7 @@ See the source for details.
 ###### Copyright notice
 
 Copyright holder Yasuyuki AONO (aono(at)envi.osakafu-u.ac.jp).
-The data was obtained from http://atmenv.envi.osakafu-u.ac.jp/aono/kyophenotemp4/.
+The data was obtained from <http://atmenv.envi.osakafu-u.ac.jp/aono/kyophenotemp4/>.
 
 - Data from the 9th to the 14th centuries was acquired and analyzed by Aono and Saito (2010; International Journal of Biometeorology, 54, 211-219).
 - Phenology for 15th to 21st centuries was acquired and analyzed by Aono and Kazui (2008; International Journal of Climatology, 28, 905-914).
@@ -81,7 +81,7 @@ The sample trees are located within a 5km radius of the location indicated in th
 
 ###### Copyright notice
 
-Source: Japan Meteorological Agency website (https://www.data.jma.go.jp/sakura/data/pdf/005.pdf).
+Source: Japan Meteorological Agency website (<https://www.data.jma.go.jp/sakura/data/pdf/005.pdf>).
 
 ### South Korea
 
