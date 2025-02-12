@@ -7,6 +7,8 @@ format:
   html:
     embed-resources: true
 editor: source
+fig-cap-location: bottom
+tbl-cap-location: bottom
 ---
 
 ```{r}
@@ -35,6 +37,8 @@ They can be installed via
 
 install.packages("tidyverse")
 install.packages("kableExtra")
+install.packages("mirai")
+install.packages("carrier")
 ```
 
 and then loaded via
@@ -43,8 +47,14 @@ and then loaded via
 #| label: load-pkgs
 #| output: false
 
+Sys.setlocale("LC_ALL","English")
+
 library(tidyverse)
 library(kableExtra)
+# library(mirai)
+# library(carrier)
+# 
+# mirai::daemons(5) # note: reproducibility
 ```
 
 
@@ -94,16 +104,16 @@ cherry |>
 #| fig-height: 3
 #| out-width: 100%
 #| fig-cap: |
-#|   Time series of peak bloom of cherry trees since 1880 at four different sites.
+#|   Time series of peak bloom of cherry trees since 1880 at five different sites.
 
 cherry |> 
   filter(year >= 1880) |> 
   ggplot(mapping = aes(x = year, y = bloom_doy)) +
   geom_step(linetype = "dotted", colour = "gray50") +
-  geom_smooth(method = "loess", se = FALSE) +
+  geom_smooth(method = "loess", se = TRUE) +
   scale_x_continuous(breaks = c(seq(1880, 2020, by = 40), NA)) +
   facet_grid(cols = vars(str_to_title(location))) +
-  labs(x = "Year", y = "Peak bloom (since Jan 1st)")
+  labs(x = NULL, y = "Peak bloom (since Jan 1st)")
 ```
 
 ## Predicting the peak bloom
@@ -130,6 +140,7 @@ This simple linear regression functions suggest a trend toward earlier peak bloo
 We can compute the actual predictions using the `predict()` function and 
 
 ```{r}
+#| label: fig-02
 #| fig-width: 8
 #| fig-height: 3
 #| out-width: 100%
@@ -161,7 +172,7 @@ cherry |>
   geom_point(aes(y = bloom_doy)) +
   scale_x_continuous(breaks = c(2015, 2018, 2021, 2024)) +
   facet_grid(cols = vars(str_to_title(location))) +
-  labs(x = "Year", y = "Peak bloom (days since Jan 1st)")
+  labs(x = NULL, y = "Peak bloom (days since Jan 1st)")
 ```
 
 Based on this very simple model, the peak bloom dates at these sites are:
@@ -177,6 +188,11 @@ doy_to_date <- function(year, doy) {
   strptime(paste(year, doy, sep = "-"), "%Y-%j") |> # create date object
     strftime("%Y-%m-%d") # translate back to date string in ISO 8601 format
 }
+```
+
+```{r}
+#| label: tbl-02
+#| tbl-cap: "Predicted peak bloom dates at the five sites"
 
 predictions |>
   filter(year == 2025) |>
@@ -185,8 +201,11 @@ predictions |>
     lower = floor(lower),
     upper = ceiling(upper),
     prediction_date = doy_to_date(year, prediction)
-  )
+  ) |> 
+  kable() |> 
+  kable_styling()
 ```
+
 
 ## Extrapolating to Vancouver, BC and New York City
 
@@ -230,13 +249,20 @@ predictions_vancouver <- vancouver_grid |>
 ```
 
 Not surprisingly, the predicted peak bloom date for Vancouver and NYC is now very similar to the other 3 sites:
+
 ```{r}
-predictions_vancouver
+#| label: tbl-03
+#| tbl-cap: "Predictions for Vancouver"
+
+predictions_vancouver |> 
+  kable() |> 
+  kable_styling()
 ```
 
 We can check the predictions against the data from previous competition years.
 
 ```{r}
+#| label: fig-03
 #| fig-width: 8
 #| fig-height: 3
 #| out-width: 100%
@@ -253,7 +279,7 @@ cherry |>
   geom_point(aes(y = bloom_doy)) +
   scale_x_continuous(breaks = 2022:2024) +
   facet_grid(cols = vars(str_to_title(location))) +
-  labs(x = "Year", y = "Peak bloom (days since Jan 1st)")
+  labs(x = NULL, y = "Peak bloom (days since Jan 1st)")
 ```
 
 If satisfied with the predictions, we can use them instead of the predictions from before.
@@ -310,6 +336,9 @@ For 2020, no bloom was reported, hence the warning.
 Using the same steps as for Vancouver, BC, a simple linear model can be fitted for New York City.
 
 ```{r}
+#| label: tbl-04
+#| tbl-cap: "Predictions for New York City"
+
 # Fit simple least-squares lines for all sites.
 # We use larger weights for observations from NYC than for the other sites
 
@@ -335,12 +364,15 @@ predictions_nyc <- nyc_grid |>
     prediction_date = doy_to_date(year, prediction)
   )
 
-predictions_nyc
+predictions_nyc |> 
+  kable() |> 
+  kable_styling()
 ```
 
 We can check the predictions against the data from previous competition years.
 
 ```{r}
+#| label: fig-04
 #| fig-width: 8
 #| fig-height: 3
 #| out-width: 100%
@@ -357,7 +389,7 @@ cherry_with_nyc |>
   geom_point(aes(y = bloom_doy)) +
   scale_x_continuous(breaks = 2022:2025) +
   facet_grid(cols = vars(str_to_title(location))) +
-  labs(x = "Year", y = "Peak bloom (days since Jan 1st)")
+  labs(x = NULL, y = "Peak bloom (days since Jan 1st)")
 ```
 
 If satisfied with the predictions, we can use them instead of the predictions from before.
@@ -373,9 +405,14 @@ predictions <- predictions |>
 To submit your entries, enter the predicted bloom dates from your models in the submission form.
 
 ```{r}
+#| label: tbl-05
+#| tbl-cap: "Predictions for Submission"
+
 predictions |>
   filter(year == 2025) |>
-  mutate(prediction_date = strptime(paste(year, prediction), "%Y %j") |> as_date())
+  mutate(prediction_date = strptime(paste(year, prediction), "%Y %j") |> as_date()) |>
+  kable() |> 
+  kable_styling()
 ```
 
 ## Appendix: Adding Covariates {#appendix-rnoaa}
@@ -529,11 +566,14 @@ historic_temperatures <- cherry |>
 ```
 
 ```{r}
+#| label: fig-06
+#| fig-cap: "Average maximum temperature (°C)"
+
 historic_temperatures |>
   filter(datatype == "TMAX") |>
   ggplot(aes(x = date, y = value)) +
   geom_line() +
-  labs(x = "Year", y = "Average maximum temperature (°C)") +
+  labs(x = NULL, y = "Average maximum temperature (°C)") +
   facet_grid(rows = vars(location))
 ```
 
@@ -556,16 +596,22 @@ avg_winter_temp <- historic_temperatures |>
 ```
 
 ```{r}
+#| label: fig-07
+#| fig-cap: "Average maximum winter temperature (Dec. 1st of the previous year until end of February)"
+
 avg_winter_temp |>
   ggplot(aes(x = year, y = avg_tmax)) +
   geom_line() +
-  labs(x = "Year", y = "Average maximum temperature (°C)") +
+  labs(x = NULL, y = "Average maximum winter temperature (°C)") +
   facet_grid(rows = vars(location))
 ```
 
 Using these average temperature, we can predict the peak bloom date again using linear regression with location-specific temporal trends and a global effect of average winter temperatures. 
 
 ```{r}
+#| label: fig-08
+#| fig-cap: "Predictions from Temperature"
+
 ls_fit_with_temp <- cherry |>
   inner_join(avg_winter_temp,
     by = c("location", "year")
@@ -596,6 +642,9 @@ predictions_from_temp |>
 The following plot shows a comparison of predictions for Vancouver using the two methods described in this demo.
 
 ```{r}
+#| label: fig-09
+#| fig-cap: "Predicted peak bloom (days since Jan 1st) for Vancouver"
+
 predictions_vancouver |>
   left_join(predictions_from_temp,
     by = c("location", "year")
@@ -611,7 +660,7 @@ predictions_vancouver |>
   geom_line() +
   scale_x_continuous(breaks = 2022:2024) +
   labs(
-    x = "Year", linetype = "",
+    x = NULL, linetype = "",
     y = "Predicted peak bloom (days since Jan 1st) for Vancouver"
   ) +
   theme(legend.position = "bottom")
