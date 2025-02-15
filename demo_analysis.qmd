@@ -660,16 +660,20 @@ Change the location names to "Kyoto", "Liestal", "New York City", "Vancouver", "
 #| label: fig-cherry-blossoms-combined
 #| fig-cap: "Peak cherry blossom days for different locations"
 
-cherry |> 
+p2 <- cherry |> 
   filter(year >= 1880) |> 
   ggplot(mapping = aes(x = year, y = bloom_doy, colour = location)) +
   geom_step(linetype = "dotted", lwd = 0.5) +
   geom_point(alpha = 0.5, size = 2.5) +
   geom_smooth(method = "lm", se = FALSE) +
   scale_x_continuous(breaks = c(seq(1880, 2020, by = 20), NA)) +
-  labs(title = "Peak cherry blossom dayslocations", x = NULL, y = NULL) +
+  labs(title = "Peak cherry blossom days by locations", x = NULL, y = NULL) +
   theme_light() +
   theme(legend.position = "bottom", legend.title = element_blank())
+
+print(p2)
+
+ggsave(filename = "images/peak-blossom.png", plot = p2)
 ```
 
 This graphic highlights the negative linear time trend for all locations.
