@@ -1,0 +1,515 @@
+---
+title: "International Cherry Blossom Prediction Competition"
+subtitle: "Climate data extraction with NASA POWER and WorldClim"
+author: "Edimer David Jaramillo"
+date: "`r lubridate::now()`"
+lang: en-US
+format:
+  html:
+    page-layout: article
+    toc: true
+    code-fold: true
+    df-print: paged
+    toc-location: left
+    number-depth: 4
+    theme: yeti
+    code-copy: true
+    highlight-style: github
+    embed-resources: true
+    code-tools:
+      source: true    
+---
+
+```{r}
+#| label: setup
+#| include: false
+knitr::opts_chunk$set(echo = TRUE,
+                      warning = FALSE,
+                      error = FALSE, 
+                      message = FALSE,
+                      fig.align = 'center')
+```
+
+# Libraries
+
+```{r}
+library(tidyverse)
+library(nasapower)
+library(geodata)
+
+source("../source/r/getWeatherPOWER.R")
+```
+
+# Data extraction - NASA POWER 
+
+## Variables and temporality
+
+- The meteorological data were obtained with R from the [Prediction of Worldwide Energy Resources (POWER)](https://power.larc.nasa.gov/#resources) project, using the [`nasapower`](https://docs.ropensci.org/nasapower/) for extraction of time series (from 1981-01-01 to 2024-02-25) with daily frequency of the following variables:
+  - Average Earth Surface Temperature (TS)
+  - Maximum temperature of the earth's surface (TS_MAX)
+  - Minimum land surface temperature (TS_MIN)
+  - Evaporation from the earth's surface (EVLAND)
+  - Frost days (FROST_DAYS)
+  - Precipitation (PRECTOTCORR)
+  - Soil moisture profile (GWETPROF)
+  - Relative humidity at two meters (RH2M)
+  - Soil moisture in the root zone (GWETROOT)
+  - The total amount of ozone in a column extending vertically from the Earth's surface to the top of the atmosphere (TO3)
+- To see the description of each parameter, see [POWER resources.](https://power.larc.nasa.gov/#resources)
+- As the POWER project is aimed at three user [communities](https://power.larc.nasa.gov/docs/methodology/communities/), in this case the Agroclimatology community (**AG**) is used.
+
+```{r}
+var_climate <- c(
+  "TS",
+  "TS_MAX",
+  "TS_MIN",
+  "EVLAND",
+  "FROST_DAYS",
+  "PRECTOTCORR",
+  "GWETPROF",
+  "RH2M",
+  "GWETROOT",
+  "TO3"
+)
+
+start_date <- "1981-01-01"
+end_date <- today()
+frequency_climate <- "daily"
+
+# Coordinates from csv
+coord_japan <- read_csv("../data/japan.csv") |>
+  distinct(lat, long)
+
+coord_kyoto <- read_csv("../data/kyoto.csv") |>
+  distinct(lat, long)
+
+coord_liestal <- read_csv("../data/liestal.csv") |>
+  distinct(lat, long)
+
+coord_vancouver <- read_csv("../data/vancouver.csv") |>
+  distinct(lat, long)
+
+coord_washingtondc <- read_csv("../data/washingtondc.csv") |>
+  distinct(lat, long)
+
+coord_meteoswiss <- read_csv("../data/meteoswiss.csv") |>
+  distinct(lat, long)
+
+coord_southk <- read_csv("../data/south_korea.csv") |>
+  distinct(lat, long)
+
+# Coordinates New York ----
+coord_newyork <-
+  data.frame(long = -73.99809,
+             lat = 40.73040)
+
+# Coordinates USA National Phenology Network
+coord_npn1 <- read_csv("../data/USA-NPN_individual_phenometrics_data.csv") |> 
+  select(lat = Latitude, long = Longitude) |> 
+  distinct_all()
+
+coord_npn2 <- read_csv("../data/USA-NPN_status_intensity_observations_data.csv") |> 
+  select(lat = Latitude, long = Longitude) |> 
+  distinct_all()
+
+coord_npn <- bind_rows(coord_npn1, coord_npn2) |> 
+  distinct_all()
+```
+
+::: {.panel-tabset}
+
+## Japan
+
+- Approximate execution time: 10 minutes
+
+```{r}
+#| eval: false
+df_climate_japan <- getWeatherPOWER(
+    var_climate = var_climate,
+    start_date = start_date,
+    end_date = end_date,
+    frequency_climate = frequency_climate,
+    long = coord_japan$long,
+    lat = coord_japan$lat
+  )
+
+arrow::write_parquet(df_climate_japan, "data/weather_japan.parquet")
+```
+
+## Kyoto
+
+- Approximate execution time: 10 seconds
+
+```{r}
+#| eval: false
+df_climate_kyoto <-
+  getWeatherPOWER(
+    var_climate = var_climate,
+    start_date = start_date,
+    end_date = end_date,
+    frequency_climate = frequency_climate,
+    long = coord_kyoto$long,
+    lat = coord_kyoto$lat
+  )
+
+arrow::write_parquet(df_climate_kyoto, "../external-data/weather/weather_kyoto.parquet")
+```
+
+## Liestal
+
+- Approximate execution time: 10 seconds
+
+```{r}
+#| eval: false
+df_climate_liestal <-
+  getWeatherPOWER(
+    var_climate = var_climate,
+    start_date = start_date,
+    end_date = end_date,
+    frequency_climate = frequency_climate,
+    long = coord_kyoto$long,
+    lat = coord_kyoto$lat
+  )
+
+arrow::write_parquet(df_climate_liestal, "../external-data/weather/weather_liestal.parquet")
+```
+
+## Meteoswiss
+
+- Approximate execution time: 15 minutes
+
+```{r}
+#| eval: false
+df_climate_meteoswiss <-
+  getWeatherPOWER(
+    var_climate = var_climate,
+    start_date = start_date,
+    end_date = end_date,
+    frequency_climate = frequency_climate,
+    long = coord_meteoswiss$long,
+    lat = coord_meteoswiss$lat
+  )
+
+arrow::write_parquet(
+  df_climate_meteoswiss,
+  "../external-data/weather/weather_meteoswiss.parquet"
+)
+```
+
+## Vancouver
+
+- Approximate execution time: 10 seconds
+
+```{r}
+#| eval: false
+df_climate_vancouver <-
+  getWeatherPOWER(
+    var_climate = var_climate,
+    start_date = start_date,
+    end_date = end_date,
+    frequency_climate = frequency_climate,
+    long = coord_vancouver$long,
+    lat = coord_vancouver$lat
+  )
+
+arrow::write_parquet(df_climate_vancouver, "../external-data/weather/weather_vancouver.parquet")
+```
+
+## Washington DC
+
+- Approximate execution time: 10 seconds
+
+```{r}
+#| eval: false
+df_climate_washingtondc <-
+  getWeatherPOWER(
+    var_climate = var_climate,
+    start_date = start_date,
+    end_date = end_date,
+    frequency_climate = frequency_climate,
+    long = coord_washingtondc$long,
+    lat = coord_washingtondc$lat
+  )
+
+arrow::write_parquet(
+  df_climate_washingtondc,
+  "../external-data/weather/weather_washingtondc.parquet"
+)
+```
+
+## New York City, NY (USA)
+
+- Approximate execution time: 10 seconds
+
+```{r}
+#| eval: false
+df_climate_newyork <-
+  getWeatherPOWER(
+    var_climate = var_climate,
+    start_date = start_date,
+    end_date = end_date,
+    frequency_climate = frequency_climate,
+    long = coord_newyork$long,
+    lat = coord_newyork$lat
+  )
+
+arrow::write_parquet(
+  df_climate_newyork,
+  "../external-data/weather/weather_newyork.parquet"
+)
+```
+
+## South Korea
+
+- Approximate execution time: 15 minutes
+
+```{r}
+#| eval: false
+df_climate_southk <-
+  getWeatherPOWER(
+    var_climate = var_climate,
+    start_date = start_date,
+    end_date = end_date,
+    frequency_climate = frequency_climate,
+    long = coord_southk$long,
+    lat = coord_southk$lat
+  )
+
+arrow::write_parquet(
+  df_climate_southk,
+  "../external-data/weather/weather_southk.parquet"
+)
+```
+
+## USA National Phenology Network
+
+- Approximate execution time: 15 minutes
+
+```{r}
+#| eval: false
+df_climate_npn <-
+  getWeatherPOWER(
+    var_climate = var_climate,
+    start_date = start_date,
+    end_date = end_date,
+    frequency_climate = frequency_climate,
+    long = coord_npn$long,
+    lat = coord_npn$lat
+  )
+
+arrow::write_parquet(
+  df_climate_npn,
+  "../external-data/weather/weather_npn.parquet"
+)
+```
+
+:::
+
+# WorldClim - Bioclimatic variables
+
+- The averages of 19 bioclimatic variables in the years 1970 to 2000 are extracted from WorldClim. A resolution of 30 seconds/0.5 minutes (~1 km2) is used for each country.
+- The extraction of this data was carried out through the library [`geodata.`](https://cran.r-project.org/web/packages/geodata/geodata.pdf)
+- Files from Japan, USA and Canada **are not uploaded to Github** because they are larger than 50MB. They are added in the *.gitignore* of the repository.
+- The following image shows the bioclimatic variables obtained from WorldClim.
+
+![](../figures/bioclim.png)
+
+::: {.panel-tabset}
+
+## Japan
+
+```{r}
+bioclim_japan <- worldclim_country(
+  country = "japan",
+  var = "bio",
+  res = 0.5,
+  path = "../external-data/weather/"
+) |>
+  extract(y = coord_japan |> relocate(long, lat),
+          xy = FALSE) |>
+  select(-ID)
+
+df_bioclim_japan <-
+  coord_japan |>
+  bind_cols(bioclim_japan)
+
+write_csv(df_bioclim_japan,
+          "../external-data/weather/bioclim_japan.csv")
+```
+
+## Kyoto
+
+```{r}
+bioclim_kyoto <-
+  worldclim_country(
+    country = "japan",
+    var = "bio",
+    res = 0.5,
+    path = "../external-data/weather/"
+  ) |>
+  extract(y = coord_kyoto |> relocate(long, lat),
+          xy = FALSE) |>
+  select(-ID)
+
+df_bioclim_kyoto <-
+  coord_kyoto |>
+  bind_cols(bioclim_kyoto)
+
+write_csv(df_bioclim_kyoto,
+          "../external-data/weather/bioclim_kyoto.csv")
+```
+
+## Switzerland
+
+```{r}
+bioclim_switzerland <- worldclim_country(
+  country = "switzerland",
+  var = "bio",
+  res = 0.5,
+  path = "../external-data/weather/"
+)
+
+bioclim_liestal <-
+  bioclim_switzerland |>
+  extract(y = coord_liestal |> relocate(long, lat),
+          xy = FALSE) |>
+  select(-ID)
+
+bioclim_meteoswiss <-
+  bioclim_switzerland |>
+  extract(y = coord_meteoswiss |> relocate(long, lat),
+          xy = FALSE) |>
+  select(-ID)
+
+df_bioclim_liestal <-
+  coord_liestal |>
+  bind_cols(bioclim_liestal)
+
+df_bioclim_meteoswiss <-
+  coord_meteoswiss |>
+  bind_cols(bioclim_meteoswiss)
+
+write_csv(df_bioclim_liestal,
+          "../external-data/weather/bioclim_liestal.csv")
+
+write_csv(df_bioclim_meteoswiss,
+          "../external-data/weather/bioclim_meteoswiss.csv")
+```
+
+## Canada
+
+```{r}
+bioclim_canada <- worldclim_country(
+  country = "Canada",
+  var = "bio",
+  res = 0.5,
+  path = "../external-data/weather/"
+)  |>
+  extract(y = coord_vancouver |> relocate(long, lat),
+          xy = FALSE) |>
+  select(-ID)
+
+df_bioclim_vancouver <-
+  coord_vancouver |>
+  bind_cols(bioclim_canada)
+
+write_csv(df_bioclim_vancouver,
+          "../external-data/weather/bioclim_vancouver.csv")
+```
+
+## USA
+
+- At the time of executing the extraction (2024-02-10) with the `worldclim_country()` function, the information for the USA is not available, for that reason I chose to use the `worldclim_tile()` function adding the coordinates of New York and Washington DC, as both are in the same Worldclim fragment, the same .tif is enough for both locations. For the data provided by *National Phenology Network*, bioclimatic variables are also extracted.
+
+```{r}
+bioclim_usa <-
+  worldclim_tile(
+    var = "bio",
+    path = "../external-data/weather/",
+    lon = coord_newyork$long,
+    lat = coord_newyork$lat
+  )
+
+bioclim_newyork <-
+  bioclim_usa  |>
+  extract(y = coord_newyork |> relocate(long, lat),
+          xy = FALSE) |>
+  select(-ID)
+
+bioclim_washingtondc <-
+  bioclim_usa  |>
+  extract(y = coord_washingtondc |> relocate(long, lat),
+          xy = FALSE) |>
+  select(-ID)
+
+df_bioclim_newyork <-
+  coord_newyork |>
+  bind_cols(bioclim_newyork)
+
+df_bioclim_washingtondc <-
+  coord_washingtondc |>
+  bind_cols(bioclim_washingtondc)
+
+write_csv(df_bioclim_newyork,
+          "../external-data/weather/bioclim_newyork.csv")
+
+write_csv(df_bioclim_washingtondc,
+          "../external-data/weather/bioclim_washingtondc.csv")
+
+# UNA - NPN
+for(i in 1:nrow(coord_npn)) {
+  worldclim_tile(
+    var = "bio",
+    path = "../external-data/weather/",
+    lon = coord_npn$long[i],
+    lat = coord_npn$lat[i]
+  )
+}
+
+bioclim_npn <-
+  fs::dir_ls("../external-data/weather/wc2.1_tiles/") |>
+  map(
+    .f = function(x = .x) {
+      res =
+        rast(x) |>
+        extract(y = coord_npn |> relocate(long, lat),
+                xy = FALSE) |>
+        na.omit() |> 
+        set_names(c("ID", str_c("bio", 1:19)))
+      return(res)
+    }
+  ) |> 
+  list_rbind()
+
+df_bioclim_npn <-
+  left_join(coord_npn |> relocate(long, lat) |> mutate(ID = 1:n()),
+            bioclim_npn,
+            by = "ID") |> 
+  select(-ID)
+
+write_csv(df_bioclim_npn,
+          "../external-data/weather/bioclim_npn.csv")
+```
+
+## South Korea
+
+```{r}
+bioclim_southk <- worldclim_country(
+  country = "South Korea",
+  var = "bio",
+  res = 0.5,
+  path = "../external-data/weather/"
+)  |>
+  extract(y = coord_southk |> relocate(long, lat),
+          xy = FALSE) |>
+  select(-ID)
+
+df_bioclim_southk <-
+  coord_southk |>
+  bind_cols(bioclim_southk)
+
+write_csv(df_bioclim_southk,
+          "../external-data/weather/bioclim_southk.csv")
+```
+
+:::

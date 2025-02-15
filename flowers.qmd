@@ -9,7 +9,6 @@ categories:
 author: Jonathan Auerbach
 date: 04/13/2023
 date-modified: 01/18/2025
-lang: en-US
 bibliography: references.bib
 image: images/quetelet-flowers.png
 image-alt: Portrait of Adolphe Quetelet, superimposed on a photo of blooming purple lilacs. Quetelet portrait from Wikimedia Commons, Public Domain. Lilacs photo by Arina Bogachyova/iStock.
@@ -228,7 +227,7 @@ If Quetelet's law of the flowering plants is correct, @tbl-03 has the following 
 ```
 
 :::{.figure-caption}
-**Figure 4:** According to Quetelet's law, the lilacs bloom when exposed to 4264°C² following the last frost. Author provided, [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
+According to Quetelet's law, the lilacs bloom when exposed to 4264°C² following the last frost. Author provided, [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
 :::
 
 We now have all the ingredients necessary to reproduce Quetelet's findings. Our reproduction is greatly simplified by using the `nest()` function from the `{tidyr}` package, another member of the `{tidyverse}`. For an overview of `nest()`, see the ["Nested data" section](https://r4ds.had.co.nz/many-models.html?q=nest#nested-data) of @grolemund2017r. We will group the data by year, nest, calculate the cumulative squared temperature from the frost date to the bloom date within each year, and then unnest. We ignore temperatures below 0°C. That is, temperatures below 0°C are set to 0°C. We do this because it is clear from Quetelet's derivation of the law that only positive temperatures should be squared. See the next section for details.

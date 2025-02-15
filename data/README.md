@@ -2,11 +2,11 @@
 
 The structure of the cleaned data files is as follows:
 
-* _location_ location identifier (`string`)
-* _lat_ (approximate) latitude of the observation (`double`).
-* _long_ (approximate) longitude of the observation (`double`).
-* _alt_ (approximate) altitude of the observation (`double`).
-* _year_ year of the observation (`integer`).
+* *location* location identifier (`string`)
+* *lat* (approximate) latitude of the observation (`double`).
+* *long* (approximate) longitude of the observation (`double`).
+* *alt* (approximate) altitude of the observation (`double`).
+* *year* year of the observation (`integer`).
 * *bloom_date* date of peak bloom of the cherry trees (ISO 8601 date `string`). The "peak bloom date" may be defined differently for different locations.
 * *bloom_doy* days since January 1st of the year until peak bloom (`integer`). January 1st is `1`.
 
@@ -14,7 +14,7 @@ The structure of the cleaned data files is as follows:
 
 ### Washington, D.C. (USA)
 
-The data in file *washingntondc.csv* has been obtained from https://www.epa.gov/climate-indicators/cherry-blossoms.
+The data in file *washingntondc.csv* has been obtained from <https://www.epa.gov/climate-indicators/cherry-blossoms>.
 The latitude and longitude correspond to the location of the [Tidal Basin in Washington, DC](https://www.nps.gov/articles/dctidalbasin.htm) and the cherry trees are approximately at sea level (altitude 0).
 
 The peak bloom date is defined as the day when **70%** of the Yoshino Cherry (Prunus x yedoensis) are in full bloom, as determined by the [National Park Service](https://www.nps.gov/subjects/cherryblossom/bloom-watch.htm).
@@ -27,7 +27,7 @@ See the source for copyright details.
 ### Liestal-Weideli (Switzerland)
 
 The data in the file *liestal.csv* is 
-The cherry trees in Liestal-Weideli are of species _Prunus avium_ (wild cherry).
+The cherry trees in Liestal-Weideli are of species *Prunus avium* (wild cherry).
 
 The peak bloom date is defined as the day when **25%** of the blossoms are in full bloom.
 The date is determined by MeteoSwiss.
@@ -63,7 +63,7 @@ You may use these time series in your modeling to help with spatial and temporal
 
 ### MeteoSwiss (other locations in Switzerland)
 
-The data file *meteoswiss.csv* contains peak bloom dates for various sites across Switzerland, obtained from https://opendata.swiss/en/dataset/phanologische-beobachtungen.
+The data file *meteoswiss.csv* contains peak bloom dates for various sites across Switzerland, obtained from <https://opendata.swiss/en/dataset/phanologische-beobachtungen>.
 
 ###### Copyright notice
 

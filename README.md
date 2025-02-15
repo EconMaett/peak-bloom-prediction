@@ -1,6 +1,6 @@
 # Cherry Blossom Peak Bloom Prediction
 
-This is the official template repository for George Mason’s Department of Statistics cherry blossom peak bloom prediction competition.
+Repository for George Mason’s Department of Statistics cherry blossom peak bloom prediction competition.
 
 This repository contains cleaned and ready-to-use data on peak bloom dates in the *data/* folder, alongside a demo prediction analysis report (*demo_analysis.qmd*).
 The demo analysis demonstrates how to load the provided data sets, plot the observed time series, and uses a very simple linear regression model to predict the peak bloom dates for the next year as well as estimate prediction intervals.

@@ -11,3 +11,5 @@ lubridate
 httr2
 jsonlite
 kableExtra
+sf
+mapview
