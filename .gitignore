@@ -3,8 +3,5 @@
 .RData
 .Ruserdata
 *.Rproj
-images/
 background/
 graphics/
-rlang/
-rlang_1.1.4.9000.tar.gz
