@@ -1,0 +1,80 @@
+---
+title: "Ideas"
+format: html
+editor: source
+---
+
+Create a consistent color scheme for the five locations. Check out the color palettes at <https://coolors.co/palettes/trending>.
+
+You need five colors for the five locations. They can either all be cherry-colored or have completely different colors but then they should not follow any gradient.
+
+Check out the [`{tinytable}`](https://vincentarelbundock.github.io/tinytable/) and [`{modelsummary}`](https://modelsummary.com/) packages.
+
+Use `{plotly}` for the graphics to make them interactive.
+
+Use `{slider}` or `{RcppRoll}` to add moving averages to the plots.
+
+20-year average is calculated when there are at least five years with data in the 20 year window.
+
+designed by, inspired by, icon, data source
+
+Add the definition of peak bloom
+
+Add the cherry tree species and its scientific name
+
+Create predicted vs observed 45-degree plots
+
+Use `annotate()` to add highest, lowest and most recent observation.
+
+Add month-day to the y-axis.
+
+Add author and link to source and copyright to the caption.
+
+Use `TMIN` and `TMAX` to calculate Growing Degree Days (`GDD`) and Accumulated Growing Degree Days (`AGDD`).
+
+Get species-specific base temperatures or use a simple average number.
+
+- Kyoto: **Prunus jamasakura** 
+
+- Liestal: **Prunus avium* (wild cherry)**
+
+- Washington DC: **Yoshino Cherry (Prunus x yedoensis)**
+
+- New York City: **Yoshino Cherry (Prunus x yedoensis)**
+
+- Vancouver: **Akebono**
+
+Quetelet's Law of Flowering Plants
+
+Get weather forecasts from AccuWeather
+
+Create average monthly temperature for each year
+
+Check out average temperatures for December, January, February, and March as predictors.
+
+- First check out predictors for seasons
+
+- Second check out predictors for months
+
+- Finally check out daily dummy variables as predictors.
+
+
+JMC believes that autumn temperatures of previous year matter too.
+
+Eventually publish the whole analysis on Netlify or GitHub Pages.
+
+Create a custom `theme()` for the plots
+
+Create a custom package to store helper functions.
+
+Use `{renv}` or `{rix}` to ensure reproducibility.
+
+Create a `{targets}` pipeline.
+
+Store personal API keys as GitHub secrets and in a special `.Renviron` file.
+
+Use GitHub Actions to download new data and run the models.
+
+Save figures and include them with the option `lightbox: true`. 
+
+Include a bibliography and set the option `link-bibliography: true`.

@@ -31,94 +31,14 @@ knitr::opts_chunk$set(
 invisible(Sys.setlocale("LC_ALL","English"))
 
 library(tidyverse)
-library(tinytable) # Check if these need to be loaded
-library(modelsummary)
 library(kableExtra)
+library(rvest)
 library(httr2)
 library(jsonlite)
 library(nasapower)
 library(sf)
 library(mapview)
-library(GSODR)
-library(stationaRy)
 ```
-
-## Ideas
-
-Create a consistent color scheme for the five locations. Check out the color palettes at <https://coolors.co/palettes/trending>.
-
-You need five colors for the five locations. They can either all be cherry-colored or have completely different colors but then they should not follow any gradient.
-
-Check out the [`{tinytable}`](https://vincentarelbundock.github.io/tinytable/) and [`{modelsummary}`](https://modelsummary.com/) packages.
-
-Use `{plotly}` for the graphics to make them interactive.
-
-Use `{slider}` or `{RcppRoll}` to add moving averages to the plots.
-
-20-year average is calculated when there are at least five years with data in the 20 year window.
-
-designed by, inspired by, icon, data source
-
-Add the definition of peak bloom
-
-Add the cherry tree species and its scientific name
-
-Create predicted vs observed 45-degree plots
-
-Use `annotate()` to add highest, lowest and most recent observation.
-
-Add month-day to the y-axis.
-
-Add author and link to source and copyright to the caption.
-
-Use `TMIN` and `TMAX` to calculate Growing Degree Days (`GDD`) and Accumulated Growing Degree Days (`AGDD`).
-
-Get species-specific base temperatures or use a simple average number.
-
-- Kyoto: **Prunus jamasakura** 
-
-- Liestal: **Prunus avium* (wild cherry)**
-
-- Washington DC: **Yoshino Cherry (Prunus x yedoensis)**
-
-- New York City: **Yoshino Cherry (Prunus x yedoensis)**
-
-- Vancouver: **Akebono**
-
-Quetelet's Law of Flowering Plants
-
-Get weather forecasts from AccuWeather
-
-Create average monthly temperature for each year
-
-Check out average temperatures for December, January, February, and March as predictors.
-
-- First check out predictors for seasons
-
-- Second check out predictors for months
-
-- Finally check out daily dummy variables as predictors.
-
-
-JMC believes that autumn temperatures of previous year matter too.
-
-Eventually publish the whole analysis on Netlify or GitHub Pages.
-
-Create a custom `theme()` for the plots
-
-Create a custom package to store helper functions.
-
-Use `{renv}` or `{rix}` to ensure reproducibility.
-
-Create a `{targets}` pipeline.
-
-Store personal API keys as GitHub secrets and in a special `.Renviron` file.
-
-Use GitHub Actions to download new data and run the models.
-
-Save figures and include them with the option `lightbox: true`. 
-
-Include a bibliography and set the option `link-bibliography: true`.
 
 ## Instructions
 
@@ -130,7 +50,7 @@ At the end of this document ([Appendix A](#appendix-rnoaa)), we demonstrate a si
 
 The original demo file is available on [GitHub](https://github.com/GMU-CherryBlossomCompetition/peak-bloom-prediction).
 
-## Cleaned data sets
+## Clean data
 
 The data for the five sites is provided as a simple text file in CSV format.
 Each file contains the dates of the peak bloom of the cherry trees at the respective site, alongside the geographical location of the site.
@@ -201,7 +121,7 @@ MeteoSwiss suggests using a **Gaussian Kernel** with a *20-year window* to extra
 
 It also looks like the observations exhibit **heteroskedasticity**, that is, the variance changes over time, and it looks like the variance has become more narrow over time.
 
-We can use changepoint detection methods to test for the changing time trend and the changing variance.
+We can use **changepoint detection** methods to test for the changing time trend and the changing variance.
 
 Assuming that the data in the past is correct, there do seem to be seasonal cycles, perhaps connected to solar activity or the tilt of the earth.
 
@@ -252,7 +172,7 @@ ggsave(filename = "images/fig_liestal.png", plot = fig_liestal, bg = "white")
 
 For Liestal you can see the impact of the infamous heat summer of 2003 which I remember from my childhood, although interestingly, there's another record in 1990.
 
-### New York City
+### New York
 
 The file `newyorkcity.csv` contains **only a single observation** for the year 2024. It concerns the **Yoshino Cherry (Prunus x yedoensis)** tree in **Washington Square Park**, New York City, at `40.7304 °N` (latitude), `-73.99809°E` (longitude) and `8.5` meters above sea level (altitude).
 
@@ -267,8 +187,6 @@ newyorkcity <- read_csv("data/nyc.csv")
 Luckily, there are some historical observations dating *back to 2019* in the data provided by **USA-NPN**.
 
 The Washington Square Park has site id `32789` and the **Yoshino** cherry you should predict has species id `228`.
-
-Note: `lubridate::as_date(Observation_Date, format = "%m/%d/%y")` returns `NA`s. Use `as.Date(Observation_Date, format = "%m/%d/%y")` or `lubridate::mdy(Observation_Date)` instead.
 
 We have been provided with USA-NPN data on individual cherry trees by the competition organizers, and we can load it:
 
@@ -333,10 +251,9 @@ newyorkcity |>
   kable_styling()
 ```
 
-
 ### Vancouver
 
-Let's load the data for New York City
+Let's load the data for Vancouver, BC
 
 ```{r}
 #| label: load-vancouver
@@ -346,17 +263,7 @@ vancouver <- read_csv("data/vancouver.csv")
 
 The file `vancouver.csv` contains observations for cherry trees of the cultivar  **Akebono** in **Maple Grove Park**, Vancouver, BC located approximately at `49.2236916°N` (latitude), `-123.1636251°E` (longitude), `24` meters above sea levels (altitude).
 
-Currently **only three observations** for 2022, 2023, and 2024 are available.
-
-But casual observations have been recorded in the form of **photos posted** to the [VCBF Neighbourhood Blog for Kerrisdale](https://forums.botanicalgarden.ubc.ca/threads/kerrisdale.36008/).
-
-You can **search the forum** for the keywords `"Akebono"` (i.e., the name of the cultivar) and `"Maple Grove Park"` (i.e., the location of the trees).
-
-From the map at <https://finder.vcbf.ca/> we get the following information:
-- Blooming: `03/18-04/01`
-- Cultivar: Akebono
-- Location: Maple Grove Park
-- Description: Kerrisdale - Akebonos at SE corner Maple Grove Park at Yew and SW Marine Dr
+Unfortunately, there are **only three observations** for 2022, 2023, and 2024, respectively. But casual observations have been recorded in the form of **photos posted** to the [VCBF Neighbourhood Blog for Kerrisdale](https://forums.botanicalgarden.ubc.ca/threads/kerrisdale.36008/). You can **search the forum** for the keywords `"Akebono"` (i.e., the name of the cultivar) and `"Maple Grove Park"` (i.e., the location of the trees).
 
 After searching through the web forum, I have decided to add the following observations to the data set:
 
@@ -381,7 +288,9 @@ vancouver_forum <- tribble(
   )
 ```
 
-Then we add these observations to the data set
+We can do some additional plausibility checks. For example, spring 2010 was indeed unusually warm, [causing cherry blossoms to bloom during the Vancouver 2010 Winter Olympics](https://www.upi.com/News_Photos/view/upi/33393f9d20159ecb347de9aa1d670922/2010-Winter-Olympics-in-Vancouver/). National Geographic claimed it was the [warmest Olympics to date.](https://www.nationalgeographic.com/adventure/article/100212-vancouver-2010-warmest-winter-olympics).
+
+We add these observations to the data set
 
 ```{r}
 #| label: augment-vancouver
@@ -404,9 +313,9 @@ vancouver |>
   kable_styling()
 ```
 
-### Washington DC
+### Washington
 
-The data in file `washingtondc.csv` has been obtained from the EPA's Climate Change Indicators in the United States <https://www.epa.gov/climate-indicators/cherry-blossoms>.
+The file `washingtondc.csv` has been obtained from the EPA's Climate Change Indicators in the United States <https://www.epa.gov/climate-indicators/cherry-blossoms>.
 
 The geographical location at `38.88535°N` (latitude), `-77.03863°E` (longitude) and `0` meters above sea level (altitude) correspond to the location of the [Tidal Basin in Washington, DC](https://www.nps.gov/articles/dctidalbasin.htm).
 
@@ -477,8 +386,6 @@ cherry |>
   kable() |> 
   kable_styling()
 ```
-
-## Visualizing the five main time series
 
 We can visualize the time series for our five main locations next to each other. Notice the use of the `{stringr}` function `str_to_title()` to convert the first letter of the locations to uppercase.
 
@@ -609,7 +516,7 @@ A simple method such as **ETS**, which places a lower weight on observations far
 
 In any case, we should compare all our models against **benchmark models** such as the **naive model**, where the prediction is equal to the last observation, and a simple **AR(1)** model.
 
-## Additional data sets
+## Additional data
 
 The competition organizers provide additional data sets for sites other than the main sites relevant for the competition. 
 
@@ -736,7 +643,7 @@ fig_meteoswiss <- meteoswiss |>
   geom_step(linetype = "dotted", colour = "#ffa5ab", lwd = 1) +
   geom_point(color = "#f72585", alpha = 0.5, size = 2.5) +
   # geom_smooth(method = "loess", colour = "#644128", se = TRUE) +
-  scale_x_continuous(breaks = c(seq(1950, 2020, by = 10), NA)) +
+  scale_x_continuous(breaks = c(seq(1950, 2020, by = 20), NA)) +
   labs(
     title = "Peak bloom (since Jan 1st) in Zurich, Switzerland",
     x = NULL, y = NULL
@@ -749,7 +656,7 @@ print(fig_meteoswiss)
 ggsave(filename = "images/fig_meteoswiss.png", plot = fig_meteoswiss, bg = "white")
 ```
 
-### USA National Phenology Network
+### NPN
 
 Two additional files are provided by the **USA National Phenology Network (USA-NPN)** and the many participants who contribute to its *Nature’s Notebook* program.
 
@@ -850,11 +757,13 @@ All weather variables are from **Daymet** (<http://daymet.ornl.gov>).
 
 - `Daylength`: Number of seconds of daylight on the Observation_Date.
 
-## Map of the locations
+## Maps
 
 To explore the data, it can be helpful to create a simple map using the `{sf}` and `{mapview}` packages. 
 
 We can use a third variable, such as the altitude or the number of observations to help our understanding of the dataset.
+
+### Main locations
 
 First, we plot the five locations in the `cherry.csv` file
 
@@ -871,6 +780,8 @@ cherry_map <- cherry_coord |>
 
 mapview(cherry_map, zcol = "alt")
 ```
+
+### Japan
 
 Next, we plot the map of all the locations in the `japan.csv` file
 
@@ -890,6 +801,8 @@ mapview(map_ch, zcol = "n")
 ```
 
 
+### Korea
+
 Second, we plot the locations in the `south_korea.csv` file
 
 ```{r}
@@ -907,6 +820,7 @@ map_korea <- coord_korea |>
 mapview(map_korea, zcol = "n")
 ```
 
+### Switzerland
 
 Third, we plot the locations in the `meteoswiss.csv` file
 
@@ -925,9 +839,9 @@ map_ch <- coord_ch |>
 mapview(map_ch, zcol = "n")
 ```
 
-## External data sets
+## Predictors
 
-We encourage you to find additional publicly-available data that will improve your predictions.
+The goal of this section is to find additional publicly-available data that will improve your predictions.
 
 ### NOAA
 
@@ -1461,8 +1375,7 @@ Here are the next predictors we should create
 
 - `Daylength`: Number of seconds of daylight on the Observation_Date.
 
-
-### NASA POWER
+### POWER
 
 We use the `{nasapower}` package described here <https://docs.ropensci.org/nasapower/> to access the [NASA Prediction Of Worldwide Energy Resources (POWER) API](https://power.larc.nasa.gov/).
 
@@ -1753,7 +1666,19 @@ Let's have a look at the NASA POWER dataset:
 # df_climate_cherry 
 ```
 
-## Predicting the peak bloom
+### AccuWeather
+
+Any weather forecast can become a flower forecast by applying the law of the flowering plants. In this section, we use the AccuWeather forecast to predict the day a hypothetical lilac will bloom in Brussels in 2023. AccuWeather forecasts daily maximum and minimum temperatures three months into the future. We do not evaluate the quality of these forecasts. The purpose of this section is to simply convert them into flower forecasts.
+
+We use the AccuWeather forecast as it appeared on the webpage [AccuWeather.com](https://www.accuweather.com/en/be/brussels/27581/january-weather/27581?year=2023) on February 19, 2023. AccuWeather reports the forecast for each month on a separate webpage. For reproducibility, we saved each page on the [Internet Archive](https://web.archive.org/web/20230219151906/https://www.accuweather.com/en/be/brussels/27581/january-weather/27581?year=2023&unit=c). The following R code creates the function `get_weather_table()` to retrieve each page we saved, extract the forecast contained within that page, and arrange the data as a tibble. The `get_weather_table()` function combines several functions from the `{rvest}` package, which is yet another member of the `{tidyverse}`. In particular, the forecast on each page is contained within the div `monthly-calendar` and can be extracted with the `html_nodes()` and `html_text2()` functions.
+
+Applying the `get_weather_table()` function to the url for each page yields a five column tibble `temp_br`, with columns defined in the same way as the tibble `temp`, discussed in previous sections. The first 10 rows are below; the data are also available on the author's [GitHub](https://raw.githubusercontent.com/jauerbach/miscellaneous/main/temp_br.csv).
+
+We now predict the day the lilacs will bloom. The R code below uses the `doy_prediction` and `doy_last_frost` functions created in earlier sections and displays the prediction in a table. 
+
+At the time of our writing, the predicted date is **April 19**. The forecast is easily updated by providing the url to the updated AccuWeather webpage. (You might use the url [https://web.archive.org/save](https://web.archive.org/save) to save a webpage to the Internet Archive to ensure your work is reproducible.)
+
+## Prediction
 
 A simple method to predict peak bloom date in the future is to fit a least-squares line through the observed dates and extrapolate the regression function.
 
@@ -1883,7 +1808,7 @@ predictions |>
 
 Note that we would have predicted much earlier peak bloom times had we estimated the linear time trend on a much more recent sample of observations.
 
-## Extrapolating to Vancouver, BC and New York City
+### Vancouver
 
 We need to *extrapolate* from what we have learned about the peak bloom dates in the other locations to Vancouver and NYC.
 
@@ -1985,8 +1910,7 @@ predictions <- predictions |>
   bind_rows(predictions_vancouver)
 ```
 
-
-## Extrapolating to New York City, NY using USA-NPN data
+### New York
 
 Using the same steps as for Vancouver, BC, a simple linear model can be fitted for New York City.
 
@@ -2065,7 +1989,7 @@ predictions <- predictions |>
 
 ## Submission
 
-To submit your entries, enter the predicted bloom dates from your models in the submission form.
+To submit your entries, enter the predicted bloom dates from your models in the **submission form**.
 
 ```{r}
 #| label: tbl-05
