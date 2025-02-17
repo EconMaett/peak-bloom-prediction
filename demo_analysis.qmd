@@ -288,7 +288,7 @@ vancouver_forum <- tribble(
   )
 ```
 
-We can do some additional plausibility checks. For example, spring 2010 was indeed unusually warm, [causing cherry blossoms to bloom during the Vancouver 2010 Winter Olympics](https://www.upi.com/News_Photos/view/upi/33393f9d20159ecb347de9aa1d670922/2010-Winter-Olympics-in-Vancouver/). National Geographic claimed it was the [warmest Olympics to date.](https://www.nationalgeographic.com/adventure/article/100212-vancouver-2010-warmest-winter-olympics).
+We can do some additional plausibility checks. For example, spring 2010 was indeed unusually warm, [causing cherry blossoms to bloom during the Vancouver 2010 Winter Olympics](https://www.upi.com/News_Photos/view/upi/33393f9d20159ecb347de9aa1d670922/2010-Winter-Olympics-in-Vancouver/). National Geographic claimed it was the [warmest Olympics to date](https://www.nationalgeographic.com/adventure/article/100212-vancouver-2010-warmest-winter-olympics).
 
 We add these observations to the data set
 
@@ -660,7 +660,7 @@ ggsave(filename = "images/fig_meteoswiss.png", plot = fig_meteoswiss, bg = "whit
 
 Two additional files are provided by the **USA National Phenology Network (USA-NPN)** and the many participants who contribute to its *Nature’s Notebook* program.
 
-- `USA-NPN_individual_phenometrics_data.csv`: Individual Phenometrics. 2009--2021. Accessed at <http://doi.org/10.5066/F78S4N1V>.
+The file `USA-NPN_individual_phenometrics_data.csv`contains observations on **individual phenometrics** of cherry trees. It is available at <http://doi.org/10.5066/F78S4N1V>.
 
 ```{r}
 #| label: load-npn-individual-phenometrics
@@ -671,7 +671,7 @@ npn_ind_obs <- read_csv("data/USA-NPN_status_intensity_observations_data.csv") |
 npn_ind_des <- read_csv("data/USA-NPN_individual_phenometrics_datafield_descriptions.csv")
 ```
 
-- `USA-NPN_status_intensity_data.csv`: Status and Intensity. 2009--2021. USA-NPN, Tucson, Arizona, USA. Accessed at <http://doi.org/10.5066/F78S4N1V>.
+The file `USA-NPN_status_intensity_data.csv` contains observations on the **status and intensity** of cherry trees. It is available at <http://doi.org/10.5066/F78S4N1V>.
 
 ```{r}
 #| label: load-npn-status-intensity
@@ -681,81 +681,73 @@ npn_int_obs <- read_csv("data/USA-NPN_status_intensity_observations_data.csv")
 npn_int_des <- read_csv("data/USA-NPN_status_intensity_datafield_descriptions.csv")
 ```
 
-These can help augment the existing data sets for which you don't have many observations such as New York City. They also contain some useful **predictors**.
+These files can help augment the existing data sets for which you don't have many observations such as New York City (and perhaps even Vancouver). 
 
-We ignore variables measured in degrees Fahrenheit (`Tmin_in_F`, `Tmax_in_F` and `AGDD_in_F`).
-
-All weather variables are from **Daymet** (<http://daymet.ornl.gov>).
+They also contain some useful **predictors** such as weather variables from [Daymet](http://daymet.ornl.gov). We ignore variables measured in degrees Fahrenheit (`Tmin_in_F`, `Tmax_in_F` and `AGDD_in_F`).
 
 - `Observation_ID`: The unique identifier of each phenophase status record (subsequently referred to as "status record") in the database.
 
-- `Update_Datetime`: The date and time the status record was last updated after original submission online. A value of `"-9999"` indicates the record has not been updated since this field was established in July 2014.
+- `Update_Datetime`: The date and time the status record was last updated after original submission online. `"-9999"` indicates the record has not been updated since this field was established in July 2014.
 
-- `Site_ID`: The unique identifier of the site at which the status record was made. More information can be found in the ancillary data file for `"Site"`.
+- `Site_ID`: The unique identifier of the site at which the status record was made.
 
-- `Latitude`, `Longitude` and `Elevation_in_Meters`: The latitude, longitude and elevation of the site at which the status record was made. Generally lat/long is calculated from the **Google Maps API** with a datum of `WGS84` (<https://developers.google.com/maps>). A value of `"-9999"` indicates the elevation could not be calculated.
+- `Latitude`, `Longitude` and `Elevation_in_Meters`: The site at which the status record was made. Calculated from the [Google Maps API](https://developers.google.com/maps) with a datum of `WGS84`. `"-9999"` indicates the elevation could not be calculated.
 
-- `State`: The U.S. state or territory, Mexican state or Canadian province in which the site is located. The state is calculated from lat/long by the **Google Maps Geocoding API** (<https://developers.google.com/maps/documentation/geocoding/intro>). A value of `"-9999"` indicates the site does not fall within the boundaries of North America.
+- `State`: The U.S. state or territory, Mexican state or Canadian province in which the site is located. The state is calculated from lat/long by the [Google Maps Geocoding API](https://developers.google.com/maps/documentation/geocoding/intro). `"-9999"` means the site is outside North America.
 
-- `Species_ID`: The unique identifier of the species for which the status record was made.
+- `Species_ID`: Identifier of the species for which the status record was made.
 
-- `Genus`, `Species` and `Kingdom`: The taxonomic genus, species and kingdom of the organism for which the status record was made. Taxonomy follows that in the **Integrated Taxonomic Information System** (<http://itis.gov>). In those rare cases where a taxonomic subspecies or varietal is designated, the subspecies or varietal name is appended to the species name after a hyphen (e.g. *Cornus florida-appalachianspring*).
+- `Genus`, `Species` and `Kingdom`: Taxonomic genus, species and kingdom of the plant for which the status record was made following the [Integrated Taxonomic Information System](http://itis.gov). Subspecies are appended to the species name after a hyphen (e.g. *Cornus florida-appalachianspring*).
 
-- `Common_Name`: The common name of the species for which the status record was made. Common names for plants follow those in the **USDA PLANTS Database** (<http://plants.usda.gov>), and for animals, in the **NatureServe database** (<http://explorer.natureserve.org>).
+- `Common_Name`: The common name of the species for which the status record was made followwing the [USDA PLANTS Database](http://plants.usda.gov).
 
-- `Individual_ID`: The unique identifier of the individual plant or the animal species at a site for which the status record was made. Note that for plants, individuals are tracked separately, while for animals, the species as a whole (rather than unique individuals) is tracked at a site. More information can be found in the ancillary data file for `"Individual Plant"`.
-
-- `Phenophase_ID`: The unique identifier of the phenophase for which the status record was made. Note that there can be several names and definitions for a given phenophase as they vary between datasets and can change over time within datasets. All definitions lumped under the same `Phenophase_ID` are considered equivalent for the purposes of general phenological analysis. More information can be found in the ancillary data files for `"Phenophase"` and `"Phenophase Definition"`.
-
-- `Phenophase_Description`: The descriptive title of the phenophase for which the status record was made. This is the overarching title of the phenophase defined by `Phenophase_ID`, and may include several different names and definitions (as defined in the `Phenophase_Name` and `Phenophase_Definition_ID` fields), as these vary between datasets and can change over time within datasets. More information can be found in the ancillary data file for `"Phenophase"`.
+- `Individual_ID`: Individuals plants are tracked separately with a unique identifier. 
 
 - `Observation_Date`: The date the status observation was made in the field.
 
-- `Day_of_Year`: The day of year, ranging from `1` to `366`, that the status observation was made in the field.
+- `Day_of_Year`: The day of year, ranging from `1` to `366` when the status observation was made.
 
-- `Phenophase_Status`: The status (i.e. presence or absence) of the phenophase at the time the observation was made in the field.
+- `Phenophase_Status`: Status (presence or absence) of the phenophase at the time of observation.
 
-- `Intensity_Category_ID`: The unique identifier of the intensity category assigned to the phenophase for this species at the time the status observation was made in the field. Intensity measures allow reporting of the degree to which a phenophase is expressed. More information can be found in the ancillary data file for `"Intensity"`. A value of `"-9999"` indicates there was no intensity category assigned to this phenophase for this species at the time the observation was made.
+- `Intensity_Category_ID`: The degree to which a phenophase is expressed. `"-9999"` indicates there was no intensity category assigned to this phenophase for this species at observation time.
 
-- `Intensity_Value`: The value reported in response to the intensity category question assigned to the phenophase for this species at the time the status observation was made in the field. The list of allowable responses for this intensity category question can be found in the ancillary data file for `"Intensity"`.
+- `Intensity_Value`: The value reported in response to the intensity category question assigned to the phenophase for this species at observation time.
 
-- `Abundance_Value`: Used only for animal observations, the value reported in response to the instruction, "enter the number of individual animals observed in this phenophase".
+- `AGDD`: **Accumulated growing degree days (in degrees Celsius)** on the `Observation_Date`. This is the **sum of growing degree days (GDD) since January 1st**, where GDD is calculated as the number of degrees C by which each day's average temperature exceeds 0 degrees C (i.e., (Tmax + Tmin)/2 - 0 degrees C).
 
-- `AGDD`: **Accumulated growing degree days (in degrees Celsius)** on the `Observation_Date`. This is the **sum of growing degree days (GDD) since January 1st**, where GDD is calculated as the number of degrees C by which each day's average temperature exceeds 0 degrees C (i.e., (Tmax + Tmin)/2 - 0 degrees C). From Daymet (<http://daymet.ornl.gov>).
+- `Tmax_Winter`: Average maximum temperature (in degrees C) for the winter season of the year of the `Observation_Date` (*December of previous year to February of the year of the Observation_Date*).
 
-- `Tmax_Winter`: Average maximum temperature (in degrees C) for the winter season of the year of the Observation_Date (*December of previous year to February of the year of the Observation_Date*).
+- `Tmax_Spring`: Average maximum temperature (in degrees C) for the spring season of the year of the `Observation_Date` (*March-May*). 
 
-- `Tmax_Spring`: Average maximum temperature (in degrees C) for the spring season of the year of the Observation_Date (*March-May*). 
+- `Tmax_Summer`: Average maximum temperature (in degrees C) for the summer season of the year of the `Observation_Date` (*June-August*).
 
-- `Tmax_Summer`: Average maximum temperature (in degrees C) for the summer season of the year of the Observation_Date (*June-August*).
+- `Tmax_Fall`: Average maximum temperature (in degrees C) for the previous year's fall season (*September-November*), relative to the year of the `Observation_Date`. 
 
-- `Tmax_Fall`: Average maximum temperature (in degrees C) for the previous year's fall season (*September-November*), relative to the year of the Observation_Date. 
+- `Tmax`: Maximum temperature (in degrees C) on the `Observation_Date`.
 
-- `Tmax`: Maximum temperature (in degrees C) on the Observation_Date.
+- `Tmin_Winter`: Average minimum temperature (in degrees C) for the winter season of the year of the `Observation_Date` (*December of previous year to February of the year of the Observation_Date*).
 
-- `Tmin_Winter`: Average minimum temperature (in degrees C) for the winter season of the year of the Observation_Date (*December of previous year to February of the year of the Observation_Date*).
+- `Tmin_Spring`:  Average minimum temperature (in degrees C) for the spring season of the year of the `Observation_Date` (*March-May*).
 
-- `Tmin_Spring`:  Average minimum temperature (in degrees C) for the spring season of the year of the Observation_Date (*March-May*).
+- `Tmin_Summer`: Average minimum temperature (in degrees C) for the summer season of the year of the `Observation_Date` (*June-August*).
 
-- `Tmin_Summer`: Average minimum temperature (in degrees C) for the summer season of the year of the Observation_Date (*June-August*).
+- `Tmin_Fall`: Average minimum temperature (in degrees C) for the previous year's fall season (*September-November*), relative to the year of the `Observation_Date`.
 
-- `Tmin_Fall`: Average minimum temperature (in degrees C) for the previous year's fall season (*September-November*), relative to the year of the Observation_Date.
+- `Tmin`: Minimum temperature (in degrees C) on the `Observation_Date`.
 
-- `Tmin`: Minimum temperature (in degrees C) on the Observation_Date.
+- `Prcp_Winter`: Accumulated precipitation (in mm) for the winter season of the year of the `Observation_Date` (*December of previous year to February of the year of the Observation_Date*).
 
-- `Prcp_Winter`: Accumulated precipitation (in mm) for the winter season of the year of the Observation_Date (*December of previous year to February of the year of the Observation_Date*).
+- `Prcp_Spring`: Accumulated precipitation (in mm) for the spring season of the year of the `Observation_Date` (*March-May*).
 
-- `Prcp_Spring`: Accumulated precipitation (in mm) for the spring season of the year of the Observation_Date (*March-May*).
+- `Prcp_Summer`: Accumulated precipitation (in mm) for the summer season of the year of the ^ (*June-August*).
 
-- `Prcp_Summer`: Accumulated precipitation (in mm) for the summer season of the year of the Observation_Date (*June-August*).
+- `Prcp_Fall`: Accumulated precipitation (in mm) for the previous year's fall season (*September-November*), relative to the year of the `Observation_Date`.
 
-- `Prcp_Fall`: Accumulated precipitation (in mm) for the previous year's fall season (*September-November*), relative to the year of the Observation_Date.
+- `Prcp`: Precipitation (in mm) on the `Observation_Date`
 
-- `Prcp`: Precipitation (in mm) on the Observation_Date.
+- `Accum_Prcp`: Accumulated precipitation (in mm) *from January 1st* to the `Observation_Date`.
 
-- `Accum_Prcp`: Accumulated precipitation (in mm) *from January 1st* to the Observation_Date.
-
-- `Daylength`: Number of seconds of daylight on the Observation_Date.
+- `Daylength`: Number of seconds of daylight on the `Observation_Date`.
 
 ## Maps
 
