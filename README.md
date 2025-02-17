@@ -4,9 +4,8 @@ Repository for George Mason’s Department of Statistics cherry blossom peak blo
 
 This repository contains cleaned and ready-to-use data on peak bloom dates in the *data/* folder, alongside a demo prediction analysis report (*demo_analysis.qmd*).
 The demo analysis demonstrates how to load the provided data sets, plot the observed time series, and uses a very simple linear regression model to predict the peak bloom dates for the next year as well as estimate prediction intervals.
-The demo analysis requires a [working installation of R](https://cran.r-project.org) and (version ≥ 4.3 strongly suggested), an [installation of quarto](https://www.quarto.org) (e.g., as part of the RStudio IDE), as well as the `tidyverse` suite of packages.
 
-The rendered demo analysis is available at https://competition.statistics.gmu.edu/demo_analysis.html.
+The rendered demo analysis is available at <https://competition.statistics.gmu.edu/demo_analysis.html>.
 
 ## Competition rules
 
@@ -63,6 +62,8 @@ The full competition rules are available under https://competition.statistics.gm
 - 2022: <https://github.com/agc88/Cherry-Blossom-Predictions>
 
 ## Others Analyses
+
+- [Hybrid Phenology Modeling for Predicting Temperature Effects on Tree Dormancy](https://doi.org/10.48550/arXiv.2501.16848) Python code available on [GitHub](https://github.com/WUR-AI/HybridML-Phenology)
 
 - [Yuriko Schumacher: Statistical Analysis on cherry blossom’s first-blooming date](https://yuriko-schumacher.github.io/statistical-analysis-of-cherry-blossom-first-bloom-date/), also on [GitHub](https://github.com/Yuriko-Schumacher/statistical-analysis-of-cherry-blossom-first-bloom-date) 
 
