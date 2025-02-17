@@ -63,6 +63,8 @@ The full competition rules are available under https://competition.statistics.gm
 
 ## Others Analyses
 
+- [`{chillR}`](https://CRAN.R-project.org/package=chillR )
+
 - [Hybrid Phenology Modeling for Predicting Temperature Effects on Tree Dormancy](https://doi.org/10.48550/arXiv.2501.16848) Python code available on [GitHub](https://github.com/WUR-AI/HybridML-Phenology)
 
 - [Yuriko Schumacher: Statistical Analysis on cherry blossom’s first-blooming date](https://yuriko-schumacher.github.io/statistical-analysis-of-cherry-blossom-first-bloom-date/), also on [GitHub](https://github.com/Yuriko-Schumacher/statistical-analysis-of-cherry-blossom-first-bloom-date) 

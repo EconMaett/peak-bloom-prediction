@@ -1,6 +1,6 @@
 ---
-title: "Peak Bloom Prediction Demo"
-author: "Eager Learner"
+title: "Peak Bloom Prediction"
+author: "econmaett"
 date: "01/05/2025"
 lang: en-US
 format:
@@ -24,98 +24,30 @@ knitr::opts_chunk$set(
 )
 ```
 
+```{r}
+#| label: load-pkgs
+#| output: false
+
+invisible(Sys.setlocale("LC_ALL","English"))
+
+library(tidyverse)
+library(tinytable) # Check if these need to be loaded
+library(modelsummary)
+library(kableExtra)
+library(httr2)
+library(jsonlite)
+library(nasapower)
+library(sf)
+library(mapview)
+library(GSODR)
+library(stationaRy)
+```
+
 ## Ideas
 
 Create a consistent color scheme for the five locations. Check out the color palettes at <https://coolors.co/palettes/trending>.
 
 You need five colors for the five locations. They can either all be cherry-colored or have completely different colors but then they should not follow any gradient.
-
-```{r}
-#| label: color-scheme-proposals
-#| eval: false
-
-col_kyoto        <- "#ffd6ff"
-col_liestal      <- "#e7c6ff"
-col_newyorkcity  <- "#c8b6ff"
-col_vancouver    <- "#b8c0ff"
-col_washingtondc <- "#bbd0ff"
-
-col_kyoto        <- "#ff595e"
-col_liestal      <- "#ffca3a"
-col_newyorkcity  <- "#8ac926"
-col_vancouver    <- "#1982c4"
-col_washingtondc <- "#6a4c93"
-
-col_kyoto        <- "#f72585"
-col_liestal      <- "#ffa5ab"
-col_newyorkcity  <- "#da627d"
-col_vancouver    <- "#a53860"
-col_washingtondc <- "#450920"
-
-col_kyoto        <- "#231942"
-col_liestal      <- "#5e548e"
-col_newyorkcity  <- "#9f86c0"
-col_vancouver    <- "#be95c4"
-col_washingtondc <- "#e0b1cb"
-
-col_kyoto        <- "#f72585"
-col_liestal      <- "#7209b7"
-col_newyorkcity  <- "#3a0ca3"
-col_vancouver    <- "#4361ee"
-col_washingtondc <- "#4cc9f0"
-
-col_kyoto        <- "#ff99c8"
-col_liestal      <- "#fcf6bd"
-col_newyorkcity  <- "#d0f4de"
-col_vancouver    <- "#a9def9"
-col_washingtondc <- "#e4c1f9"
-
-col_kyoto        <- "#ef476f"
-col_liestal      <- "#ffd166"
-col_newyorkcity  <- "#06d6a0"
-col_vancouver    <- "#118ab2"
-col_washingtondc <- "#073b4c"
-
-col_kyoto        <- "#390099"
-col_liestal      <- "#9e0059"
-col_newyorkcity  <- "#ff0054"
-col_vancouver    <- "#ff5400"
-col_washingtondc <- "#ffbd00"
-
-col_kyoto        <- "#73d2de"
-col_liestal      <- "#218380"
-col_newyorkcity  <- "#8f2d56"
-col_vancouver    <- "#d81159"
-col_washingtondc <- "#ffbc42"
-```
-
-The search term **cherry** resulted in the following color palettes:
-
-```{r}
-#| label: cherry-palettes
-#| eval: false
-
-col_kyoto        <- "#6f1d1b"
-col_liestal      <- "#bb9457"
-col_newyorkcity  <- "#432818"
-col_vancouver    <- "#99582a"
-col_washingtondc <- "#ffe6a7"
-
-col_kyoto        <- "#f9dbbd"
-col_liestal      <- "#ffa5ab"
-col_newyorkcity  <- "#da627d"
-col_vancouver    <- "#a53860"
-col_washingtondc <- "#450920"
-
-col_kyoto        <- "#7ddf64"
-col_liestal      <- "#c0df85"
-col_newyorkcity  <- "#deb986"
-col_vancouver    <- "#db6c79"
-col_washingtondc <- "#ed4d6e"
-```
-
-
-Use `{gt}` flags for tables.
 
 Check out the [`{tinytable}`](https://vincentarelbundock.github.io/tinytable/) and [`{modelsummary}`](https://modelsummary.com/) packages.
 
@@ -188,64 +120,15 @@ Save figures and include them with the option `lightbox: true`.
 
 Include a bibliography and set the option `link-bibliography: true`.
 
-Growing Degree Days are particularly useful for predicting cherry blossom peak bloom, especially for varieties like the Yoshino cherry trees (Prunus x yedoensis) that are famous in Washington DC's National Cherry Blossom Festival.
-For cherry trees, the accumulation of GDD typically starts being counted from March 1st in the Northern Hemisphere. The base temperature used for cherry blossoms is usually 40°F (4.4°C). Peak bloom is generally predicted to occur when a specific threshold of accumulated GDD is reached.
-For Yoshino cherry trees specifically:
-
-Peak bloom typically occurs around 300 GDD (using base 40°F)
-The "green bud" stage appears around 50 GDD
-Florets become visible around 100 GDD
-Extension of florets occurs around 150 GDD
-Peduncle elongation happens around 250 GDD
-
-Factors that can affect the accuracy of GDD predictions for cherry blossoms include:
-
-Winter chill accumulation (trees need adequate cold exposure)
-Extreme temperature fluctuations
-Late freezes or unusual warm spells
-Local microclimate conditions
-
-The National Park Service uses this method, along with other factors, to make their annual peak bloom predictions for the DC cherry blossoms. However, they've found that predictions become most reliable when the trees reach the "green bud" stage.
-
-Prunus x yedoensis (Yoshino Cherry): The most well-documented case, typically uses base `40°F` (`4.4°C`)
-
-In many plants and animals, phenological transitions – especially those in spring - happen when enough warmth has accumulated. This warmth is often measured using **growing degree days (GDDs)**. Growing degrees days are defined as **the number of degrees the average daily temperature exceeds a base temperature**, or the temperature below which the organism will remain in dormancy. Growing Degree Days are calculated as:
-
-GDD = ((Tmax + Tmin)/2) - Tbase
-
-$$
-\textrm{GDD} =  \frac{\mathrm{T}_{\mathrm{max}}+\mathrm{T}_{\mathrm{min}}}{2} - \mathrm{T}_{\mathrm{base}} 
-$$
-
-**If the average temperature for a day is lower than the base temperature, then no Growing Degree Days are counted**.
-
-Growing Degrees are accumulated daily, following a specified start date, by adding each day's total to all previous days' totals.
-
-$$
-\mathrm{AGDD}_{N} = \sum_{k=1}^{N} \mathrm{GDD}_{k}
-$$
-
-
 ## Instructions
 
 In this analysis we demonstrate a simple way of predicting the peak bloom date over the next decade for all five locations required by the competition.
+
 The models are simple in that they only use the past bloom dates observed at each location - no other covariates or additional information are considered.
+
 At the end of this document ([Appendix A](#appendix-rnoaa)), we demonstrate a simple way to get historic temperature data for the four locations via the [NOAA web API](https://www.ncdc.noaa.gov/cdo-web/).
 
 The original demo file is available on [GitHub](https://github.com/GMU-CherryBlossomCompetition/peak-bloom-prediction).
-
-For this demo analysis we are using methods from the `{tidyverse}` family of R packages.
-They can be installed with the `install.packages()` command and then loaded with `library()`. Note that I set my locale to English, which is useful when working with dates and times.
-
-```{r}
-#| label: load-pkgs
-#| output: false
-
-invisible(Sys.setlocale("LC_ALL","English"))
-
-library(tidyverse)
-library(kableExtra)
-```
 
 ## Cleaned data sets
 
@@ -254,85 +137,335 @@ Each file contains the dates of the peak bloom of the cherry trees at the respec
 
 The six columns in each data file are:
 
-- `location` a human-readable location identifier (`string`).
-- `lat` (approximate) latitude of the cherry trees (`double`).
-- `long` (approximate) longitude of the cherry trees (`double`).
-- `alt` (approximate) altitude of the cherry trees (`double`).
-- `year` year of the observation (`integer`).
-- `bloom_date` date of peak bloom of the cherry trees ([ISO 8601](https://xkcd.com/1179/) date `string`). The "peak bloom date" may be defined differently for different sites
-- `bloom_doy` days since January 1st of the year until peak bloom (`integer`). January 1st corresponds to `1`.
-
-The `{lubridate}` package helps convert character strings to [ISO 8601](https://www.iso.org/iso-8601-date-and-time-format.html) dates.
+- `location`: a human-readable location identifier (`string`).
+- `lat`: (approximate) latitude of the cherry trees (`double`).
+- `long`: (approximate) longitude of the cherry trees (`double`).
+- `alt`: (approximate) altitude of the cherry trees (`double`).
+- `year`: year of the observation (`integer`).
+- `bloom_date`: date of peak bloom of the cherry trees ([ISO 8601](https://xkcd.com/1179/) date `string`). The "peak bloom date" may be defined differently for different sites
+- `bloom_doy`: days since January 1st of the year until peak bloom (`integer`). January 1st corresponds to `1`.
 
 ### Kyoto
 
 The file `kyoto.csv` has been obtained from Yasuyuki AONO (`aono(at)envi.osakafu-u.ac.jp`) at <http://atmenv.envi.osakafu-u.ac.jp/aono/kyophenotemp4/>.
 
-The geographical location (`longitude`, `latitude`, `altitude`) roughly corresponds to the Nakanoshima area of the Arashiyama Park in Kyoto, Japan.
+The geographical location at `35.01198°N` (latitude), `135.6761°E` (longitude), `44` meters above sea levels (altitude) roughly corresponds to the **Nakanoshima** area of the **Arashiyama Park** in Kyoto, Japan.
 
 The peak bloom date of the **Prunus jamasakura** is determined by a local news paper in Arashiyama (Kyoto, Japan).
 
-Data prior to 1888 is extracted from various descriptions or estimated.
+Data prior to 1888 is extracted from various descriptions or estimated:
 
 - Data from the 9th to the 14th centuries was acquired and analyzed by Aono and Saito (2010; International Journal of Biometeorology, 54, 211-219).
 
 - Phenology for 15th to 21st centuries was acquired and analyzed by Aono and Kazui (2008; International Journal of Climatology, 28, 905-914).
 
+Note that the data set for Kyoto includes implicit missing values (`NA`s), which I like make explicit so that we may spot the discontinuities in the time series plots.
+
+[Chapter 18 "Missing Values"](https://r4ds.hadley.nz/missing-values) of Hadley Wickham's book R for Data Science (2e) describes different strategies for dealing with implicit `NA`s, such as pivoting the data to the wide format, using joins, or using the `{tidyr}` function `complete()`.
+
+Let's load the data for Kyoto, Japan
+
+```{r}
+#| label: load-kyoto
+
+kyoto <- read_csv("data/kyoto.csv") |> 
+  complete(year = full_seq(year, 1), location) |> 
+  fill(location, lat, long, alt, .direction = "downup")
+```
+
+Let's plot the data for Kyoto, Japan
+
+```{r}
+#| label: fig-kyoto
+#| fig-cap: "Peak cherry blossom days in Kyoto, Japan"
+
+fig_kyoto <- kyoto |> 
+  ggplot(mapping = aes(x = year, y = bloom_doy)) +
+  geom_step(linetype = "dotted", colour = "#ffa5ab", lwd = 0.5) +
+  geom_point(color = "#ff0080", alpha = 0.5) +
+  geom_smooth(method = "loess", formula = y ~ x, colour = "#644128", se = TRUE) +
+  scale_x_continuous(breaks = c(seq(800, 2100, by = 100), NA)) +
+  labs(title = "Peak cherry blossom days in Kyoto, Japan", x = NULL, y = NULL) +
+  theme_light()
+
+print(fig_kyoto)
+
+ggsave(filename = "images/fig_kyoto.png", plot = fig_kyoto, bg = "white")
+```
+
+Here we have used **locally estimated scatterplot smoothing (LOESS)** or **locally weighted scatterplot smoothing (LOWESS)** to who how the average peak bloom day changed over the years. 
+
+Note that we could explicitly model this with a **local level (+ trend)** state-space model that we fit with the **Kalman filter and Smoother**, which also allows us to effectively deal with **missing observations**.
+
+MeteoSwiss suggests using a **Gaussian Kernel** with a *20-year window* to extract the trend, which is equivalent to using a **low-pass filter** that shuts down all higher frequencies.
+
+It also looks like the observations exhibit **heteroskedasticity**, that is, the variance changes over time, and it looks like the variance has become more narrow over time.
+
+We can use changepoint detection methods to test for the changing time trend and the changing variance.
+
+Assuming that the data in the past is correct, there do seem to be seasonal cycles, perhaps connected to solar activity or the tilt of the earth.
+
+There is a clear trend towards earlier blooming, perhaps connected to anthropogenic climate change and urbanization. Studies attribute about half of the earlier blooming times in recent years to the **urban heat island effect**, and the other half to **climate change**.
+
+Modelling the local level and the trend would be useful if we are to forecast a couple years into the future, since an individual prediction may be incorrect, but on average, they may be good. 
+
+However, since we are only interested in forecasting a single moment in time, which may be greatly influenced by local weather, we probably are better off using historical weather data that we augment with forecasts, either by professional forecasters or by extrapolating the previous predictors.
+
 ### Liestal
 
-The data in the file `liestal.csv` contains observations for cherry trees in Liestal-Weideli that are of species **Prunus avium (wild cherry)**.
+The file `liestal.csv` contains observations for **a single wild cherry (Prunus avium) tree** in **Liestal-Weideli**, at `7.4814°N` (latitude), `7.730519°E` (longitude) and `350` meters above sea levels (altitude). 
 
-The peak bloom date is defined as the day when **25%** of the blossoms are in full bloom. The date is determined by MeteoSwiss.
+The **peak bloom date** is defined as the day when **25%** of the blossoms are in full bloom. The date is determined by [MeteoSwiss](https://www.meteoswiss.admin.ch/climate/climate-change/vegetation-development/long-term-series-of-phenological-observations.html).
 
-The data is provided by *Landwirtschaftliches Zentrum Ebenrain, Sissach and MeteoSwiss*.
+This means that 70% of buds would be open a couple days later. This raises the question of whether we should model the locations separately.
 
-Note that according to [MeteoSwiss](https://www.meteoswiss.admin.ch/climate/climate-change/vegetation-development/long-term-series-of-phenological-observations.html), this long time series concerns **a single tree**. This is probably the main reason why the variance of this time series is much larger than the one for Kyoto, where we observe an average of many trees.
+The data is provided by **Landwirtschaftliches Zentrum Ebenrain, Sissach and MeteoSwiss**.
+
+```{r}
+#| label: load-liestal
+
+liestal <- read_csv("data/liestal.csv")
+```
+
+Let's plot the data for Liestal, Switzerland:
+
+```{r}
+#| label: fig-liestal
+#| fig-cap: "Peak cherry blossom days for Liestal, Switzerland"
+
+fig_liestal <- liestal |> 
+  ggplot(mapping = aes(x = year, y = bloom_doy)) +
+  geom_step(linetype = "dotted", colour = "#ffa5ab", lwd = 1) +
+  geom_point(color = "#ff0080", alpha = 0.5, size = 2.5) +
+  geom_smooth(method = "loess", formula = y ~ x, colour = "#644128", se = TRUE) +
+  scale_x_continuous(breaks = c(seq(1880, 2020, by = 20), NA)) +
+  labs(
+    title = "Peak cherry blossom days for Liestal, Switzerland", 
+    x = NULL, y = NULL
+  ) +
+  theme_light()
+
+print(fig_liestal)
+
+ggsave(filename = "images/fig_liestal.png", plot = fig_liestal, bg = "white")
+```
+
+For Liestal you can see the impact of the infamous heat summer of 2003 which I remember from my childhood, although interestingly, there's another record in 1990.
+
+### New York City
+
+The file `newyorkcity.csv` contains **only a single observation** for the year 2024. It concerns the **Yoshino Cherry (Prunus x yedoensis)** tree in **Washington Square Park**, New York City, at `40.7304 °N` (latitude), `-73.99809°E` (longitude) and `8.5` meters above sea level (altitude).
+
+Let's load the data for New York City
+
+```{r}
+#| label: load-newyorkcity
+
+newyorkcity <- read_csv("data/nyc.csv")
+```
+
+Luckily, there are some historical observations dating *back to 2019* in the data provided by **USA-NPN**.
+
+The Washington Square Park has site id `32789` and the **Yoshino** cherry you should predict has species id `228`.
+
+Note: `lubridate::as_date(Observation_Date, format = "%m/%d/%y")` returns `NA`s. Use `as.Date(Observation_Date, format = "%m/%d/%y")` or `lubridate::mdy(Observation_Date)` instead.
+
+We have been provided with USA-NPN data on individual cherry trees by the competition organizers, and we can load it:
+
+```{r}
+#| label: load-historical-data-nyc
+
+nyc_data_npn <- read_csv("data/USA-NPN_status_intensity_observations_data.csv") |> 
+  filter(Site_ID == 32789, Species_ID == 228) |> 
+  mutate(Observation_Date = mdy(Observation_Date))
+```
+
+This file now contains individual observations of the phenophase and not the actual peak bloom date.
+
+For simplicity, we take the first day someone observed the flowers to be open as the peak bloom day.
+
+This could be done in a more sophisticated way by also looking at the **reported intensity value**, recorded in the `Intensity_Value` column variable.
+
+We could simply create an indicator variable that is `TRUE` if the variable `Phenophase_Status` is equal to `1`, and take the first `Day_of_Year` as our `bloom_doy`.
+
+Alternatively, we may use the variable `Intensity_Value` which is either `-9999`, `95% or more`, `Less than 5%`, `25-49%`, `75-94%`, `50-74%`.
+
+Since according to the variable `Individual_ID`, only one tree, `183140` is being observed, we can use the first date where `Intensity_Value` is `50-74%` as our `bloom_doy`.
+
+```{r}
+#| warning: true
+
+nyc_data <- nyc_data_npn |>
+  arrange(Observation_Date) |>
+  mutate(year = year(Observation_Date)) |>
+  group_by(year) |>
+  summarize(
+    first_flower_index = min(which((Intensity_Value %in% c("75-94%", "95% or more")))),
+    bloom_date = as_date(strftime(Observation_Date[first_flower_index], format = "%Y-%m-%d")),
+    bloom_doy = Day_of_Year[first_flower_index],
+    .groups = "drop"
+  ) |>
+  filter(!is.na(bloom_doy)) |>
+  select(-first_flower_index) |>
+  mutate(location = "newyorkcity") |> 
+  arrange(year)
+```
+
+Then we combine the data sets
+
+```{r}
+#| label: augment-nyc-data
+
+newyorkcity <- newyorkcity |>
+  bind_rows(nyc_data |> filter(year != 2024)) |>  # Can't add a year twice!
+  fill(lat, long, alt)
+```
+
+We now have a total of four observations for New York City
+
+```{r}
+#| label: tbl-nyc-data
+#| tbl-cap: "Augmented NYC observations"
+
+newyorkcity |> 
+  filter(location == "newyorkcity") |> 
+  kable() |> 
+  kable_styling()
+```
+
+
+### Vancouver
+
+Let's load the data for New York City
+
+```{r}
+#| label: load-vancouver
+
+vancouver <- read_csv("data/vancouver.csv")
+```
+
+The file `vancouver.csv` contains observations for cherry trees of the cultivar  **Akebono** in **Maple Grove Park**, Vancouver, BC located approximately at `49.2236916°N` (latitude), `-123.1636251°E` (longitude), `24` meters above sea levels (altitude).
+
+Currently **only three observations** for 2022, 2023, and 2024 are available.
+
+But casual observations have been recorded in the form of **photos posted** to the [VCBF Neighbourhood Blog for Kerrisdale](https://forums.botanicalgarden.ubc.ca/threads/kerrisdale.36008/).
+
+You can **search the forum** for the keywords `"Akebono"` (i.e., the name of the cultivar) and `"Maple Grove Park"` (i.e., the location of the trees).
+
+From the map at <https://finder.vcbf.ca/> we get the following information:
+- Blooming: `03/18-04/01`
+- Cultivar: Akebono
+- Location: Maple Grove Park
+- Description: Kerrisdale - Akebonos at SE corner Maple Grove Park at Yew and SW Marine Dr
+
+After searching through the web forum, I have decided to add the following observations to the data set:
+
+```{r}
+#| label: define-vancouver_forum
+
+vancouver_forum <- tribble(
+  ~ year, ~ bloom_date,
+  2021, "2021-03-31", # Start: 2021-03-21, Full: 2021-03-31, Full: 2021-04-07
+  2020, "2020-04-03", # Full bloom
+  2018, "2018-03-18", # Full bloom
+  2017, "2017-04-11", # Full bloom 
+  2015, "2015-03-19", # Full bloom
+  2011, "2011-04-01", # Full bloom was over on 2011-04-15
+  2010, "2010-03-14", # 60% bloom on 2010-03-07
+  2008, "2008-04-14" # Start: 2008-04-06, Full: 2008-04-14, finished: 2008-04-22
+) |> 
+  mutate(
+    bloom_date = as_date(bloom_date),
+    bloom_doy = as.numeric(1 + as_date(bloom_date) - as_date(paste0(year, "-01-01"))),
+    location = "vancouver"
+  )
+```
+
+Then we add these observations to the data set
+
+```{r}
+#| label: augment-vancouver
+
+vancouver <- vancouver |> 
+  bind_rows(vancouver_forum) |> 
+  fill(lat, long, alt) |> 
+  arrange(year)
+```
+
+Now we have a total of eleven observations for Vancouver, BC.
+
+```{r}
+#| label: tbl-augmented-vancouver-data
+#| tbl-cap: "Augmented Vancouver data"
+
+vancouver |> 
+  filter(location == "vancouver") |> 
+  kable() |> 
+  kable_styling()
+```
 
 ### Washington DC
 
-The data in file `washingntondc.csv` has been obtained from the EPA's Climate Change Indicators in the United States <https://www.epa.gov/climate-indicators/cherry-blossoms>.
+The data in file `washingtondc.csv` has been obtained from the EPA's Climate Change Indicators in the United States <https://www.epa.gov/climate-indicators/cherry-blossoms>.
 
-The latitude and longitude correspond to the location of the [Tidal Basin in Washington, DC](https://www.nps.gov/articles/dctidalbasin.htm) and the cherry trees are approximately at sea level (altitude 0).
+The geographical location at `38.88535°N` (latitude), `-77.03863°E` (longitude) and `0` meters above sea level (altitude) correspond to the location of the [Tidal Basin in Washington, DC](https://www.nps.gov/articles/dctidalbasin.htm).
 
 The peak bloom date is defined as the day when **70%** of the **Yoshino Cherry (Prunus x yedoensis)** are in full bloom, as determined by the [National Park Service](https://www.nps.gov/subjects/cherryblossom/bloom-watch.htm).
 
-## Load main data
-
-We load the data for the five cities. Note that the data set for Kyoto includes implicit missing values (`NA`s), which I make explicit so that we can see the discontinuities in our time series plots.
-
-[Hadley Wickham](https://r4ds.hadley.nz/missing-values) describes different strategies for dealing with implicit `NA`s, such as pivoting the data to the wide format, using joins, or the `{tidyr}` function `complete()`. I decided to go with the latter approach for convenience.
-
-In the following code chunk, I load the individual data sets, combine them, convert the implicit missing values in the `kyoto.csv` data set to explicit `NA`s and I save the combined data in a file called `cherry.csv` in my `data/` folder.
+Let's load the data for Washington DC
 
 ```{r}
-#| label: load-main-dataset
-#| eval: false
+#| label: load-washingtondc
 
-cherry <- read_csv("data/kyoto.csv") |> 
-  complete(year =  full_seq(year, 1), location) |> 
-  fill(location, lat, long, alt, .direction = "downup") |> 
-  bind_rows(read_csv("data/liestal.csv")) |> 
-  bind_rows(read_csv("data/nyc.csv")) |> 
-  bind_rows(read_csv("data/vancouver.csv")) |> 
-  bind_rows(read_csv("data/washingtondc.csv")) |> 
-  mutate(location = factor(location))
-
-write_csv(cherry, file = "data/cherry.csv", col_names = TRUE)
+washingtondc <- read_csv("data/washingtondc.csv")
 ```
 
-After that, we can load the `cherry.csv` data set from the `data/` folder. Note that `bloom_date` will remain a type `"character"` vector until the `NA`s are removed, at which point you can convert it to a `"Date"` vector.
+Let's plot the data for Washington D.C:
 
 ```{r}
-#| label: load-cherry-csv
+#| label: fig-washingtondc
+#| fig-cap: "Peak cherry blossom days for Washington DC, USA"
+
+fig_washingtondc <- washingtondc |> 
+  ggplot(mapping = aes(x = year, y = bloom_doy)) +
+  geom_step(linetype = "dotted", colour = "#ffa5ab", lwd = 1) +
+  geom_point(color = "#ff0080", alpha = 0.5, size = 2.5) +
+  geom_smooth(method = "loess", formula = y ~ x, colour = "#644128", se = TRUE) +
+  scale_x_continuous(breaks = c(seq(1920, 2020, by = 20), NA)) +
+  labs(title = "Peak cherry blossom days for Washington DC, USA", x = NULL, y = NULL) +
+  theme_light()
+
+print(fig_washingtondc)
+
+ggsave(filename = "images/fig_washingtondc.png", plot = fig_washingtondc, bg = "white")
+```
+
+Now that we have loaded the datasets for the five locations, we can combine them into a single CSV file called `cherry.csv`.
+
+```{r}
+#| label: combine-cherry-csv
+#| eval: false
+
+cherry <- bind_rows(
+  kyoto,
+  liestal,
+  newyorkcity,
+  vancouver,
+  washingtondc
+)
+
+write_csv(cherry, file = "data/cherry.csv")
+```
+
+Now we can load the `cherry.csv` file from our `data/` folder
+
+```{r}
+#| label: load-cherry
 
 cherry <- read_csv("data/cherry.csv")
 ```
 
-Show the last three observation for each location. 
-
-**NOTE**: Also change the variable names to full words in upper case, e.g. "Year", "Location", "Latitude", "Longitude", "Altitude", "Bloom date", "Bloom DOY".
-
-Use appropriate table styling options to round the coordinates.
+We can show the last three observation for each location
 
 ```{r}
 #| label: tbl-01
@@ -345,129 +478,12 @@ cherry |>
   kable_styling()
 ```
 
-
-Note that the coordinates are always the same for each of the five locations:
-
-```{r}
-#| label: tbl-coordinates
-#| tbl-cap: "Coordinates of the five cherry tree locations"
-
-cherry |> 
-  group_by(location) |> 
-  distinct(lat, long, alt) |> 
-  kable() |> 
-  kable_styling()
-```
-
-These coordinates are needed when you are searching for weather station near the cherry trees. Each weather station has a unique ID, altough conventions and availability may vary by provider.
-
-## Additional data sets
-
-The competition organizers provide additional data sets for sites other than the main sites relevant for the competition. Note that these data sets contain many implicit missing values and do not necessarily include cherry trees but other plants that bloom in spring.
-
-We can use these time series in your modeling to help with spatial and temporal extrapolation. 
-
-For example, you can add predictors to these data sets and train models on additional sites.
-
-### Japan
-
-The data file `japan.csv` is provided by the [Japanese Meteorological Agency (JMA)](https://www.data.jma.go.jp/sakura/data/pdf/005.pdf) and contains recorded peak bloom dates at various sites across Japan.
-
-The sample trees are located within a 5km radius of the location indicated in the data file. We can load the data set, make implicit missing values explicit and change the `location` variable to only include the city names in lowercase letters.
-
-```{r}
-#| label: read-japan
-
-japan <- read_csv("data/japan.csv")
-
-japan <- japan |> 
-  complete(year =  full_seq(year, 1), location) |> 
-  mutate(location = str_remove(location, "Japan/")) |> 
-  mutate(location = tolower(location)) |> 
-  fill(location, lat, long, alt, .direction = "downup") |> 
-  mutate(location = factor(location))
-```
-
-The `japan.csv` file contains observations between `r min(japan$year)` and `r max(japan$year)` for `r length(unique(japan$location))` locations in Japan.
-
-### Korea
-
-The file `south_korea.csv` contains **first flowering dates** of for various sites across South Korea, curated by the **Korean Meteorological Administration (KMA)**.
-
-Because these are first flowering dates, they are likely to occur earlier than hypothetical full bloom dates would be.
-
-Trees in South Korea were assumed to be of the **Prunus Yedoensis** variety based on previous work (Hur, Ahn, and Shim 2014; Chung et al. 2009) and its frequent occurrence.
-
-Again, I make implicit missing values explicit, and I change the location names to lowercase so that to match the style of the main data set.
-
-```{r}
-#| label: load-korea
-
-korea <- read_csv("data/south_korea.csv")
-
-korea <- korea |> 
-  complete(year =  full_seq(year, 1), location) |> 
-  mutate(location = str_remove(location, "South Korea/")) |> 
-  mutate(location = tolower(location)) |> 
-  fill(location, lat, long, alt, .direction = "downup") |> 
-  mutate(location = factor(location))
-```
-
-The `south_korea.csv` file contains observations between `r min(korea$year)` and `r max(korea$year)` at `r length(unique(korea$location))` locations in South Korea.
-
-### MeteoSwiss
-
-The data file `meteoswiss.csv` contains peak bloom dates for various sites across Switzerland, obtained from <https://opendata.swiss/en/dataset/phanologische-beobachtungen>.
-
-Note that here, Liestal contains only 39 observations, considerably less than in the main data set. 
-
-Note that when you use the `{utils}` function `read.csv()` you need to specify the option `encoding = "UTF-8"` to allow for special characters that are common in the German language.
-
-```{r}
-#| label: load-meteoswiss
-
-meteoswiss <- read_csv("data/meteoswiss.csv")
-
-meteoswiss <- meteoswiss |> 
-  complete(year = full_seq(year, 1), location) |> 
-  mutate(location = str_remove(location, "Switzerland/")) |> 
-  mutate(location = tolower(location)) |> 
-  fill(location, lat, long, alt, .direction = "downup") |> 
-  mutate(location = factor(location))
-```
-
-The `meteoswiss.csv` file contains observations between `r min(meteoswiss$year)` and `r max(meteoswiss$year)` at `r length(unique(meteoswiss$location))` locations.
-
-### USA National Phenology Network
-
-Additional data are provided by the USA National Phenology Network (USA-NPN) and the many participants who contribute to its *Nature’s Notebook* program.
-
-- `USA-NPN_individual_phenometrics_data.csv`: USA National Phenology Network. Plant and Animal Phenology Data. Data type: Individual Phenometrics. 2009--2021. USA-NPN, Tucson, Arizona, USA. Data set accessed at <http://doi.org/10.5066/F78S4N1V>.
-
-```{r}
-npn_ind_obs <- read_csv("data/USA-NPN_status_intensity_observations_data.csv") |> 
-  mutate(Observation_Date = mdy(Observation_Date))
-
-npn_ind_des <- read_csv("data/USA-NPN_individual_phenometrics_datafield_descriptions.csv")
-```
-
-- `USA-NPN_status_intensity_data.csv`: USA National Phenology Network. Plant and Animal Phenology Data. Data type: Status and Intensity. 2009--2021. USA-NPN, Tucson, Arizona, USA. Data set accessed at <http://doi.org/10.5066/F78S4N1V>.
-
-```{r}
-npn_int_obs <- read_csv("data/USA-NPN_status_intensity_observations_data.csv")
-
-npn_int_des <- read_csv("data/USA-NPN_status_intensity_datafield_descriptions.csv")
-```
-
-These can help augment the existing data sets for which you don't have many observations such as New York City.
-
-
-## Visualizing the time series
+## Visualizing the five main time series
 
 We can visualize the time series for our five main locations next to each other. Notice the use of the `{stringr}` function `str_to_title()` to convert the first letter of the locations to uppercase.
 
 ```{r}
-#| label: fig-01
+#| label: fig-cherries_1880
 #| fig-width: 8
 #| fig-height: 3
 #| out-width: 100%
@@ -477,8 +493,8 @@ We can visualize the time series for our five main locations next to each other.
 df_cherry_1880 <- cherry |> 
   filter(year >= 1880)
 
-p1 <- ggplot(data = df_cherry_1880, mapping = aes(x = year, y = bloom_doy)) +
-  geom_step(linetype = "dotted", colour = "#ff0080") +
+fig_cherries <- ggplot(data = df_cherry_1880, aes(year, bloom_doy)) +
+  geom_step(linetype = "dotted", colour = "#ffa5ab") +
   geom_point(color = "#ff0080", alpha = 0.5) +
   geom_smooth(method = "loess", formula = y ~ x, colour = "#644128", se = FALSE) +
   scale_x_continuous(breaks = c(seq(1880, 2020, by = 40), NA)) +
@@ -486,7 +502,9 @@ p1 <- ggplot(data = df_cherry_1880, mapping = aes(x = year, y = bloom_doy)) +
   labs(x = NULL, y = "Peak bloom (since Jan 1st)") +
   theme_light()
 
-print(p1)
+print(fig_cherries)
+
+ggsave(filename = "images/fig_cherries.png", plot = fig_cherries, bg = "white")
 ```
 
 We create summary statistics to get an overview over the data. Specifically, we are interested in the range of the `year` variable, the total number of observations at each location, and the mean, median, and standard deviation of the `bloom_doy` variable.
@@ -512,12 +530,6 @@ cherry |>
 
 We see that the standard deviation for Liestal is much larger than the rest, where peak bloom dates are on average about a weak apart from their historical average.
 
-Since we have only one observation for New York City, we cannot calculate the standard deviation for this location.
-
-Note that the time series for Kyoto, Japan includes `r sum(is.na(cherry |> filter(location == "kyoto") |> pull(bloom_doy)))` missing observations.
-
-Note that this means the popular title "1200 years of cherry blossoms" is somewhat incorrect.
-
 We check for missing observations in the most recent years:
 
 ```{r}
@@ -528,7 +540,6 @@ cherry |>
   kable() |> 
   kable_styling()
 ```
-
 
 Kyoto has multiple implicit `NA`s, including in 1730, 1872, 1895, 1919, 1921, and 1945.
 
@@ -568,104 +579,13 @@ cherry |>
   theme(legend.position = "bottom", legend.title = element_blank())
 ```
 
-Let's plot the data for each location individually. First, we plot the time series for Kyoto, Japan. Notice that there are missing observations at the beginning of the observation period.
-
-NOTE: Change the color for the `geom_step()` function to something lighter.
-
-```{r}
-#| label: fig-kyoto
-#| fig-cap: "Peak cherry blossom days in Kyoto, Japan"
-
-cherry |> 
-  filter(location == "kyoto") |> 
-  ggplot(mapping = aes(x = year, y = bloom_doy)) +
-  geom_step(linetype = "dotted", colour = "#ff0080", lwd = 0.5) +
-  geom_point(color = "#ff0080", alpha = 0.5) +
-  geom_smooth(method = "loess", formula = y ~ x, colour = "#644128", se = TRUE) +
-  scale_x_continuous(breaks = c(seq(800, 2100, by = 100), NA)) +
-  labs(title = "Peak cherry blossom days in Kyoto, Japan", x = NULL, y = NULL) +
-  theme_light()
-```
-
-Here we have added a LOESS or LOWESS smoothing curve to show how the average peak bloom date changes over the years. 
-
-Note that we could explicitly model this with a local level (+ trend) structural model that we fit with the Kalman filter and Smoother, which also allows us to effectively deal with missing observations.
-
-MeteoSwiss suggests using a Gaussian Kernel with a 20-year window to extract the trend, which is effectively using a low-pass filter that shuts higher frequencies.
-
-It also looks like the observations exhibit heteroskedasticity, that is, the variance changes over time, in this case, it seems that the variance becomes more narrow over time.
-
-We can use changepoint detection methods to test for the changing time trend and the changing variance.
-
-Assuming that the data in the past is correct, there do seem to be seasonal cycles, perhaps connected to solar activity or the tilt of the earth. However, this phenomenon seems to be broken since there is a clear trend towards earlier blooming, perhaps connected to anthropogenic climate change and urbanization.
-
-We can use SARIMA modeling, ETS or the `{prophet}` package by Meta Research to fit time series models. The `{nixtlar}` package would allow us to access NIXTLA's TimeGPT LLM.
-
-
-Modelling the local level and the trend would be useful if we are to forecast a couple years into the future, since an individual prediction may be incorrect, but on average, they may be good. 
-
-However, since we are only interested in forecasting a single moment in time, which may be greatly influenced by local weather, we probably are better off using historical weather data that we augment with forecasts, either by professional forecasters or by extrapolating the previous predictors.
-
-The trend towards earlier blooming days may not continue if anthropogenic climate change and urbanization does not continue.
-
-And as the data for the chestnut tree in Geneva, Switzerland shows, the trend may even be reversed temporarily.
-
-Let's plot the data for Liestal:
-
-```{r}
-#| label: fig-liestal
-#| fig-cap: "Peak cherry blossom days for Liestal, Switzerland"
-
-cherry |> 
-  filter(location == "liestal") |> 
-  ggplot(mapping = aes(x = year, y = bloom_doy)) +
-  geom_step(linetype = "dotted", colour = "#ff0080", lwd = 0.75) +
-  geom_point(color = "#ff0080", alpha = 0.5, size = 2.5) +
-  geom_smooth(method = "loess", formula = y ~ x, colour = "#644128", se = TRUE) +
-  scale_x_continuous(breaks = c(seq(1880, 2020, by = 20), NA)) +
-  labs(
-    title = "Peak cherry blossom days for Liestal, Switzerland", 
-    x = NULL, y = NULL
-  ) +
-  theme_light()
-```
-
-Note that for Switzerland, peak cherry blossom are defined when **25% of buds are opened**. This means that 70% of buds would be open a couple days later. This raises the question of whether we should model the locations separately.
-
-Furthermore, the observations for Liestal concern **only a single tree**, which may be why the data exhibit considerably more variance than the rest.
-
-For Liestal you can see the impact of the infamous heat summer of 2003 which I remember from my childhood, although interestingly, there's another record in 1990.
-
-Let's plot the data for Washington D.C:
-
-```{r}
-#| label: fig-washingtondc
-#| fig-cap: "Peak cherry blossom days for Washington DC, USA"
-
-cherry |> 
-  filter(location == "washingtondc") |> 
-  ggplot(mapping = aes(x = year, y = bloom_doy)) +
-  geom_step(linetype = "dotted", colour = "#ff0080", lwd = 0.75) +
-  geom_point(color = "#ff0080", alpha = 0.5, size = 2.5) +
-  geom_smooth(method = "loess", formula = y ~ x, colour = "#644128", se = TRUE) +
-  scale_x_continuous(breaks = c(seq(1920, 2020, by = 20), NA)) +
-  labs(title = "Peak cherry blossom days for Washington DC, USA", x = NULL, y = NULL) +
-  theme_light()
-```
-
-For New York City there is only one observation for the year 2024 and for Vancouver there are only three observations for the years 2022, 2023, and 2024.
-
-Let's plot the time series of the five locations in the same graphic.
-
-**NOTE**: Use the unique color palette to differentiate between the five locations.
-
-**NOTE**: Change the location names to "Kyoto", "Liestal", "New York City", "Vancouver", "Washington DC".
+Let's plot all five time series in the same plot.
 
 ```{r}
 #| label: fig-cherry-blossoms-combined
 #| fig-cap: "Peak cherry blossom days for different locations"
 
-p2 <- cherry |> 
+fig_combined <- cherry |> 
   filter(year >= 1880) |> 
   ggplot(mapping = aes(x = year, y = bloom_doy, colour = location)) +
   geom_step(linetype = "dotted", lwd = 0.5) +
@@ -676,34 +596,267 @@ p2 <- cherry |>
   theme_light() +
   theme(legend.position = "bottom", legend.title = element_blank())
 
-print(p2)
+print(fig_combined)
 
-ggsave(filename = "images/peak-blossom.png", plot = p2)
+ggsave(filename = "images/fig_combined.png", plot = fig_combined, bg = "white")
 ```
 
 This graphic highlights the negative linear time trend for all locations.
 
 It also highlights that a linear time trend will likely underestimate the accelerating trend towards earlier peak bloom dates.
 
-A simple method such as ETS, which places a lower weight on observations far in the past, may be better at modelling the recent trend.
+A simple method such as **ETS**, which places a lower weight on observations far in the past, may be better at modelling the recent trend.
 
-In any case, we should compare all our models against benchmark models such as the naive model, where the prediction is equal to the last observation, and a simple AR(1) model.
+In any case, we should compare all our models against **benchmark models** such as the **naive model**, where the prediction is equal to the last observation, and a simple **AR(1)** model.
+
+## Additional data sets
+
+The competition organizers provide additional data sets for sites other than the main sites relevant for the competition. 
+
+We can use these time series in your modeling to help with spatial and temporal extrapolation. 
+
+For example, you can add predictors to these data sets and train models on additional sites.
+
+### Japan
+
+The data file `japan.csv` is provided by the [Japanese Meteorological Agency (JMA)](https://www.data.jma.go.jp/sakura/data/pdf/005.pdf) and contains recorded peak bloom dates for cherry trees at various sites across Japan.
+
+The sample trees are located within a 5km radius of the location indicated in the data file. 
+
+We can load the data set, make implicit missing values explicit and change the `location` variable to only include the city names in lowercase letters.
+
+```{r}
+#| label: read-japan
+
+japan <- read_csv("data/japan.csv") |>  
+  complete(year =  full_seq(year, 1), location) |> 
+  mutate(location = str_remove(location, "Japan/")) |> 
+  mutate(location = tolower(location)) |> 
+  fill(location, lat, long, alt, .direction = "downup") |> 
+  mutate(location = factor(location))
+```
+
+The `japan.csv` file contains observations between `r min(japan$year)` and `r max(japan$year)` for `r length(unique(japan$location))` locations in Japan.
+
+Let's plot peak bloom dates for Kyoto, Japan
+
+```{r}
+#| label: fig-bloom-kyoto2
+#| fig-cap: "Peak bloom dates in Kyoto, Japan"
+
+fig_kyoto2 <- japan |>
+  filter(location == "kyoto") |> 
+  ggplot(mapping = aes(x = year, y = bloom_doy)) +
+  geom_step(linetype = "dotted", colour = "#ffa5ab", lwd = 1) +
+  geom_point(color = "#f72585", alpha = 0.5, size = 2.5) +
+  geom_smooth(method = "loess", colour = "#644128", se = FALSE) +
+  scale_x_continuous(breaks = c(seq(1950, 2020, by = 10), NA)) +
+  labs(title = "Peak bloom (since Jan 1st) in Kyoto, Japan", x = NULL, y = NULL) +
+  theme_light()
+
+print(fig_kyoto2)
+
+ggsave(filename = "images/fig_kyoto2.png", plot = fig_kyoto2, bg = "white")
+```
+
+
+### Korea
+
+The file `south_korea.csv` contains **first flowering dates** of cherry trees at various sites across South Korea, curated by the **Korean Meteorological Administration (KMA)**.
+
+Because these are **first flowering dates**, they are likely to occur earlier than hypothetical full bloom dates would be.
+
+Trees in South Korea were assumed to be of the **Prunus Yedoensis** variety based on previous work (Hur, Ahn, and Shim 2014; Chung et al. 2009) and its frequent occurrence.
+
+Again, we make implicit missing values explicit, and I change the location names to lowercase so that to match the style of the main data set.
+
+```{r}
+#| label: load-korea
+
+korea <- read_csv("data/south_korea.csv") |> 
+  complete(year =  full_seq(year, 1), location) |> 
+  mutate(location = str_remove(location, "South Korea/")) |> 
+  mutate(location = tolower(location)) |> 
+  fill(location, lat, long, alt, .direction = "downup") |> 
+  mutate(location = factor(location))
+```
+
+The `south_korea.csv` file contains observations between `r min(korea$year)` and `r max(korea$year)` at `r length(unique(korea$location))` locations in South Korea.
+
+Let's plot the first bloom dates in Seoul, South Korea:
+
+```{r}
+#| label: fig-seoul
+#| fig-cap: "First bloom in Seoul, South Korea"
+
+fig_seoul <- korea |>
+  filter(location == "seoul") |> 
+  ggplot(mapping = aes(x = year, y = bloom_doy)) +
+  geom_step(linetype = "dotted", colour = "#ffa5ab", lwd = 1) +
+  geom_point(color = "#f72585", alpha = 0.5, size = 2.5) +
+  geom_smooth(method = "loess", colour = "#644128", se = FALSE) +
+  scale_x_continuous(breaks = c(seq(1980, 2020, by = 5), NA)) +
+  labs(title = "First bloom (since Jan 1st) in Seoul, Korea", x = NULL, y = NULL) +
+  theme_light()
+
+print(fig_seoul)
+
+ggsave(filename = "images/fig_seoul.png", plot = fig_seoul, bg = "white")
+```
+
+### MeteoSwiss
+
+The data file `meteoswiss.csv` contains peak bloom dates for various sites across Switzerland, obtained from <https://opendata.swiss/en/dataset/phanologische-beobachtungen>.
+
+Note that when you use the `{utils}` function `read.csv()` you need to specify the option `encoding = "UTF-8"` to allow for special characters that are common in the German language.
+
+```{r}
+#| label: load-meteoswiss
+
+meteoswiss <- read_csv("data/meteoswiss.csv") |> 
+  complete(year = full_seq(year, 1), location) |> 
+  mutate(location = str_remove(location, "Switzerland/")) |> 
+  mutate(location = tolower(location)) |> 
+  fill(location, lat, long, alt, .direction = "downup") |> 
+  mutate(location = factor(location))
+```
+
+The `meteoswiss.csv` file contains observations between `r min(meteoswiss$year)` and `r max(meteoswiss$year)` at `r length(unique(meteoswiss$location))` locations.
+
+Plot the data for Zurich, Switzerland
+
+```{r}
+#| label: fig-meteoswiss
+#| fig-cap: "Peak bloom (since Jan 1st) in Zurich, Switzerland"
+
+fig_meteoswiss <- meteoswiss |> 
+  filter(str_detect(location, "zürich-")) |>
+  mutate(location = str_remove(location, "zürich-")) |> 
+  ggplot(mapping = aes(x = year, y = bloom_doy)) +
+  geom_step(linetype = "dotted", colour = "#ffa5ab", lwd = 1) +
+  geom_point(color = "#f72585", alpha = 0.5, size = 2.5) +
+  # geom_smooth(method = "loess", colour = "#644128", se = TRUE) +
+  scale_x_continuous(breaks = c(seq(1950, 2020, by = 10), NA)) +
+  labs(
+    title = "Peak bloom (since Jan 1st) in Zurich, Switzerland",
+    x = NULL, y = NULL
+  ) +
+  theme_bw() +
+  facet_grid(cols = vars(str_to_title(location)))
+
+print(fig_meteoswiss)
+
+ggsave(filename = "images/fig_meteoswiss.png", plot = fig_meteoswiss, bg = "white")
+```
+
+### USA National Phenology Network
+
+Two additional files are provided by the **USA National Phenology Network (USA-NPN)** and the many participants who contribute to its *Nature’s Notebook* program.
+
+- `USA-NPN_individual_phenometrics_data.csv`: Individual Phenometrics. 2009--2021. Accessed at <http://doi.org/10.5066/F78S4N1V>.
+
+```{r}
+#| label: load-npn-individual-phenometrics
+
+npn_ind_obs <- read_csv("data/USA-NPN_status_intensity_observations_data.csv") |> 
+  mutate(Observation_Date = mdy(Observation_Date))
+
+npn_ind_des <- read_csv("data/USA-NPN_individual_phenometrics_datafield_descriptions.csv")
+```
+
+- `USA-NPN_status_intensity_data.csv`: Status and Intensity. 2009--2021. USA-NPN, Tucson, Arizona, USA. Accessed at <http://doi.org/10.5066/F78S4N1V>.
+
+```{r}
+#| label: load-npn-status-intensity
+
+npn_int_obs <- read_csv("data/USA-NPN_status_intensity_observations_data.csv")
+
+npn_int_des <- read_csv("data/USA-NPN_status_intensity_datafield_descriptions.csv")
+```
+
+These can help augment the existing data sets for which you don't have many observations such as New York City. They also contain some useful **predictors**.
+
+We ignore variables measured in degrees Fahrenheit (`Tmin_in_F`, `Tmax_in_F` and `AGDD_in_F`).
+
+All weather variables are from **Daymet** (<http://daymet.ornl.gov>).
+
+- `Observation_ID`: The unique identifier of each phenophase status record (subsequently referred to as "status record") in the database.
+
+- `Update_Datetime`: The date and time the status record was last updated after original submission online. A value of `"-9999"` indicates the record has not been updated since this field was established in July 2014.
+
+- `Site_ID`: The unique identifier of the site at which the status record was made. More information can be found in the ancillary data file for `"Site"`.
+
+- `Latitude`, `Longitude` and `Elevation_in_Meters`: The latitude, longitude and elevation of the site at which the status record was made. Generally lat/long is calculated from the **Google Maps API** with a datum of `WGS84` (<https://developers.google.com/maps>). A value of `"-9999"` indicates the elevation could not be calculated.
+
+- `State`: The U.S. state or territory, Mexican state or Canadian province in which the site is located. The state is calculated from lat/long by the **Google Maps Geocoding API** (<https://developers.google.com/maps/documentation/geocoding/intro>). A value of `"-9999"` indicates the site does not fall within the boundaries of North America.
+
+- `Species_ID`: The unique identifier of the species for which the status record was made.
+
+- `Genus`, `Species` and `Kingdom`: The taxonomic genus, species and kingdom of the organism for which the status record was made. Taxonomy follows that in the **Integrated Taxonomic Information System** (<http://itis.gov>). In those rare cases where a taxonomic subspecies or varietal is designated, the subspecies or varietal name is appended to the species name after a hyphen (e.g. *Cornus florida-appalachianspring*).
+
+- `Common_Name`: The common name of the species for which the status record was made. Common names for plants follow those in the **USDA PLANTS Database** (<http://plants.usda.gov>), and for animals, in the **NatureServe database** (<http://explorer.natureserve.org>).
+
+- `Individual_ID`: The unique identifier of the individual plant or the animal species at a site for which the status record was made. Note that for plants, individuals are tracked separately, while for animals, the species as a whole (rather than unique individuals) is tracked at a site. More information can be found in the ancillary data file for `"Individual Plant"`.
+
+- `Phenophase_ID`: The unique identifier of the phenophase for which the status record was made. Note that there can be several names and definitions for a given phenophase as they vary between datasets and can change over time within datasets. All definitions lumped under the same `Phenophase_ID` are considered equivalent for the purposes of general phenological analysis. More information can be found in the ancillary data files for `"Phenophase"` and `"Phenophase Definition"`.
+
+- `Phenophase_Description`: The descriptive title of the phenophase for which the status record was made. This is the overarching title of the phenophase defined by `Phenophase_ID`, and may include several different names and definitions (as defined in the `Phenophase_Name` and `Phenophase_Definition_ID` fields), as these vary between datasets and can change over time within datasets. More information can be found in the ancillary data file for `"Phenophase"`.
+
+- `Observation_Date`: The date the status observation was made in the field.
+
+- `Day_of_Year`: The day of year, ranging from `1` to `366`, that the status observation was made in the field.
+
+- `Phenophase_Status`: The status (i.e. presence or absence) of the phenophase at the time the observation was made in the field.
+
+- `Intensity_Category_ID`: The unique identifier of the intensity category assigned to the phenophase for this species at the time the status observation was made in the field. Intensity measures allow reporting of the degree to which a phenophase is expressed. More information can be found in the ancillary data file for `"Intensity"`. A value of `"-9999"` indicates there was no intensity category assigned to this phenophase for this species at the time the observation was made.
+
+- `Intensity_Value`: The value reported in response to the intensity category question assigned to the phenophase for this species at the time the status observation was made in the field. The list of allowable responses for this intensity category question can be found in the ancillary data file for `"Intensity"`.
+
+- `Abundance_Value`: Used only for animal observations, the value reported in response to the instruction, "enter the number of individual animals observed in this phenophase".
+
+- `AGDD`: **Accumulated growing degree days (in degrees Celsius)** on the `Observation_Date`. This is the **sum of growing degree days (GDD) since January 1st**, where GDD is calculated as the number of degrees C by which each day's average temperature exceeds 0 degrees C (i.e., (Tmax + Tmin)/2 - 0 degrees C). From Daymet (<http://daymet.ornl.gov>).
+
+- `Tmax_Winter`: Average maximum temperature (in degrees C) for the winter season of the year of the Observation_Date (*December of previous year to February of the year of the Observation_Date*).
+
+- `Tmax_Spring`: Average maximum temperature (in degrees C) for the spring season of the year of the Observation_Date (*March-May*). 
+
+- `Tmax_Summer`: Average maximum temperature (in degrees C) for the summer season of the year of the Observation_Date (*June-August*).
+
+- `Tmax_Fall`: Average maximum temperature (in degrees C) for the previous year's fall season (*September-November*), relative to the year of the Observation_Date. 
+
+- `Tmax`: Maximum temperature (in degrees C) on the Observation_Date.
+
+- `Tmin_Winter`: Average minimum temperature (in degrees C) for the winter season of the year of the Observation_Date (*December of previous year to February of the year of the Observation_Date*).
+
+- `Tmin_Spring`:  Average minimum temperature (in degrees C) for the spring season of the year of the Observation_Date (*March-May*).
+
+- `Tmin_Summer`: Average minimum temperature (in degrees C) for the summer season of the year of the Observation_Date (*June-August*).
+
+- `Tmin_Fall`: Average minimum temperature (in degrees C) for the previous year's fall season (*September-November*), relative to the year of the Observation_Date.
+
+- `Tmin`: Minimum temperature (in degrees C) on the Observation_Date.
+
+- `Prcp_Winter`: Accumulated precipitation (in mm) for the winter season of the year of the Observation_Date (*December of previous year to February of the year of the Observation_Date*).
+
+- `Prcp_Spring`: Accumulated precipitation (in mm) for the spring season of the year of the Observation_Date (*March-May*).
+
+- `Prcp_Summer`: Accumulated precipitation (in mm) for the summer season of the year of the Observation_Date (*June-August*).
+
+- `Prcp_Fall`: Accumulated precipitation (in mm) for the previous year's fall season (*September-November*), relative to the year of the Observation_Date.
+
+- `Prcp`: Precipitation (in mm) on the Observation_Date.
+
+- `Accum_Prcp`: Accumulated precipitation (in mm) *from January 1st* to the Observation_Date.
+
+- `Daylength`: Number of seconds of daylight on the Observation_Date.
 
 ## Map of the locations
 
 To explore the data, it can be helpful to create a simple map using the `{sf}` and `{mapview}` packages. 
 
-```{r}
-#| label: load-map-pkgs
-#| output: false
-
-library(sf)
-library(mapview)
-```
-
 We can use a third variable, such as the altitude or the number of observations to help our understanding of the dataset.
 
-Let's first plot the main locations
+First, we plot the five locations in the `cherry.csv` file
 
 ```{r}
 #| label: map-main-locations
@@ -719,7 +872,7 @@ cherry_map <- cherry_coord |>
 mapview(cherry_map, zcol = "alt")
 ```
 
-Next, we plot the map of Japan
+Next, we plot the map of all the locations in the `japan.csv` file
 
 ```{r}
 #| label: map-japan
@@ -736,24 +889,8 @@ map_ch <- coord_ch |>
 mapview(map_ch, zcol = "n")
 ```
 
-Let's plot peak bloom dates for Kyoto, Japan
 
-```{r}
-#| label: fig-bloom-kyoto
-#| fig-cap: "Peak bloom dates in Kyoto, Japan"
-
-japan |>
-  filter(location == "kyoto") |> 
-  ggplot(mapping = aes(x = year, y = bloom_doy)) +
-  geom_step(linetype = "dotted", colour = "#f72585", lwd = 0.75) +
-  geom_point(color = "#f72585", alpha = 0.5, size = 2.5) +
-  geom_smooth(method = "loess", colour = "#644128", se = FALSE) +
-  scale_x_continuous(breaks = c(seq(1950, 2020, by = 10), NA)) +
-  labs(title = "Peak bloom (since Jan 1st) in Kyoto, Japan", x = NULL, y = NULL) +
-  theme_light()
-```
-
-Next, we plot the map of Korea
+Second, we plot the locations in the `south_korea.csv` file
 
 ```{r}
 #| label: map-korea
@@ -770,27 +907,11 @@ map_korea <- coord_korea |>
 mapview(map_korea, zcol = "n")
 ```
 
-Let's plot the first bloom dates in Seoul, South Korea:
+
+Third, we plot the locations in the `meteoswiss.csv` file
 
 ```{r}
-#| label: fig-seoul
-#| fig-cap: "First bloom in Seoul, South Korea"
-
-korea |>
-  filter(location == "seoul") |> 
-  ggplot(mapping = aes(x = year, y = bloom_doy)) +
-  geom_step(linetype = "dotted", colour = "#f72585", lwd = 0.75) +
-  geom_point(color = "#f72585", alpha = 0.5, size = 2.5) +
-  geom_smooth(method = "loess", colour = "#644128", se = FALSE) +
-  # scale_x_continuous(breaks = c(seq(1980, 2020, by = 5), NA)) +
-  labs(title = "First bloom (since Jan 1st) in Seoul, Korea", x = NULL, y = NULL) +
-  theme_light()
-```
-
-Then we plot the map of Switzerland
-
-```{r}
-#| label: map-switzerland
+#| label: map-meteoswiss
 #| eval: true
 
 coord_ch <- meteoswiss |> 
@@ -804,53 +925,832 @@ map_ch <- coord_ch |>
 mapview(map_ch, zcol = "n")
 ```
 
+## External data sets
 
-Plot the data for Zurich, Switzerland
+We encourage you to find additional publicly-available data that will improve your predictions.
+
+### NOAA
+
+For example, one source of global meteorological data comes from the **Global Historical Climatology Network (GHCN)**, available through the **NOAA web API**.
+
+To use the web API, you first need a web service token.
+You can request this token (free of charge) via <https://www.ncdc.noaa.gov/cdo-web/token>.
+
+Once you have been issued the token, note it somewhere in your code (or make it available through an environment variable). Open your personal `.Renviron` file with the command `usethis::edit_r_environ()`. Note that you need to restart R after changing the `.Renviron` file. 
 
 ```{r}
-#| label: fig-zurich
-#| fig-cap: "Peak bloom (since Jan 1st) in Zurich, Switzerland"
+#| echo: false
 
-meteoswiss |> 
-  filter(str_detect(location, "zürich-")) |>
-  mutate(location = str_remove(location, "zürich-")) |> 
-  ggplot(mapping = aes(x = year, y = bloom_doy)) +
-  geom_step(linetype = "dotted", colour = "#f72585", lwd = 0.75) +
-  geom_point(color = "#f72585", alpha = 0.5, size = 2.5) +
-  geom_smooth(method = "loess", colour = "#644128", se = FALSE) +
-  scale_x_continuous(breaks = c(seq(1950, 2020, by = 20), NA)) +
-  labs(
-    title = "Peak bloom (since Jan 1st) in Zurich, Switzerland",
-    x = NULL, y = NULL
-  ) +
-  theme_minimal() +
-  facet_grid(cols = vars(str_to_title(location)))
+NOAA_WEB_API_TOKEN <- Sys.getenv("NOAA_WEB_API_TOKEN")
 ```
 
-Note that the `meteoswiss` dataset contains only 39 observations for Liestal:
+The stations closest to the sites for the competition **with continuously collected maximum temperatures** are `USC00186350` (Washington D.C.), `GME00127786` (Liestal), `JA000047759` (Kyoto), `CA001108395` (Vancouver) and 
 
 ```{r}
-cherry |> 
-  mutate(bloom_date = as.character(bloom_date)) |> 
-  filter(location == "liestal") |> 
-  mutate(location = "liestal_long") |> 
-  bind_rows(
-    meteoswiss |> 
-      filter(location == "liestal") |> 
-      mutate(location = "liestal_short") |> 
-      mutate(bloom_date = as.character(bloom_date))
-  ) |> 
-  ggplot(mapping = aes(x = year, y = bloom_doy, colour = location)) +
-  geom_step(linetype = "dotted") +
-  geom_point(alpha = 0.5, size = 3) +
-  # geom_smooth(method = "loess", formula = y ~ x, se = FALSE) +
-  scale_x_continuous(breaks = c(seq(1880, 2020, by = 20), NA)) +
+#| label: define-noaa-stations
+
+NOAA_API_BASE_URL <- "https://www.ncei.noaa.gov/cdo-web/api/v2/data"
+
+# Define the station IDs for the specified locations
+stations <- c(
+  "washingtondc" = "GHCND:USW00013743",
+  "vancouver"    = "GHCND:CA001108395",
+  "newyorkcity"  = "GHCND:USW00014732",
+  "liestal"      = "GHCND:SZ000001940",
+  "kyoto"        = "GHCND:JA000047759"
+)
+```
+
+Note that the due to API changes, the `{rnoaa}` R package is can only retrieve data until 2022.
+
+But the following functions allow you to use the new NOAA API directly.
+
+You can explore ways to retrieve NOAA data here: <https://github.com/ropensci/rnoaa/issues/419>.
+
+The `nested_to_tibble()` function will take a nested file obtained from the web and unlist it into a tibble object
+
+```{r}
+#| label: nested_to_tibble
+
+nested_to_tibble <- function(x) {
+  
+  # Determine the variable names in the response
+  variable_names <- map(x, names) |>
+    unlist(use.names = FALSE) |>
+    unique()
+
+  names(variable_names) <- variable_names
+
+  # Reshape the response from a nested list into a table
+  map(variable_names, \(i) {
+    map(x, \(y) {
+      if (is.null(y[[i]])) {
+        NA_character_
+      } else {
+        y[[i]]
+      }
+    }) |>
+      unlist(use.names = FALSE)
+  }) |>
+    as_tibble()
+}
+```
+
+The function `get_daily_avg_noaa()` will load data with specified data type IDs, such as `TMIN,TMAX,TAVG` from the dataset with the ID `GHCND`, the [Global Historical Climatology Network daily (GHCNd)](https://www.ncei.noaa.gov/products/land-based-station/global-historical-climatology-network-daily).
+
+The new API is documented here: <https://www.ncei.noaa.gov/cdo-web/webservices/v2#data>.
+
+The values that can be accessed are documented here: <https://www1.ncdc.noaa.gov/pub/data/ghcn/daily/readme.txt>.
+
+The five core elements are:
+- `PRCP`: Precipitation (tenths of mm)
+- `SNOW`: Snowfall (mm)
+- `SNWD`: Snow depth (mm)
+- `TMAX`: Maximum temperature (tenths of degrees C)
+- `TMIN`: Minimum temperature (tenths of degrees C)
+
+Other intersting elements are
+- `ASTP`: Average Station Level Pressure for the day (hPa * 10)
+- `AWND`: Average daily wind speed (tenths of meters per second)
+
+```{r}
+#| label: get_daily_avg_noaa
+
+get_daily_avg_noaa <- function(
+    station_id, start_date, end_date,
+    api_key, base_url, window_size = 300
+    ) {
+  
+  windows <- seq(
+    from = as_date(start_date),
+    to = as_date(end_date) + days(window_size + 1),
+    by = sprintf("%d days", window_size)
+  )
+
+  batches <- map2(windows[-length(windows)], windows[-1] - days(1), \(from, to) {
+    
+    if (from > Sys.Date()) {
+      return(NULL)
+    }
+    
+    response <- tryCatch(
+      request(base_url) |>
+        req_headers(token = api_key) |>
+        req_url_query(
+          datasetid = "GHCND",
+          stationid = station_id,
+          datatypeid = "PRCP,SNOW,SNWD,TMAX,TMIN,TAVG,ASTP,AWND",
+          startdate = from,
+          enddate = min(as_date(to), Sys.Date()),
+          units = "metric",
+          limit = 1000
+        ) |>
+        req_retry(max_tries = 10) |>
+        req_perform() |>
+        resp_body_json(),
+      httr2_http = \(cnd) {
+        rlang::warn(
+          sprintf(
+            "Failed to retrieve data for station %s in time window %s--%s",
+            station_id, from, to
+          ),
+          parent = cnd
+        )
+        NULL
+      }
+    )
+  })
+
+  map(batches, \(x) nested_to_tibble(x$results)) |>
+    list_rbind() |>
+    mutate(date = as_date(date))
+}
+```
+
+Next, we retrieve historic weather data from the NOAA API for the five locations with the functions `nested_to_tibble()` and `get_historic_noaa()`.
+
+Because this function takes a long time to run, we instead load the file stored from a previous run. We can also [cache](https://quarto.org/docs/computations/caching.html#knitr-cache) this operation.
+
+```{r}
+#| label: load-historic-noaa
+#| cache: true
+#| eval: false
+
+historic_noaa <- cherry |>
+  group_by(location) |>
+  summarize(start_date = sprintf("%d-01-01", pmax(1970, min(year)) - 1)) |>
+  left_join(
+    y = tibble(
+      location = names(stations),
+      station_id = stations
+    ),
+    by = "location"
+  ) |>
+  group_by(location) |>
+  group_modify(\(x, gr) {
+    get_daily_avg_noaa(
+      station_id = x$station_id,
+      start_date = x$start_date,
+      end_date = Sys.Date(),
+      api_key = NOAA_WEB_API_TOKEN,
+      base_url = NOAA_API_BASE_URL
+    )
+  })
+```
+
+Save the NOAA data
+
+```{r}
+#| label: save-datasets
+#| eval: false
+
+write.csv(historic_noaa, file = "data/historic_noaa.csv", row.names = FALSE)
+```
+
+Read in the historical NOAA data. Remove the variables `station` and `attributes`.
+
+```{r}
+#| label: load-noaa
+
+historic_noaa <- read_csv("data/historic_noaa.csv") |>
+  select(-c("station", "attributes")) |> 
+  mutate(date = as_date(date))
+```
+
+Let's plot the daily maximum temperatures. Be aware that there are again implicit missing values that you need to make explicit `NA`s first. Again, we use the `{tidyr}` function `complete()` in order to create a `date` observation for each combination of `location` and `datatype`. I have checked if this method ignores February 29 if there is an implicit missing value for that date by creating an explicit date vectors that includes leap years. Luckily, `complete()` seems to have a method implemented for objects of class `Date`. 
+
+```{r}
+#| label: complete-noaa
+
+historic_noaa <- historic_noaa |> 
+  complete(date =  full_seq(date, 1), location, datatype) |> 
+  fill(location, .direction = "downup")
+```
+
+Note that the NCDC Climate Data Online (CDO) API limits each registered token to **five requests per second** and 10,000 requests per day.
+
+As we will see, the NASA POWER API **does not have a set rate limit**. However, the NASA POWER Team monitors the usage and will limit usage to support equitable access.
+
+Thus, for the NOAA CDO data, it's best to only load the whole data set once and then add single days. For NASA POWER, you can load the same data set repeatedly.
+
+Let's plot `TMAX` with explicit `NA`s:
+
+```{r}
+#| label: fig-max-temp
+#| fig-cap: "Average maximum temperature (°C)"
+
+fig_tmax <- historic_noaa |>
+  filter(datatype == "TMAX") |>
+  ggplot(aes(x = date, y = value)) +
+  geom_line(colour = "#d62828") +
   labs(
-    title = "Blossom days for Liestal, Switzerland", 
-    x = NULL, y = NULL
+    title = "Average maximum temperature (°C)", 
+    x = NULL, y = "Degrees (°C)"
   ) +
-  theme_light() +
-  theme(legend.position = "bottom", legend.title = element_blank())
+  theme_minimal() +
+  facet_grid(rows = vars(location))
+
+print(fig_tmax)
+
+ggsave(filename = "images/fig_tmax.png", plot = fig_tmax, bg = "white")
+```
+
+Let's plot `TMIN` with explicit `NA`s:
+
+```{r}
+#| label: fig-min-temp
+#| fig-cap: "Average minimum temperature (°C)"
+
+fig_tmin <- historic_noaa |>
+  filter(datatype == "TMIN") |>
+  ggplot(aes(x = date, y = value)) +
+  geom_line(colour = "#00b4d8") +
+  labs(
+    title = "Average minimum temperature (°C)",
+    x = NULL, y = "Degrees (°C)"
+  ) +
+  theme_minimal() +
+  facet_grid(rows = vars(location))
+
+
+print(fig_tmin)
+
+ggsave(filename = "images/fig_tmin.png", plot = fig_tmin, bg = "white")
+```
+
+Plot the `PRCP` with explicit `NA`s:
+
+```{r}
+#| label: fig-avg-prcp
+#| fig-cap: "Average preciptation"
+
+fig_prcp <- historic_noaa |>
+  filter(datatype == "PRCP") |>
+  ggplot(aes(x = date, y = value)) +
+  geom_line(colour = "#4361ee") +
+  labs(
+    title = "Average preciptation (in mm)",
+    x = NULL, y = "Average preciptation (in mm)"
+  ) +
+  theme_minimal() +
+  facet_grid(rows = vars(location))
+
+print(fig_prcp)
+
+ggsave(filename = "images/fig_prcp.png", plot = fig_prcp, bg = "white")
+```
+
+Let's use the variable `PRCP` to calculate a new variable, `APRCP`, the accumulated precipitation (in mm) starting from January 1st of the year of the observation date. You need to decide what to do with `NA`s for `PRCP`. Either you set them equal to `0`, ignore them, or impute the values somehow.
+
+Here, I create a temporary variable `PRCP2` which is equal to `0` if `PRCP` is `NA`. I then use the `{base}` function `cumsum()` to aggregate `APRCP`. In the end, I remove the temporary `PRCP2` variable. In the end I set all values for which `APRCP` is zero to `NA`.
+
+```{r}
+historic_noaa <- historic_noaa |> 
+  pivot_wider(id_cols = c(location, date), names_from = datatype, values_from = value) |> 
+  mutate(year = year(date)) |> 
+  group_by(location, year) |> 
+  arrange(location, year, date) |> 
+  mutate(PRCP2 = if_else(is.na(PRCP), 0, PRCP)) |> 
+  mutate(APRCP = cumsum(PRCP2)) |> 
+  relocate(location, year, date, PRCP, PRCP2, APRCP) |> 
+  ungroup() |> 
+  select(-c(year, PRCP2)) |> 
+  mutate(APRCP = if_else(APRCP == 0, NA, APRCP)) |> 
+  pivot_longer(cols = -c(date, location), names_to = "datatype", values_to = "value")
+```
+
+Let's plot `APRCP`:
+
+```{r}
+fig_aprcp <- historic_noaa |>
+  filter(datatype == "APRCP") |>
+  ggplot(aes(x = date, y = value)) +
+  geom_line(colour = "#4361ee") +
+  labs(
+    title = "Average aggregated preciptation (in mm)",
+    x = NULL, y = "Average agregated preciptation (in mm)"
+  ) +
+  theme_minimal() +
+  facet_grid(rows = vars(location))
+
+print(fig_aprcp)
+
+ggsave(filename = "images/fig_aprcp.png", plot = fig_aprcp, bg = "white")
+```
+
+Let's plot `SNOW` with explicit `NA`s:
+
+```{r}
+historic_noaa |>
+  filter(datatype == "SNOW") |>
+  ggplot(aes(x = date, y = value)) +
+  geom_line(colour = "#03071e") +
+  labs(x = NULL, y = "Average snowfall") +
+  facet_grid(rows = vars(location))
+```
+Let's create the **Accumulated growing degree days (AGDD)** (in degrees Celsius) as the **sum of growing degree days (GDD) since January 1st**, where `GDD` is calculated as the number of degrees C by which each day's average temperature exceeds `0` degrees C (i.e., `GDD` = (`TMAX` + `TMIN`)/2 - `0` degrees C).
+
+If an observation is missing either `TMIN` or `TMAX`, we cannot calculate the **midrange temperature** `TAXN` = (`TMAX` + `TMIN`) / 2, so we use the **average temperature** `TAVG` instead.
+
+Note that we are using a **base temperature of zero degrees Celsius** instead of `4.3` or `4.4` degrees Celsius which is commonly assumed to be the base temperature for Yoshino cherry trees.
+
+Here too, there is the question of what to do if `TAXN` is `NA`, which is possible if for an observation `TMIN`, `TMAX`, and `TAVG` are missing.
+
+I create a temporary variable `GDD2`, which is set to zero if it is missing. Then I use `cumsum()` to sum over `GDD2` and get `AGDD`. In the end, I discard `GDD2` and all `AGDD` equal to zero.
+
+```{r}
+#| label: create-agdd
+
+historic_noaa <- historic_noaa |> 
+  pivot_wider(id_cols = c(date, location), names_from = datatype, values_from = value) |> 
+  mutate(TAXN = (TMAX + TMIN) / 2) |> 
+  mutate(TAXN = if_else(is.na(TAXN), TAVG, TAXN)) |>
+  mutate(GDD = pmax(TAXN - 0, 0)) |>
+  mutate(year = year(date)) |> 
+  group_by(location, year) |> 
+  arrange(location, year, date) |> 
+  mutate(GDD2 = if_else(is.na(GDD), 0, GDD)) |> 
+  mutate(AGDD = cumsum(GDD2)) |> 
+  ungroup() |>
+  select(-c(year, GDD2)) |> 
+  mutate(AGDD = if_else(AGDD == 0, NA, AGDD)) |> 
+  relocate(date, location, TMAX, TMIN, TAXN, TAVG, GDD, AGDD) |> 
+  pivot_longer(cols = -c(date, location), names_to = "datatype", values_to = "value")
+```
+
+Let's plot the Growing Degree Days, `GDD`s with explicit `NA`s:
+
+```{r}
+#| label: fig-gdd
+#| fig-cap: "Growing Degree Days (GDD) calculated from January 1st"
+
+fig_gdd <- historic_noaa |>
+  filter(datatype == "GDD") |>
+  ggplot(aes(x = date, y = value)) +
+  geom_line(colour = "#d62828") +
+  labs(
+    title = "Growing Degree Days (GDD)",
+    subtitle = "Calculated from January 1st",
+    x = NULL, y = "Growing Degree Days (GDD)"
+  ) +
+  theme_minimal() +
+  facet_grid(rows = vars(location))
+
+print(fig_gdd)
+
+ggsave(filename = "images/fig_gdd.png", plot = fig_gdd, bg = "white")
+```
+
+Let's plot Accumulated Growing Degree Days, `AGDD`s with explicit `NA`s:
+
+```{r}
+#| label: fig-agdd
+#| fig-cap: "Accumulated Growing Degree Days (AGDD) calculated from January 1s"
+
+fig_agdd <- historic_noaa |>
+  filter(datatype == "AGDD") |>
+  ggplot(aes(x = date, y = value)) +
+  geom_line(colour = "#d62828") +
+  labs(
+    title = "Accumulated Growing Degree Days (AGDD)", 
+    subtitle = "Calculated from January 1st",
+    x = NULL, y = "Accumulated Growing Degree Days (AGDD)"
+  ) +
+  theme_minimal() +
+  facet_grid(rows = vars(location))
+
+print(fig_agdd)
+
+ggsave(filename = "images/fig_agdd.png", plot = fig_agdd, bg = "white")
+```
+
+Let's also calculate **Chilling Degree Days (CDD)** and **Accumulated Chilling Degree Days (ACDD)**. 
+
+Common choices for the **start dates** are September 1st or October 1st, or even the first date when temperatures fall below a certain **threshold**, usually `7` degrees Celsius. 
+
+We calculate these variables **until December 31st of each year**. 
+
+I again need to introduce a temporary variable `CDD2` which is zero when values are missing. I save the new data types `CDD` and `ACDD` in a temporary file `historic_acdd` and add it to the `historic_noaa` file.
+
+```{r}
+#| label: create-acdd
+
+historic_acdd <- historic_noaa |> 
+  pivot_wider(id_cols = c(date, location), names_from = datatype, values_from = value) |> 
+  mutate(year = year(date)) |> 
+  filter(date >= paste0(year, "-10-01") & date <= paste0(year, "-12-31")) |> 
+  mutate(CDD = pmax(0, 7 - TMIN)) |> 
+  group_by(location, year) |> 
+  arrange(location, year, date) |> 
+  mutate(CDD2 = if_else(is.na(CDD), 0, CDD)) |> 
+  mutate(ACDD = cumsum(CDD2)) |> 
+  ungroup() |> 
+  select(-c(year, CDD2)) |>
+  mutate(ACDD = if_else(ACDD == 0, NA, ACDD)) |> 
+  relocate(location, date, TMIN, CDD, ACDD) |> 
+  pivot_longer(cols = -c(date, location), names_to = "datatype", values_to = "value") |> 
+  filter(datatype == "ACDD" | datatype == "CDD")
+
+historic_noaa <- bind_rows(historic_noaa, historic_acdd)
+```
+
+Note that we have to add explicit `NA`s for the implicitly missing `CDD` and `ACDD` values:
+
+```{r}
+#| label: complete-agdd
+
+historic_noaa <- historic_noaa |> 
+  complete(date =  full_seq(date, 1), location, datatype) |> 
+  fill(location, .direction = "downup")
+```
+
+
+Let's plot the Chilling Degree Days, `CDD`s with explicit `NA`s:
+
+```{r}
+#| label: fig-plt-cdd
+#| fig-cap: "Chilling Degree Days (CDD) calculated from October 1st"
+
+fig_cdd <- historic_noaa |>
+  filter(datatype == "CDD") |>
+  ggplot(aes(x = date, y = value)) +
+  geom_line(colour = "#00b4d8") +
+  labs(
+    title = "Chilling Degree Days (CDD)",
+    subtitle = "Calculated from October 1st",
+    x = NULL, y = "Chilling Degree Days",
+  ) +
+  theme_minimal() +
+  facet_grid(rows = vars(location))
+
+print(fig_cdd)
+
+ggsave(filename = "images/fig_cdd.png", plot = fig_cdd, bg = "white")
+```
+
+Let's plot Accumulated Chilling Degree Days, `ACDD`s with explicit `NA`s:
+
+```{r}
+#| label: fig-plt-acdd
+#| fig-cap: "Accumulated Chilling Degree Days (ACDD) calculated from October 1st"
+
+fig_acdd <- historic_noaa |>
+  filter(datatype == "ACDD") |>
+  ggplot(aes(x = date, y = value)) +
+  geom_line(colour = "#00b4d8") +
+  labs(
+    title = "Accumulated Chilling Degree Days (ACDD)",
+    subtitle = "Calculated from October 1st",
+    x = NULL, y = "Chilling Degree Days",
+  ) +
+  theme_minimal() +
+  facet_grid(rows = vars(location))
+
+print(fig_acdd)
+
+ggsave(filename = "images/fig_acdd.png", plot = fig_acdd, bg = "white")
+```
+
+- `Tmax_Winter`: Average maximum temperature (in degrees C) for the winter season of the year of the Observation_Date (*December of previous year to February of the year of the Observation_Date*).
+
+- `Tmin_Winter`: Average minimum temperature (in degrees C) for the winter season of the year of the Observation_Date (*December of previous year to February of the year of the Observation_Date*).
+
+A simple model may simply take the average maximum winter temperature (Dec. 1st of the previous year until end of February) into account:
+
+Let's create two additional variables: `TMAX_Winter` and `TMIN_Winter`, the average maximum and minimum temperature in degrees C for the winter season of the year of the observation date, from December 1st of the previous year to the end of February of the year of the observation date.
+
+```{r}
+historic_noaa
+
+historic_noaa |>
+  filter(datatype == "TMAX") |>
+  mutate(year = case_when(
+    month(date) < 3 ~ year(date),
+    month(date) == 12 ~ year(date) + 1,
+    TRUE ~ NA_integer_
+  )) |>
+  filter(!is.na(year), year >= 1970) |>
+  group_by(location, year) |>
+  summarize(
+    TMAX_Winter = mean(value, na.rm = TRUE),
+    .groups = "drop"
+  )
+```
+
+Here are the next predictors we should create
+
+- `Tmax_Spring`: Average maximum temperature (in degrees C) for the spring season of the year of the Observation_Date (*March-May*). 
+
+- `Tmax_Summer`: Average maximum temperature (in degrees C) for the summer season of the year of the Observation_Date (*June-August*).
+
+- `Tmax_Fall`: Average maximum temperature (in degrees C) for the previous year's fall season (*September-November*), relative to the year of the Observation_Date. 
+
+- `Tmin_Spring`:  Average minimum temperature (in degrees C) for the spring season of the year of the Observation_Date (*March-May*).
+
+- `Tmin_Summer`: Average minimum temperature (in degrees C) for the summer season of the year of the Observation_Date (*June-August*).
+
+- `Tmin_Fall`: Average minimum temperature (in degrees C) for the previous year's fall season (*September-November*), relative to the year of the Observation_Date.
+
+- `Prcp_Winter`: Accumulated precipitation (in mm) for the winter season of the year of the Observation_Date (*December of previous year to February of the year of the Observation_Date*).
+
+- `Prcp_Spring`: Accumulated precipitation (in mm) for the spring season of the year of the Observation_Date (*March-May*).
+
+- `Prcp_Summer`: Accumulated precipitation (in mm) for the summer season of the year of the Observation_Date (*June-August*).
+
+- `Prcp_Fall`: Accumulated precipitation (in mm) for the previous year's fall season (*September-November*), relative to the year of the Observation_Date.
+
+- `Daylength`: Number of seconds of daylight on the Observation_Date.
+
+
+### NASA POWER
+
+We use the `{nasapower}` package described here <https://docs.ropensci.org/nasapower/> to access the [NASA Prediction Of Worldwide Energy Resources (POWER) API](https://power.larc.nasa.gov/).
+
+We create a custom function called `get_historic_power()` to repeatedly query the API
+
+```{r}
+#| label: get_historic_power
+
+get_historic_power <- function(
+    var_climate,
+    start_date,
+    end_date,
+    frequency_climate,
+    long,
+    lat
+  ) {
+  df_climate <- map2(
+      .x = long,
+      .y = lat,
+      .f = function(long = .x, lat = .y) {
+        res <- nasapower::get_power(
+          community = "ag",
+          lonlat = c(long, lat),
+          pars = var_climate,
+          dates = c(start_date, end_date),
+          temporal_api = frequency_climate
+        )
+        return(res)
+      }
+    ) |>
+    list_rbind()
+  return(df_climate)
+}
+```
+
+
+Time series with a daily resolution are available since `1981-01-01`.
+
+We load the following variables:
+- `TS`: Average earth surface temperature
+- `TS_MAX`: Maximum temperature of the earth's surface
+- `TS_MIN`: Minimum land surface temperature
+- `EVLAND`: Evaporation from the earth's surface
+- `FROST_DAYS`: Frost days
+- `PRECTOTCORR`: Corrected precipitation
+- `GWETPROF`: Soil moisture profile
+- `RH2M`: Relative humidity at two meters
+- `GWETROOT`: Soil moisture in the root zone
+- `TO3`: The total amount of ozone in a column extending vertically from the Earth's surface to the top of the atmosphere
+
+We define the variables we need in the vector `var_climate`
+
+```{r}
+#| label: define-var_climate
+
+var_climate <- c(
+  "TS",
+  "TS_MAX",
+  "TS_MIN",
+  "EVLAND",
+  "FROST_DAYS",
+  "PRECTOTCORR",
+  "GWETPROF",
+  "RH2M",
+  "GWETROOT",
+  "TO3"
+)
+```
+
+We also need to specify a `start_date`, an `end_date` and a `frequency`
+
+```{r}
+#| label: define-start-end-freq
+
+start_date <- "1981-01-01"
+end_date <- as.character(Sys.Date())
+frequency_climate <- "daily"
+```
+
+We retrieve the **coordinates** which we will use to match to the nearest weather stations
+
+```{r}
+#| label: get-coordinates
+
+coord_kyoto <- read_csv("data/kyoto.csv") |> 
+  distinct(lat, long)
+
+coord_liestal <- read_csv("data/liestal.csv") |> 
+  distinct(lat, long)
+
+coord_nyc <- read_csv("data/nyc.csv") |> 
+  distinct(lat, long)
+
+coord_vancouver <- read_csv("data/vancouver.csv") |> 
+  distinct(lat, long)
+
+coord_washingtondc <- read_csv("data/washingtondc.csv") |> 
+  distinct(lat, long)
+
+coord_meteoswiss <- read_csv("data/meteoswiss.csv") |>
+  distinct(lat, long)
+
+coord_korea <- read_csv("data/south_korea.csv") |>
+  distinct(lat, long)
+
+coord_japan <- read_csv("data/japan.csv") |>
+  distinct(lat, long)
+
+coord_npn1 <- read_csv("data/USA-NPN_individual_phenometrics_data.csv") |> 
+  select(lat = Latitude, long = Longitude) |> 
+  distinct_all()
+
+coord_npn2 <- read_csv("data/USA-NPN_status_intensity_observations_data.csv") |> 
+  select(lat = Latitude, long = Longitude) |> 
+  distinct_all()
+
+coord_npn <- bind_rows(coord_npn1, coord_npn2) |> 
+  distinct_all()
+```
+
+Load NASA POWER data for Kyoto, Japan
+
+```{r}
+#| label: load-nasa-kyoto
+
+df_climate_kyoto <- get_historic_power(
+  var_climate = var_climate,
+  start_date = start_date,
+  end_date = end_date,
+  frequency_climate = frequency_climate,
+  long = coord_kyoto$long,
+  lat = coord_kyoto$lat
+  )
+```
+
+Load NASA POWER data for Liestal, Switzerland
+
+```{r}
+#| label: load-nasa-liestal
+
+df_climate_liestal <- get_historic_power(
+  var_climate = var_climate,
+  start_date = start_date,
+  end_date = end_date,
+  frequency_climate = frequency_climate,
+  long = coord_kyoto$long,
+  lat = coord_kyoto$lat
+  )
+```
+
+Load NASA POWER data for New York City, USA:
+
+```{r}
+#| label: load-nasa-nyc
+
+df_climate_nyc <- get_historic_power(
+  var_climate = var_climate,
+  start_date = start_date,
+  end_date = end_date,
+  frequency_climate = frequency_climate,
+  long = coord_nyc$long,
+  lat = coord_nyc$lat
+  )
+```
+
+Load NASA POWER data for Vancouver, Canada
+
+```{r}
+#| label: load-nasa-vancouver
+
+df_climate_vancouver <- get_historic_power(
+  var_climate = var_climate,
+  start_date = start_date,
+  end_date = end_date,
+  frequency_climate = frequency_climate,
+  long = coord_vancouver$long,
+  lat = coord_vancouver$lat
+  )
+```
+
+Load NASA POWER data for Washington DC, USA:
+
+```{r}
+#| label: load-nasa-washingtondc
+
+df_climate_washingtondc <- get_historic_power(
+  var_climate = var_climate,
+  start_date = start_date,
+  end_date = end_date,
+  frequency_climate = frequency_climate,
+  long = coord_washingtondc$long,
+  lat = coord_washingtondc$lat
+  )
+```
+
+Combine the data for the five main locations and save it to a single file called `df_climate_cherry.csv`
+
+```{r}
+#| label: combine-nasa-datasets
+
+df_climate_cherry <- bind_rows(
+  df_climate_kyoto,
+  df_climate_liestal,
+  df_climate_nyc,
+  df_climate_vancouver,
+  df_climate_washingtondc
+)
+
+write_csv(df_climate_cherry, file = "data/df_climate_cherry.csv")
+```
+
+
+We also load predictors for the `japan.csv` file. Note that this takes a long time to run, so we load the data from a previous run instead.
+
+```{r}
+#| label: load-nasa-japan
+#| eval: false
+
+df_climate_japan <- get_historic_power(
+  var_climate = var_climate,
+  start_date = start_date,
+  end_date = end_date,
+  frequency_climate = frequency_climate,
+  long = coord_japan$long,
+  lat = coord_japan$lat
+  )
+
+write_csv(df_climate_japan, file = "data/df_climate_japan.csv")
+```
+
+We also load predictors for the `south_korea.csv` file. Again, we use data from a previous run because this operation does take som etime.
+
+```{r}
+#| label: load-nasa-korea
+#| eval: false
+
+df_climate_korea <- get_historic_power(
+  var_climate = var_climate,
+  start_date = start_date,
+  end_date = end_date,
+  frequency_climate = frequency_climate,
+  long = coord_korea$long,
+  lat = coord_korea$lat
+  )
+
+write_csv(df_climate_korea, file = "data/df_climate_korea.csv")
+```
+
+We also load predictors for the `meteoswiss.csv` file that we have previously downloaded.
+
+```{r}
+#| label: load-nasa-meteoswiss
+#| eval: false
+
+df_climate_meteoswiss <- get_historic_power(
+  var_climate = var_climate,
+  start_date = start_date,
+  end_date = end_date,
+  frequency_climate = frequency_climate,
+  long = coord_meteoswiss$long,
+  lat = coord_meteoswiss$lat
+  )
+
+write_csv(df_climate_meteoswiss, file = "data/df_climate_meteoswiss.csv")
+```
+
+Finally, we load predictors for the USA-NPN CSV files from a previous run
+
+```{r}
+#| label: load-nasa-npn
+#| eval: false
+
+df_climate_npn <- get_historic_power(
+  var_climate = var_climate,
+  start_date = start_date,
+  end_date = end_date,
+  frequency_climate = frequency_climate,
+  long = coord_npn$long,
+  lat = coord_npn$lat
+  )
+
+write_csv(df_climate_npn, file = "data/df_climate_npn.csv")
+```
+
+Let's have a look at the NASA POWER dataset:
+
+```{r}
+# df_climate_cherry 
 ```
 
 ## Predicting the peak bloom
@@ -920,7 +1820,7 @@ predictions <- cherry_no_nyc_grid |>
 Plot the predictions for the actual observations since 2015, i.e., until 2024:
 
 ```{r}
-#| label: fig-02
+#| label: fig-predictions1
 #| fig-width: 8
 #| fig-height: 3
 #| out-width: 100%
@@ -984,65 +1884,6 @@ predictions |>
 Note that we would have predicted much earlier peak bloom times had we estimated the linear time trend on a much more recent sample of observations.
 
 ## Extrapolating to Vancouver, BC and New York City
-
-For the cherry trees in Vancouver, BC and New York City few historical observations are available.
-
-This shows in the simple analysis above in the very wide prediction interval.
-The trees in Vancouver, BC are located approximately at `49.2236916°N` (latitude), `-123.1636251°E` (longitude), `24` meters above sea levels (altitude).
-
-We can confirm this visually on our map of the locations.
-
-Casual observations for Vancouver, BC have been recorded in the way of photos posted to the [VCBF Neighbourhood Blog for Kerrisdale](https://forums.botanicalgarden.ubc.ca/threads/kerrisdale.36008/).
-
-You can search the forum for the keywords `"Akebono"` (i.e., the name of the cultivar) and `"Maple Grove Park"` (i.e., the location of the trees).
-
-From the map at <https://finder.vcbf.ca/> we get the following information:
-- Blooming: `03/18-04/01`
-- Cultivar: Akebono
-- Location: Maple Grove Park
-- Description: Kerrisdale - Akebonos at SE corner Maple Grove Park at Yew and SW Marine Dr
-
-So these trees are currently predicted to bloom between `2025-03-18` and `2025-04-01`.
-
-Searching the forum, we can confirm the official peak bloom dates for the past three years, which occurred on `2022-03-27`, `2023-04-07` and `2024-03-23`, respectively.
-
-We can confirm that sprint 2017 was very cold in Vancouver from historical data sets.
-
-Let's add the following dates to the data set:
-
-```{r}
-vancouver_forum <- tribble(
-  ~ year, ~ bloom_date,
-  2021, "2021-03-31", # Start: 2021-03-21, Full: 2021-03-31, Full: 2021-04-07
-  2020, "2020-04-03", # Full bloom
-  2018, "2018-03-18", # Full bloom
-  2017, "2017-04-11", # Full bloom 
-  2015, "2015-03-19", # Full bloom
-  2011, "2011-04-01", # Full bloom was over on 2011-04-15
-  2010, "2010-03-14", # 60% bloom on 2010-03-07
-  2008, "2008-04-14" # Start: 2008-04-06, Full: 2008-04-14, finished: 2008-04-22
-) |> 
-  mutate(
-    bloom_doy = as.numeric(1 + as_date(bloom_date) - as_date(paste0(year, "-01-01"))),
-    location = "vancouver"
-  )
-
-# Add these observations to the cherry dataset
-cherry_no_nyc <- cherry_no_nyc |> 
-  bind_rows(vancouver_forum) |> 
-  fill(lat, long, alt) |> 
-  arrange(year)
-```
-
-Now we have eleven observations for Vancouver, BC.
-
-```{r}
-cherry_no_nyc |> 
-  filter(location == "vancouver") |> 
-  kable() |> 
-  kable_styling()
-```
-
 
 We need to *extrapolate* from what we have learned about the peak bloom dates in the other locations to Vancouver and NYC.
 
@@ -1114,7 +1955,7 @@ Due to **rounding** and the **slope** being not very flat, the predictions are a
 We can check the predictions against the data from previous competition years.
 
 ```{r}
-#| label: fig-03
+#| label: fig-predictions3
 #| fig-width: 8
 #| fig-height: 3
 #| out-width: 100%
@@ -1147,115 +1988,6 @@ predictions <- predictions |>
 
 ## Extrapolating to New York City, NY using USA-NPN data
 
-Similar to Vancouver, BC, only few historical observations are available for our location in New York City, NY.
-
-There are some historical observations dating *back to 2019* in the data provided by **USA-NPN**.
-
-The Washington Square Park has site id `32789` and the **Yoshino** cherry you should predict has species id `228`.
-
-Don't be confused: Washington Square Park is a park in New York City.
-
-Note: `lubridate::as_date(Observation_Date, format = "%m/%d/%y")` returns `NA`s. Use `as.Date(Observation_Date, format = "%m/%d/%y")` or `lubridate::mdy(Observation_Date)` instead.
-
-We have been provided with USA-NPN data on individual cherry trees by the competition organizers, and we can load it:
-
-```{r}
-#| label: load-historical-data-nyc
-
-nyc_data_npn <- read_csv("data/USA-NPN_status_intensity_observations_data.csv") |> 
-  filter(Site_ID == 32789, Species_ID == 228) |> 
-  mutate(Observation_Date = mdy(Observation_Date))
-```
-
-This data, however, needs to be transformed as it only contains individual observations of the phenophase and not the actual peak bloom date.
-
-For simplicity, we take the first day someone observed the flowers to be open as the peak bloom day.
-
-This could be done in a more sophisticated way by also looking at the **reported intensity value**, recorded in the `Intensity_Value` column variable.
-
-Note that this data set includes observations for the Accumulated Growing Degree Days (AGDD), the minimum and maximum temperatures in fall, winter, spring, and summer, and data on the precipitation.
-
-We simply create an indicator variable that is `TRUE` if the variable `Phenophase_Status` is equal to `1`, and take the first `Day_of_Year` as our `bloom_doy`.
-
-Then we add this additional data for New York City to our data frame.
-
-```{r}
-#| warning: true
-
-nyc_data <- nyc_data_npn |>
-  arrange(Observation_Date) |>
-  mutate(year = year(Observation_Date)) |>
-  group_by(year) |>
-  summarize(
-    first_flower_index = min(which(Phenophase_Status == 1)),
-    bloom_date = strftime(Observation_Date[first_flower_index], format = "%Y-%m-%d"),
-    bloom_doy = Day_of_Year[first_flower_index],
-    .groups = "drop"
-  ) |>
-  filter(!is.na(bloom_doy)) |>
-  select(-first_flower_index) |>
-  mutate(location = "newyorkcity") |> 
-  arrange(year)
-
-cherry_with_nyc <- cherry_no_nyc |>
-  bind_rows(nyc_data |> filter(year != 2024)) |> # Can't add same year twice!
-  fill(lat, long, alt)
-```
-
-For 2020, due to COVID-19 restrictions, no bloom was reported, hence the warning. We might interpolate a value for this missing observation or simply exclude it from our analysis.
-
-Note that in the original `cherry` data frame, `bloom_doy` was given at a later date, which is a clear indicator that we should use `Intensity_Value` to create our peak bloom date!
-
-```{r}
-cherry_with_nyc |> 
-  filter(location == "newyorkcity")
-```
-
-`bloom_doy` is `88` in the original data for 2024.
-
-The peak bloom date is defined as the day when **70%** of the Yoshino Cherry (Prunus x yedoensis) are in full bloom, as determined by the [National Park Service](https://www.nps.gov/subjects/cherryblossom/bloom-watch.htm).
-
-We have already selected the species and the location with the correct ID.
-
-The variable `Phenophase_Status` is either zero or one.
-
-The variable `Intensity_Value` is either `-9999`, `95% or more`, `Less than 5%`, `25-49%`, `75-94%`, `50-74%`.
-
-Since according to the variable `Individual_ID`, only one tree, `183140` is being observed, we can use the first date where `Intensity_Value` is `50-74%` as our `bloom_doy`.
-
-```{r}
-#| warning: true
-
-nyc_data <- nyc_data_npn |>
-  arrange(Observation_Date) |>
-  mutate(year = year(Observation_Date)) |>
-  group_by(year) |>
-  summarize(
-    first_flower_index = min(which((Intensity_Value %in% c("75-94%", "95% or more")))),
-    bloom_date = strftime(Observation_Date[first_flower_index], format = "%Y-%m-%d"),
-    bloom_doy = Day_of_Year[first_flower_index],
-    .groups = "drop"
-  ) |>
-  filter(!is.na(bloom_doy)) |>
-  select(-first_flower_index) |>
-  mutate(location = "newyorkcity") |> 
-  arrange(year)
-
-cherry_with_nyc <- cherry_no_nyc |>
-  bind_rows(nyc_data) |>  # Can't add a year twice!
-  fill(lat, long, alt)
-```
-
-For 2022 the intensity value is `-9999`, for all observations. We could use a different species of trees, or the same species of trees at a different location as a proxy, or we could skip the observation for 2022, along with that of 2020.
-
-The value for 2024 is off by one day, and we should probably use the original value of 88 instead of 87.
-
-```{r}
-cherry_with_nyc |> 
-  filter(location == "newyorkcity")
-```
-
-
 Using the same steps as for Vancouver, BC, a simple linear model can be fitted for New York City.
 
 We again combine predictions from the whole data set, weighting observations for New York City higher than that for other locations.
@@ -1269,7 +2001,7 @@ We again combine predictions from the whole data set, weighting observations for
 
 ls_fit_for_nyc <- lm(
   formula = bloom_doy ~ year,
-  data = cherry_with_nyc, subset = year >= 1880,
+  data = cherry, subset = year >= 1880,
   weights = (location == "newyorkcity") + 0.2 * (location != "newyorkcity")
 )
 
@@ -1300,7 +2032,7 @@ Again, due to rounding, and because the slope is not very steep, the predictions
 We can check the predictions against the data from previous competition years.
 
 ```{r}
-#| label: fig-04
+#| label: fig-predictions4
 #| fig-width: 8
 #| fig-height: 3
 #| out-width: 100%
@@ -1309,7 +2041,7 @@ We can check the predictions against the data from previous competition years.
 #|   Washington Square Park in NYC using data from all five sites.
 # Plot the predictions alongside the actual observations for 2015 up to 2024.
 
-cherry_with_nyc |>
+cherry |>
   right_join(predictions_nyc, by = c("year", "location")) |>
   ggplot(aes(x = year, y = prediction, ymin = lower, ymax = upper)) +
   geom_line(linewidth = 1) +
@@ -1330,12 +2062,6 @@ predictions <- predictions |>
   bind_rows(predictions_nyc)
 ```
 
-**NOTE**: If you are satisfied with the augmented data set, save it:
-
-```{r}
-cherry <- cherry_with_nyc
-```
-
 
 ## Submission
 
@@ -1354,633 +2080,11 @@ predictions |>
 
 **NOTE**: The question is if we need to round the point estimates or if we can submit partial days.
 
-## Appendix: Adding Covariates {#appendix-rnoaa}
-
-We encourage you to find additional publicly-available data that will improve your predictions.
-
-For example, one source of global meteorological data comes from the **Global Historical Climatology Network (GHCN)**, available through the **NOAA web API**.
-
-To use the web API, you first need a web service token.
-You can request this token (free of charge) via <https://www.ncdc.noaa.gov/cdo-web/token>.
-
-Once you have been issued the token, note it somewhere in your code (or make it available through an environment variable). Open your personal `.Renviron` file with the command `usethis::edit_r_environ()`. Note that you need to restart R after changing the `.Renviron` file. 
-
-```{r}
-#| echo: false
-
-NOAA_WEB_API_TOKEN <- Sys.getenv("NOAA_WEB_API_TOKEN")
-```
-
-To connect to and use the web API you may use the following R packages:
-
-```{r}
-#| label: load-api-pkgs
-#| output: false
-
-library(httr2)
-library(jsonlite)
-```
-
-The stations closest to the sites for the competition with continuously collected maximum temperatures are `USC00186350` (Washington D.C.), `GME00127786` (Liestal), `JA000047759` (Kyoto), `CA001108395` (Vancouver) and 
-
-```{r}
-NOAA_API_BASE_URL <- "https://www.ncei.noaa.gov/cdo-web/api/v2/data"
-
-# Define the station IDs for the specified locations
-stations <- c(
-  "washingtondc" = "GHCND:USW00013743",
-  "vancouver"    = "GHCND:CA001108395",
-  "newyorkcity"  = "GHCND:USW00014732",
-  "liestal"      = "GHCND:SZ000001940",
-  "kyoto"        = "GHCND:JA000047759"
-)
-```
-
-As a simple demonstration, we retrieve the average seasonal maximum daily temperature (in `1/10 °C`) from these stations using our own `get_temperature()` function, which wraps the `ghcnd_search()` function in the `{rnoaa}` package. (N.b. `ghcnd_search()` returns a list. Each element of the list corresponds to an element of the `var` argument.)
-
-Note: The `{rnoaa}` package is not on CRAN anymore. The following functions allow you to use the NOAA API without the package. Learn all about possible solutions here <https://github.com/ropensci/rnoaa/issues/419>.
-
-The `nested_to_tibble()` function will take a nested file obtained from the web and unlist it into a tibble object
-
-```{r}
-nested_to_tibble <- function(x) {
-  
-  # Determine the variable names in the response
-  variable_names <- map(x, names) |>
-    unlist(use.names = FALSE) |>
-    unique()
-
-  names(variable_names) <- variable_names
-
-  # Reshape the response from a nested list into a table
-  map(variable_names, \(i) {
-    map(x, \(y) {
-      if (is.null(y[[i]])) {
-        NA_character_
-      } else {
-        y[[i]]
-      }
-    }) |>
-      unlist(use.names = FALSE)
-  }) |>
-    as_tibble()
-}
-```
-
-The function `get_daily_avg_noaa()` will load from the dataset ID `GHCND` the main data type IDs `PRCP,SNOW,SNWD,TMAX,TMIN,ASTP,AWND`.
-
-GHCNd stands for the [Global Historical Climatology Network daily (GHCNd)](https://www.ncei.noaa.gov/products/land-based-station/global-historical-climatology-network-daily).
-
-CDO stands for **Climate Data Online (CDO)** which provides free access to NCDC's archive of global historical weather and climate data in addition to station history information. These data include quality controlled daily, monthly, seasonal, and yearly measurements of temperature, precipitation, wind, and degree days as well as radar data and 30-year Climate Normals.
-
-The new API is documented here <https://www.ncei.noaa.gov/cdo-web/webservices/v2#data>.
-
-The values that can be accessed are documented here <https://www1.ncdc.noaa.gov/pub/data/ghcn/daily/readme.txt>.
-
-The five core elements are:
-
-- `PRCP` = Precipitation (tenths of mm)
-- `SNOW` = Snowfall (mm)
-- `SNWD` = Snow depth (mm)
-- `TMAX` = Maximum temperature (tenths of degrees C)
-- `TMIN` = Minimum temperature (tenths of degrees C)
-
-The other elements are:
-
-- `ASTP` = Average Station Level Pressure for the day (hPa * 10)
-- `AWND` = Average daily wind speed (tenths of meters per second)
-
-This is what is used in the GDD formula:
-- `TAXN` = Average daily temperature computed as (TMAX+TMIN)/2.0 (tenths of degrees C) 
-
-
-```{r}
-get_daily_avg_noaa <- function(
-    station_id, start_date, end_date,
-    api_key, base_url, window_size = 300
-    ) {
-  
-  windows <- seq(
-    from = as_date(start_date),
-    to = as_date(end_date) + days(window_size + 1),
-    by = sprintf("%d days", window_size)
-  )
-
-  batches <- map2(windows[-length(windows)], windows[-1] - days(1), \(from, to) {
-    
-    if (from > Sys.Date()) {
-      return(NULL)
-    }
-    
-    response <- tryCatch(
-      request(base_url) |>
-        req_headers(token = api_key) |>
-        req_url_query(
-          datasetid = "GHCND",
-          stationid = station_id,
-          datatypeid = "PRCP,SNOW,SNWD,TMAX,TMIN,TAVG,ASTP,AWND",
-          startdate = from,
-          enddate = min(as_date(to), Sys.Date()),
-          units = "metric",
-          limit = 1000
-        ) |>
-        req_retry(max_tries = 10) |>
-        req_perform() |>
-        resp_body_json(),
-      httr2_http = \(cnd) {
-        rlang::warn(
-          sprintf(
-            "Failed to retrieve data for station %s in time window %s--%s",
-            station_id, from, to
-          ),
-          parent = cnd
-        )
-        NULL
-      }
-    )
-  })
-
-  map(batches, \(x) nested_to_tibble(x$results)) |>
-    list_rbind() |>
-    mutate(date = as_date(date))
-}
-```
-
-Get historic temperatures for the five locations and add them to the `cherry` tibble. Cache this operation so that you don't have to redo it every time you run the script.
-
-This function does take a long time to run.
-
-```{r}
-#| cache: true
-#| eval: false
-
-historic_noaa <- cherry |>
-  group_by(location) |>
-  summarize(start_date = sprintf("%d-01-01", pmax(1970, min(year)) - 1)) |>
-  left_join(
-    y = tibble(
-      location = names(stations),
-      station_id = stations
-    ),
-    by = "location"
-  ) |>
-  group_by(location) |>
-  group_modify(\(x, gr) {
-    get_daily_avg_noaa(
-      station_id = x$station_id,
-      start_date = x$start_date,
-      end_date = Sys.Date(),
-      api_key = NOAA_WEB_API_TOKEN,
-      base_url = NOAA_API_BASE_URL
-    )
-  })
-```
-
-
-NCDC's Climate Data Online (CDO) offers web services that provide access to current data. This API is for developers looking to create their own scripts or programs that use the CDO database of weather and climate data. An access token is required to use the API, and each token will be **limited to five requests per second** and 10,000 requests per day.
-
-The Subject Matter Expert from the NASA POWER Team responded and said **there is no set rate limit**. However, the NASA POWER Team monitors the usage and will limit usage to support equitable access.
-
-Thus, for the NOAA CDO data, it's best to only load the whole data set once and then add single days.
-
-For NASA POWER, you can load the same data set repeatedly.
-
-Let's explore the NOAA temperature data set:
-
-```{r}
-#| label: save-datasets
-#| eval: false
-
-write.csv(historic_noaa, file = "data/historic_noaa.csv", row.names = FALSE)
-```
-
-Read in the historical NOAA data:
-
-```{r}
-historic_noaa <- read_csv("data/historic_noaa.csv") |> 
-    mutate(date = as_date(date))
-
-head(historic_noaa)
-```
-
-Let's plot the daily maximum temperatures. Be aware that there are again implicit missing values that you need to make explicit `NA`s first!
-
-Here I opt for the pivot-wider approach:
-
-```{r}
-historic_noaa_wide <- historic_noaa |> 
-  select(-c("attributes", "station")) |> 
-  pivot_wider(names_from = datatype, values_from = value) |> 
-  mutate(TAXN = (TMAX + TMIN) / 2)
-
-historic_noaa_wide |> 
-  select(location, date, TMAX, TMIN, TAVG, TAXN) |> 
-  mutate(TAVG = if_else(is.na(TAVG), TAXN, TAVG)) |> 
-  mutate(TAXN = if_else(is.na(TAXN), TAVG, TAXN)) |> 
-  filter(is.na(TMAX), location == "kyoto") |> arrange(desc(date))
-```
-
-
-```{r}
-#| label: fig-max-temp
-#| fig-cap: "Average maximum temperature (°C)"
-
-historic_noaa |>
-  filter(datatype == "TMAX") |>
-  ggplot(aes(x = date, y = value)) +
-  geom_line() +
-  labs(x = NULL, y = "Average maximum temperature (°C)") +
-  facet_grid(rows = vars(location))
-```
-
-Let's plot the daily minimum temperatures
-
-```{r}
-#| label: fig-min-temp
-#| fig-cap: "Average minimum temperature (°C)"
-
-historic_noaa |>
-  filter(datatype == "TMIN") |>
-  ggplot(aes(x = date, y = value)) +
-  geom_line() +
-  labs(x = NULL, y = "Average minimum temperature (°C)") +
-  facet_grid(rows = vars(location))
-```
-
-Plot the daily precipitation
-
-```{r}
-#| label: fig-avg-prcp
-#| fig-cap: "Average preciptation"
-
-historic_noaa |>
-  filter(datatype == "PRCP") |>
-  ggplot(aes(x = date, y = value)) +
-  geom_line() +
-  labs(x = NULL, y = "Average preciptation") +
-  facet_grid(rows = vars(location))
-```
-
-
-Let's plot snow:
-
-```{r}
-historic_noaa |>
-  filter(datatype == "SNOW") |>
-  ggplot(aes(x = date, y = value)) +
-  geom_line() +
-  labs(x = NULL, y = "Average snowfall") +
-  facet_grid(rows = vars(location))
-```
-We have downloaded the following variables at a daily frequency:
-
-- `PRCP` = Precipitation (tenths of mm)
-- `SNOW` = Snowfall (mm)
-- `SNWD` = Snow depth (mm)
-- `TMAX` = Maximum temperature (tenths of degrees C)
-- `TMIN` = Minimum temperature (tenths of degrees C)
-
-The other elements are:
-
-- `ASTP` = Average Station Level Pressure for the day (hPa * 10)
-- `AWND` = Average daily wind speed (tenths of meters per second)
-
-Let's see if we can create Growing Degree Days (GDD).
-
-We should first create `TAXN` = (`TMAX` + `TMIN`) / 2
-
-**If the average temperature for a day is lower than the base temperature, then no Growing Degree Days are counted**.
-
-Growing Degrees are accumulated daily, following a specified start date, by adding each day's total to all previous days' totals.
-
-Chilling Degree Days (CDD) are used to quantify the accumulation of cold temperatures needed by certain plants (like fruit trees) to break dormancy after winter. The goal is to track hours or days with temperatures below a specific threshold, usually referred to as the chilling requirement for the plant.
-
-For cherries, the chilling requirement is often associated with temperatures between `0°C` and `7°C` (`32°F` and `44.6°F`), although the exact range can vary based on the variety and environmental conditions.
-
-For chilling degree days, we assume that the onset of dormancy is **October 1st** each year
-
-The **2011 study** claims that **Yoshino** cherry trees with a base temperature of `4.3` degrees Celsius need about `78.9` chilling days since October 1st and `221.2` anti-chilling days, also called Growing Degree Days or Forcing days.
-
-```{r}
-base_temp <- 4.3 # 4.4 or 4.3 For Yoshino Cherries
-
-historic_noaa_wide <- historic_noaa |> 
-  select(-c("attributes", "station")) |> 
-  pivot_wider(names_from = datatype, values_from = value) |> 
-  mutate(TAXN = (TMAX + TMIN) / 2) |> 
-  mutate(TAXN = if_else(is.na(TAXN), TAVG, TAXN)) |> # If TMAX or TMIN missing, use TAVG
-  mutate(Tb = base_temp) |> 
-  mutate(year = year(date)) |> 
-  select(location, year, date, TAXN, Tb) |> 
-  mutate(GDD = TAXN - Tb) |> 
-  mutate(GDD = if_else(GDD < 0, 0, GDD)) |>
-  group_by(location, year) |> 
-  arrange(location, year, date) |> 
-  mutate(AGDD = cumsum(GDD)) |> 
-  ungroup()
-
-historic_noaa_wide |> 
-  arrange(location, date) |> 
-  filter(location == "kyoto", year == 2002, AGDD >= 221.2) |> 
-  slice_min(date)
-```
-
-
-```{r}
-cherry |> 
-  filter(location == "kyoto", year == 2002)
-```
-
-
-Let's try out some other R packages:
-
-```{r}
-#| label: load-met-pkgs
-#| output: false
-
-library(GSODR)
-library(stationaRy)
-library(nasapower)
-```
-
-
-First we start with the `{GSODR}` package available at <https://docs.ropensci.org/GSODR>.
-
-We can use it to query the Global Surface Summary of the Day (GSOD) provided by the US National Centers for Environmental Information (NCEI).
-
-Let's try out the `{nasapower}` package
-
-A Note on API Throttling
-
-The POWER API endpoints limit queries to prevent overloads due to repetitive and rapid requests. 
-
-If you find that the API is throttling your queries, I suggest that you investigate the use of `limit_rate()` from `{ratelimitr}` to create self-limiting functions that will respect the rate limits that the API has in place: <https://github.com/tarakc02/ratelimitr>. 
-
-It is best to check the POWER website for the latest rate limits as they differ between temporal APIs and may change over time as the project matures: <https://power.larc.nasa.gov/docs/services/api/#rate-limiting>.
-
-Fetch daily "AG" community temperature, relative humidity and precipitation for January 1985 for Kingsthorpe, Queensland, Australia.
-
-```{r}
-daily_single_ag <- get_power(
-  community = "ag",
-  lonlat = c(151.81, -27.48),
-  pars = c("RH2M", "T2M", "PRECTOTCORR"),
-  dates = c("1985-01-01", "1985-01-31"),
-  temporal_api = "daily"
-)
-
-daily_single_ag
-```
-
-```{r}
-get_historic_power <- function(
-    var_climate,
-    start_date,
-    end_date,
-    frequency_climate,
-    long,
-    lat
-  ) {
-  df_climate <- map2(
-      .x = long,
-      .y = lat,
-      .f = function(long = .x, lat = .y) {
-        res <- nasapower::get_power(
-          community = "ag",
-          lonlat = c(long, lat),
-          pars = var_climate,
-          dates = c(start_date, end_date),
-          temporal_api = frequency_climate
-        )
-        return(res)
-      }
-    ) |>
-    list_rbind()
-  return(df_climate)
-}
-```
-
-The meteorological data were obtained with R from the [Prediction of Worldwide Energy Resources (POWER)](https://power.larc.nasa.gov/#resources) project, using the [`nasapower`](https://docs.ropensci.org/nasapower/) for extraction of time series (since 1981-01-01 with daily frequency of the following variables:
-  - Average Earth Surface Temperature (`TS`)
-  - Maximum temperature of the earth's surface (`TS_MAX`)
-  - Minimum land surface temperature (`TS_MIN`)
-  - Evaporation from the earth's surface (`EVLAND`)
-  - Frost days (`FROST_DAYS`)
-  - Precipitation (`PRECTOTCORR`)
-  - Soil moisture profile (`GWETPROF`)
-  - Relative humidity at two meters (`RH2M`)
-  - Soil moisture in the root zone (`GWETROOT`)
-  - The total amount of ozone in a column extending vertically from the Earth's surface to the top of the atmosphere (`TO3`)
-  
-```{r}
-var_climate <- c(
-  "TS",
-  "TS_MAX",
-  "TS_MIN",
-  "EVLAND",
-  "FROST_DAYS",
-  "PRECTOTCORR",
-  "GWETPROF",
-  "RH2M",
-  "GWETROOT",
-  "TO3"
-)
-
-start_date <- "1981-01-01"
-end_date <- as.character(Sys.Date())
-frequency_climate <- "daily"
-
-# Coordinates from csv
-coord_kyoto <- read_csv("data/kyoto.csv") |> 
-  distinct(lat, long)
-
-coord_liestal <- read_csv("data/liestal.csv") |> 
-  distinct(lat, long)
-
-coord_nyc <- read_csv("data/nyc.csv") |> 
-  distinct(lat, long)
-
-coord_vancouver <- read_csv("data/vancouver.csv") |> 
-  distinct(lat, long)
-
-coord_washingtondc <- read_csv("data/washingtondc.csv") |> 
-  distinct(lat, long)
-
-coord_meteoswiss <- read_csv("data/meteoswiss.csv") |>
-  distinct(lat, long)
-
-coord_korea <- read_csv("data/south_korea.csv") |>
-  distinct(lat, long)
-
-coord_japan <- read_csv("data/japan.csv") |>
-  distinct(lat, long)
-
-# Coordinates USA National Phenology Network
-coord_npn1 <- read_csv("data/USA-NPN_individual_phenometrics_data.csv") |> 
-  select(lat = Latitude, long = Longitude) |> 
-  distinct_all()
-
-coord_npn2 <- read_csv("data/USA-NPN_status_intensity_observations_data.csv") |> 
-  select(lat = Latitude, long = Longitude) |> 
-  distinct_all()
-
-coord_npn <- bind_rows(coord_npn1, coord_npn2) |> 
-  distinct_all()
-```
-
-Load data for Kyoto, takes about 10 seconds
-
-```{r}
-df_climate_kyoto <- get_historic_power(
-  var_climate = var_climate,
-  start_date = start_date,
-  end_date = end_date,
-  frequency_climate = frequency_climate,
-  long = coord_kyoto$long,
-  lat = coord_kyoto$lat
-  )
-```
-
-Load data for Liestal
-
-```{r}
-df_climate_liestal <- get_historic_power(
-  var_climate = var_climate,
-  start_date = start_date,
-  end_date = end_date,
-  frequency_climate = frequency_climate,
-  long = coord_kyoto$long,
-  lat = coord_kyoto$lat
-  )
-```
-
-Load data for Vancouver
-
-```{r}
-df_climate_vancouver <- get_historic_power(
-  var_climate = var_climate,
-  start_date = start_date,
-  end_date = end_date,
-  frequency_climate = frequency_climate,
-  long = coord_vancouver$long,
-  lat = coord_vancouver$lat
-  )
-```
-
-Load data for Washington DC
-
-```{r}
-df_climate_washingtondc <- get_historic_power(
-  var_climate = var_climate,
-  start_date = start_date,
-  end_date = end_date,
-  frequency_climate = frequency_climate,
-  long = coord_washingtondc$long,
-  lat = coord_washingtondc$lat
-  )
-```
-
-Load data for New York City
-
-```{r}
-df_climate_newyork <- get_historic_power(
-  var_climate = var_climate,
-  start_date = start_date,
-  end_date = end_date,
-  frequency_climate = frequency_climate,
-  long = coord_nyc$long,
-  lat = coord_nyc$lat
-  )
-```
-
-Combine the data for the five main locations:
-
-```{r}
-df_climate_cherry <- bind_rows(
-  df_climate_kyoto,
-  df_climate_liestal,
-  df_climate_newyork,
-  df_climate_vancouver,
-  df_climate_washingtondc
-)
-
-write_csv(df_climate_cherry, file = "data/df_climate_cherry.csv")
-```
-
-
-Load data for Japan
-
-```{r}
-#| eval: false
-
-df_climate_japan <- get_historic_power(
-  var_climate = var_climate,
-  start_date = start_date,
-  end_date = end_date,
-  frequency_climate = frequency_climate,
-  long = coord_japan$long,
-  lat = coord_japan$lat
-  )
-
-write_csv(df_climate_japan, file = "data/df_climate_japan.csv")
-```
-
-Load data for South Korea
-
-```{r}
-#| eval: false
-
-df_climate_korea <- get_historic_power(
-  var_climate = var_climate,
-  start_date = start_date,
-  end_date = end_date,
-  frequency_climate = frequency_climate,
-  long = coord_korea$long,
-  lat = coord_korea$lat
-  )
-
-write_csv(df_climate_korea, file = "data/df_climate_korea.csv")
-```
-
-
-Load data for MeteoSwiss
-
-```{r}
-#| eval: false
-
-df_climate_meteoswiss <- get_historic_power(
-  var_climate = var_climate,
-  start_date = start_date,
-  end_date = end_date,
-  frequency_climate = frequency_climate,
-  long = coord_meteoswiss$long,
-  lat = coord_meteoswiss$lat
-  )
-
-write_csv(df_climate_meteoswiss, file = "data/df_climate_meteoswiss.csv")
-```
-
-
-Load data for US-NPN
-
-```{r}
-#| eval: false
-
-df_climate_npn <- get_historic_power(
-  var_climate = var_climate,
-  start_date = start_date,
-  end_date = end_date,
-  frequency_climate = frequency_climate,
-  long = coord_npn$long,
-  lat = coord_npn$lat
-  )
-
-write_csv(df_climate_npn, file = "data/df_climate_npn.csv")
-```
-
 A simple model may simply take the average maximum winter temperature (Dec. 1st of the previous year until end of February) into account:
 
 ```{r}
+#| label: create-avg_tmax
+
 avg_winter_temp <- historic_noaa |>
   filter(datatype == "TMAX") |>
   mutate(year = case_when(
@@ -1996,8 +2100,10 @@ avg_winter_temp <- historic_noaa |>
   )
 ```
 
+Plot `TMAX_AVG`
+
 ```{r}
-#| label: fig-07
+#| label: fig-avg_tmax
 #| fig-cap: "Average maximum winter temperature (Dec. 1st of the previous year until end of February)"
 
 avg_winter_temp |>
@@ -2030,7 +2136,7 @@ predictions_from_temp <- cherry_grid |>
 
 
 ```{r}
-#| label: fig-08
+#| label: fig-predictions-avg_tmax
 #| fig-cap: "Predictions from Temperature"
 
 predictions_from_temp |>
@@ -2046,7 +2152,7 @@ predictions_from_temp |>
 The following plot shows a comparison of predictions for Vancouver using the two methods described in this demo.
 
 ```{r}
-#| label: fig-09
+#| label: fig-pedictions-vancouver
 #| fig-cap: "Predicted peak bloom (days since Jan 1st) for Vancouver"
 
 predictions_vancouver |>

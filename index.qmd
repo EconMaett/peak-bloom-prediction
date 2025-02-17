@@ -14,11 +14,9 @@ This post is a first look at [Nixtla's](https://docs.nixtla.io/) `TimeGPT` gener
 
 As described in [Garza et al. (2021)](https://arxiv.org/abs/2111.04052), TimeGPT is a Transformer-based time series model with self-attention mechanisms. The architecture comprises an encoder-decoder structure with multiple layers, each with residual connections and layer normalization. The encoder, a stack of multi-head self-attention layers followed by a feed-forward neural network, processes the input time series. The decoder, which is similar to the encoder, generates the forecast. The decoder includes an additional multi-head attention layer that takes the encoder’s output as input. The model is trained using a teacher-forcing strategy, where the decoder receives the ground-truth values during training. The model is then used for forecasting by feeding the model’s predictions back as input during inference.
 
-
 Nixtla's website provides a considerable amount of explanatory material, documentation, and code examples in Python. The [`nixtlar`](https://cran.r-project.org/package=nixtlar) package wraps the Python code to provide an R interface. The package documentation for version 0.6.2 doesn't fully the R functions, but the vignettes provide sufficient code examples to get started.
 
 *Before getting started with TimeGPT, you will have to register for an API key. The process is easy enough and is described in this [vignette](https://cran.r-project.org/web/packages/nixtlar/vignettes/setting-up-your-api-key.html).*
-
 
 
 ```{r}
