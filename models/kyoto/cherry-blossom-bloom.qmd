@@ -1,0 +1,449 @@
+---
+title: "cherry-blossom-bloom"
+format: gfm
+---
+
+```{r}
+raw_kyoto <- "https://raw.githubusercontent.com/GMU-CherryBlossomCompetition/peak-bloom-prediction/refs/heads/main/data/kyoto.csv"
+
+kyoto_df <- data.table::fread(raw_kyoto)
+```
+```{r}
+# library(tidygeocoder)
+library(nasapower)
+library(dplyr)
+library(ggplot2)
+
+# locations <- unique(kyoto_df$location)
+
+# lat/lon already in kyoto df. 
+# loc_df <- data.frame(
+#   location = locations
+# ) |>
+#   dplyr::mutate(
+#     ID = dplyr::row_number()
+#   )
+# 
+# loc_df <- loc_df |> 
+#  tidygeocoder::geocode(location)
+kyoto_info <- kyoto_df |> head(1)
+
+weather_df <- nasapower::get_power(community = "ag", 
+                                   pars = c("T2M", "RH2M", "PRECTOTCORR"),
+                                   temporal_api = "hourly", 
+                                   lonlat = c(kyoto_info$long, kyoto_info$lat),
+                                   dates = c("2001-01-01", "2024-07-01")
+                                   )
+
+```
+
+### kyoto temperature and cherry blossom eda take 2 (jan-march aggregates)
+
+can the winter season + march predict the bloom. (naive-trick to avoid needing an accurate weather extension into march-april). try to capture dormancy of blossoms.
+```{r}
+#library(slider)
+
+weather_metrics_df <- weather_df |>
+                      dplyr::mutate(
+                        freeze = ifelse(T2M < 0, 1, 0)
+                      ) |>
+                      # 1 to 3 (jan - mar)
+                      dplyr::filter(MO <= 3) |>
+                      dplyr::group_by(YEAR) |>
+                      summarize(
+                        total_freeze_hours = sum(freeze),
+                        total_temperature  = sum(T2M),
+                        q70_t              = quantile(T2M, .7),
+                        q90_t              = quantile(T2M, .9),
+                        total_precip       = sum(PRECTOTCORR),
+                        total_rh           = sum(RH2M)
+                      ) |>
+                      janitor::clean_names()
+
+
+
+kyoto_df |>
+  dplyr::mutate(
+    bloom_date = as.Date(bloom_date)
+  ) |>
+  dplyr::left_join(weather_metrics_df, by = 'year') |>
+  dplyr::select(-c(lat, long, alt)) |> 
+  na.omit() |>
+  corrr::correlate() |>
+  corrr::fashion() |>
+  gt::gt() |>
+  gt::as_raw_html()
+```
+
+```{r}
+kyoto_df |>
+  dplyr::mutate(
+    bloom_date = as.Date(bloom_date)
+  ) |>
+  dplyr::left_join(weather_metrics_df, by = 'year') |>
+  na.omit() |>
+    ggplot() +
+  geom_point(aes(x = bloom_doy, 
+                 y = q90_t, 
+                 color = total_freeze_hours, 
+                 size = total_precip/total_rh))
+```
+
+
+
+```{r}
+last_freeze_df <- 
+weather_df |>
+    dplyr::mutate(
+        freeze = ifelse(T2M < 0, 1, 0)
+    ) |>
+    dplyr::filter(MO <= 3) |>
+    dplyr::group_by(YEAR) |> 
+    dplyr::filter(freeze == 1) |> 
+    slice_tail(n = 1) |>
+    dplyr::mutate(
+      freeze_date = lubridate::make_date(YEAR, MO, DY)
+    ) |>
+  janitor::clean_names() |>
+  dplyr::select(year, freeze_date)
+
+
+kyoto_df |>
+  dplyr::mutate(
+    bloom_date = as.Date(bloom_date)
+  ) |>
+  dplyr::left_join(last_freeze_df, by = 'year') |>
+  na.omit() |>
+  dplyr::mutate(
+    distance = as.numeric(bloom_date - freeze_date)
+  ) |>
+  ggplot() +
+  geom_line(aes(x = year, y = log(distance))) +
+  labs(subtitle = "distance betweeen last freeze date and bloom date")
+``` 
+
+### modeling data checkpoint
+
+```{r}
+modeling_data <- kyoto_df |>
+                 dplyr::select(alt, year, bloom_doy, bloom_date)|>
+                 dplyr::left_join(weather_metrics_df, by = 'year') |>
+                 dplyr::left_join(last_freeze_df, by = 'year') |>
+                 na.omit() |>
+                 dplyr::mutate(
+                   bloom_date       = as.Date(bloom_date),
+                   days_from_freeze = log(as.numeric(bloom_date - freeze_date))
+                ) |>
+                dplyr::select(-bloom_date, -freeze_date)
+                  
+```
+
+### training
+
+```{r}
+library(rsample)
+library(recipes)
+library(parsnip)
+library(workflows)
+library(finetune)
+library(yardstick)
+
+# split ------------------------------
+time_split <- initial_time_split(modeling_data, prop = .85)
+
+training <- training(time_split)
+testing  <- testing(time_split)
+
+folds <- rsample::vfold_cv(training, v = 10, strata = bloom_doy)
+
+# recipe ------------------------------
+bloom_recipe <- 
+    recipes::recipe(bloom_doy ~ ., training) |>
+    recipes::step_mutate(
+      cross_fx_1 = q90_t / total_freeze_hours,
+      cross_fx_2 = total_temperature / total_freeze_hours,
+      cross_fx_3 = total_freeze_hours^2 / alt
+    ) |>
+    recipes::step_rm(tidyr::any_of(!!c("alt"))) |>
+    recipes::step_zv(all_nominal_predictors()) |>
+    recipes::step_dummy(all_nominal_predictors()) |>
+    recipes::step_normalize(all_nominal_predictors())
+
+
+# engine spec --------------------------
+
+library(rules)
+library(Cubist)
+
+cub_grid <- expand.grid(
+  committees      = c(30, 45, 55, 80),
+  neighbors       = c(3, 5, 9),
+  max_rules       = c(15, 30, 45, 70)
+)
+
+cub_spec <- cubist_rules(
+  committees = tune(),
+  neighbors  = tune(),
+  max_rules  = tune()) |>
+  # quinlan's cubist 
+  set_engine("Cubist") |> 
+  set_mode("regression")
+
+
+# tune ---------------------------------
+
+cub_results <-
+  finetune::tune_race_anova(
+    workflow() |>
+      add_recipe(bloom_recipe) |>
+      add_model(cub_spec),
+    resamples = folds,
+    grid = cub_grid,
+    control = control_race(),
+    metrics = metric_set(yardstick::rmse)
+  )
+
+# final fit ---------------------------
+# select_best(cub_results)
+# cub_fit$fit$fit$fit$coefficients
+
+cub_fit <- 
+  fit(
+    finalize_workflow(
+      workflow() |>
+      add_recipe(bloom_recipe) |>
+      add_model(cub_spec), 
+      select_best(cub_results)
+      ), 
+    training
+  )
+
+
+```
+
+### testing
+```{r}
+preds <- predict(cub_fit, testing)
+
+testing |>
+  bind_cols(preds) |>
+  select(year, bloom_doy, .pred) |> 
+  gt::gt() |>
+  gt::as_raw_html()
+  
+```
+
+use testing to create upper/lower intervals. 
+```{r}
+conf_int <- probably::int_conformal_split(cub_fit, cal_data = testing)
+
+# interval check
+predict(conf_int, testing, level = .5)
+```
+
+
+## kyoto temperature and cherry blossom eda take 3 (monthly method)
+
+
+```{r}
+weather_metrics_monthly_df <- weather_df |>
+                      # 2024-2-18 idea for capturing december and the 'winter' year
+                      dplyr::mutate(
+                        MO   = ifelse(MO == 12, 0, MO),
+                        YEAR = ifelse(MO == 0, YEAR +1, YEAR)
+                      ) |>
+                      dplyr::mutate(
+                        freeze = ifelse(T2M < 0, 1, 0)
+                      ) |>
+                      # 1 to 3 (jan - mar)
+                      dplyr::filter(MO <= 3) |>
+                      # year and month
+                      dplyr::group_by(YEAR, MO) |>
+                      summarize(
+                        total_freeze_hours = sum(freeze),
+                        total_temperature  = sum(T2M),
+                        q10_t              = quantile(T2M, .1),
+                        q30_t              = quantile(T2M, .3),
+                        q70_t              = quantile(T2M, .7),
+                        q90_t              = quantile(T2M, .9),
+                        # max_t              = max(T2M),
+                        total_precip       = sum(PRECTOTCORR),
+                        total_rh           = sum(RH2M)
+                      ) |>
+                      janitor::clean_names()
+
+wide_weather_metrics_monthly_df <- weather_metrics_monthly_df |>
+                                   dplyr::ungroup() |> 
+                                   dplyr::mutate(
+                                    month_id = case_when(mo == 0 ~ 'dec', 
+                                                         mo == 1 ~ 'jan', 
+                                                         mo == 2 ~ 'feb', 
+                                                         mo == 3 ~ 'mar')
+                                   ) |>
+                                    # maybe an accelerated oblique forest could handle these 
+                                    dplyr::select(-mo, -q10_t, -q30_t, -q70_t, -q90_t) |>
+                                    tidyr::pivot_wider(
+                                     id_cols = year,
+                                     names_from = month_id,
+                                     values_from = c(total_freeze_hours, total_temperature,
+                                                     total_precip, total_rh),
+                                     names_glue = "{.value}_{month_id}"
+                                     ) 
+
+kyoto_df |>
+  dplyr::mutate(
+    mo         = lubridate::month(bloom_date),
+    bloom_date = as.Date(bloom_date)
+  ) |>
+  dplyr::left_join(wide_weather_metrics_monthly_df, by = c('year')) |>
+  dplyr::select(-c(lat, long, alt)) |> 
+  na.omit() |>
+  corrr::correlate() |>
+  corrr::fashion() |>
+  gt::gt() |>
+  gt::as_raw_html()
+```
+
+### wide modeling data checkpoint
+
+```{r}
+wide_modeling_data <- 
+  kyoto_df |>
+  dplyr::mutate(
+    bloom_date = as.Date(bloom_date)
+  ) |>
+  dplyr::left_join(wide_weather_metrics_monthly_df, by = c('year')) |>
+  dplyr::select(-c(lat, long, alt, 
+                   bloom_date, location)) |> 
+  na.omit() 
+```
+
+```{r}
+wide_modeling_data |> 
+  ggplot() + 
+  geom_point(aes(x = bloom_doy, y = total_freeze_hours_mar))
+```
+
+```{r}
+wide_modeling_data |> 
+  ggplot() + 
+  geom_point(aes(x = bloom_doy, y = total_temperature_feb, color = year))
+```
+
+
+it's like a perfect line (total temperature in march and bloom date):
+```{r}
+wide_modeling_data |> 
+  ggplot() + 
+  geom_point(aes(x = bloom_doy, y = total_temperature_mar, color = year))
+```
+
+
+### training (wide)
+
+```{r}
+library(rsample)
+library(recipes)
+library(parsnip)
+library(workflows)
+library(finetune)
+library(yardstick)
+
+# split ------------------------------
+w_time_split <- initial_time_split(wide_modeling_data, prop = .87)
+
+w_training <- training(w_time_split)
+w_testing  <- testing(w_time_split)
+
+w_folds <- rsample::vfold_cv(w_training, v = 10)
+
+# recipe ------------------------------
+w_bloom_recipe <- 
+    recipes::recipe(bloom_doy ~ ., w_training) |>
+    recipes::step_rm(tidyr::any_of(!!c("alt"))) |>
+    recipes::step_mutate(
+      accelerator = year^3
+    ) |> 
+    recipes::step_rm(tidyr::any_of(!!c("year"))) |>
+    recipes::step_zv(all_nominal_predictors()) |>
+    recipes::step_dummy(all_nominal_predictors()) |>
+    recipes::step_normalize(all_nominal_predictors())
+
+
+# engine spec --------------------------
+
+xgb_grid <- expand.grid(
+  trees      = c(100, 300, 400),
+  tree_depth = c(9),
+  learn_rate = c(.5, .7),
+  mtry       = c(15, 20, 25, 30),
+  loss_reduction = c(0, .01, .1)
+)
+
+xgb_spec <- boost_tree(
+  trees          = tune(),
+  tree_depth     = tune(),
+  learn_rate     = tune(),
+  mtry           = tune(),
+  loss_reduction = tune()) |>
+  # boosted xgbm model
+  set_engine("xgboost", nthread = 6) |> 
+  set_mode("regression")
+
+xgb_results <-
+  finetune::tune_race_anova(
+    workflow() |>
+      add_recipe(w_bloom_recipe) |>
+      add_model(xgb_spec),
+    resamples = w_folds,
+    grid = xgb_grid,
+    control = control_race(),
+    metrics = metric_set(yardstick::rmse)
+  )
+
+
+
+# final fit ---------------------------
+
+xgb_fit <- 
+  fit(
+    finalize_workflow(
+      workflow() |>
+      add_recipe(w_bloom_recipe) |>
+      add_model(xgb_spec), 
+      select_best(xgb_results)
+      ), 
+    w_training
+  )
+
+vip::vip(xgb_fit)
+```
+
+### testing
+```{r}
+w_preds <- predict(xgb_fit, w_testing)
+
+w_testing |>
+  bind_cols(w_preds) |>
+  select(year, bloom_doy, .pred) |> 
+  gt::gt() |>
+  gt::as_raw_html()
+  
+```
+
+
+
+# 2025 predictions
+
+### TODO
+
+create 2025 march weather prediction.
+```{r}
+
+```
+
+create point and interval for 2025 doy bloom. 
+```{r}
+
+```
+
