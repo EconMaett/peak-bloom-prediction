@@ -32,6 +32,7 @@ We start by loading all the packages necessary to run this analysis
 invisible(Sys.setlocale("LC_ALL","English"))
 
 library(tidymodels)
+library(tidyverse)
 library(kableExtra)
 library(rvest)
 library(httr2)
@@ -732,7 +733,7 @@ First, we plot the five locations in the `cherry.csv` file
 
 ```{r}
 #| label: map-main-locations
-#| eval: true
+#| eval: false
 
 cherry_coord <- cherry |> 
   group_by(location) |> 
@@ -750,7 +751,7 @@ Next, we plot the map of all the locations in the `japan.csv` file
 
 ```{r}
 #| label: map-japan
-#| eval: true
+#| eval: false
 
 crd_ch <- japan |> 
   filter(!is.na(bloom_doy)) |> 
@@ -769,7 +770,7 @@ Second, we plot the locations in the `south_korea.csv` file
 
 ```{r}
 #| label: map-korea
-#| eval: true
+#| eval: false
 
 crd_korea <- korea |> 
   filter(!is.na(bloom_doy)) |> 
@@ -788,7 +789,7 @@ Third, we plot the locations in the `meteoswiss.csv` file
 
 ```{r}
 #| label: map-meteoswiss
-#| eval: true
+#| eval: false
 
 crd_ch <- meteoswiss |> 
   filter(!is.na(bloom_doy)) |> 
@@ -980,15 +981,11 @@ power_npn <- get_power(vars, lat = crd_npn$lat, long = crd_npn$long)
 write_csv(power_npn, file = "data/power_npn.csv")
 ```
 
-Let's have a look at the NASA POWER dataset for the five locations
+Let's have a look at the NASA POWER dataset for the five locations. We change some the column names to lowercase letters.
 
 ```{r}
 power_cherry <- read_csv("data/power_cherry.csv")
-```
 
-We change some the column names to lowercase letters
-
-```{r}
 colnames(power_cherry) <- tolower(colnames(power_cherry))
 
 power_cherry <- power_cherry |> 
@@ -1069,186 +1066,20 @@ power_cherry <- power_cherry |>
   )
 ```
 
-Let's plot the daily average maximum temperature obtained from the NASA POWER project
+## Select timespan
 
 ```{r}
-#| label: fig-power-max-temp
-#| fig-cap: "Average maximum temperature (°C)"
-
-fig_tmax <- power_cherry |>
-  ggplot(aes(x = date)) +
-  geom_hline(yintercept = 0, colour = "grey") +
-  geom_line(aes(y = t2m_max), colour = "#d62828") +
-  labs(
-    title = "Average maximum temperature (°C)", 
-    x = NULL, y = "Degrees (°C)"
-  ) +
-  theme_minimal() +
-  facet_grid(rows = vars(location))
-
-print(fig_tmax)
-
-ggsave(filename = "figures/fig_tmax.png", plot = fig_tmax, bg = "white")
+power_cherry <- power_cherry |> 
+  filter(month(date) %in% c(9, 10, 11, 12, 1, 2, 3, 4, 5))
 ```
 
-Let's plot the daily average minimum temperature obtained from the NASA POWER project
-
-```{r}
-#| label: fig-power-min-temp
-#| fig-cap: "Average minimum temperature (°C)"
-
-fig_tmin <- power_cherry |>
-  ggplot(aes(x = date)) +
-  geom_hline(yintercept = 0, colour = "grey") +
-  geom_line(aes(y = t2m_min), colour = "#00b4d8") +
-  labs(
-    title = "Average minimum temperature (°C)",
-    x = NULL, y = "Degrees (°C)"
-  ) +
-  theme_light() +
-  facet_grid(rows = vars(location))
-
-print(fig_tmin)
-
-ggsave(filename = "figures/fig_tmin.png", plot = fig_tmin, bg = "white")
-```
-
-Plot `prcp` from NASA POWER:
-
-```{r}
-#| label: fig-avg-prcp
-#| fig-cap: "Average preciptation"
-
-fig_prcp <- power_cherry |>
-  ggplot(aes(x = date, y = prcp)) +
-  geom_line(colour = "#4361ee") +
-  labs(
-    title = "Average preciptation (in mm)",
-    x = NULL, y = "Average preciptation (in mm)"
-  ) +
-  theme_light() +
-  facet_grid(rows = vars(location))
-
-print(fig_prcp)
-
-ggsave(filename = "figures/fig_prcp.png", plot = fig_prcp, bg = "white")
-```
-
-Let's plot `APRCP`:
-
-```{r}
-#| label: fig-aprcp
-#| fig-cap: "Average aggregated preciptation since January 1st (in mm)"
-
-fig_aprcp <- power_cherry |>
-  ggplot(aes(x = date, y = aprcp)) +
-  geom_line(colour = "#4361ee") +
-  labs(
-    title = "Average aggregated preciptation since January 1st (in mm)",
-    x = NULL, y = "Average agregated preciptation (in mm)"
-  ) +
-  theme_light() +
-  facet_grid(rows = vars(location))
-
-print(fig_aprcp)
-
-ggsave(filename = "figures/fig_aprcp.png", plot = fig_aprcp, bg = "white")
-```
-
-
-Let's plot the Growing Degree Days (GDD) from NASA POWER
-
-```{r}
-#| label: fig-gdd
-#| fig-cap: "Growing Degree Days (GDD) calculated from January 1st"
-
-fig_gdd <- power_cherry |>
-  ggplot(aes(x = date, y = gdd)) +
-  geom_line(colour = "#d62828") +
-  labs(
-    title = "Growing Degree Days (GDD)",
-    subtitle = "Calculated from January 1st",
-    x = NULL, y = "Growing Degree Days (GDD)"
-  ) +
-  theme_light() +
-  facet_grid(rows = vars(location))
-
-print(fig_gdd)
-
-ggsave(filename = "figures/fig_gdd.png", plot = fig_gdd, bg = "white")
-```
-
-Let's plot Accumulated Growing Degree Days (AGDD) from NASA POWER
-
-```{r}
-#| label: fig-agdd
-#| fig-cap: "Accumulated Growing Degree Days (AGDD) calculated from January 1s"
-
-fig_agdd <- power_cherry |>
-  ggplot(aes(x = date, y = agdd)) +
-  geom_step(colour = "#d62828") +
-  labs(
-    title = "Accumulated Growing Degree Days (AGDD)", 
-    subtitle = "Calculated from January 1st",
-    x = NULL, y = "Accumulated Growing Degree Days (AGDD)"
-  ) +
-  theme_light() +
-  facet_grid(rows = vars(location))
-
-print(fig_agdd)
-
-ggsave(filename = "figures/fig_agdd.png", plot = fig_agdd, bg = "white")
-```
-
-
-Let's plot the Chilling Degree Days (CDD) from NASA POWER
-
-```{r}
-#| label: fig-plt-cdd
-#| fig-cap: "Chilling Degree Days (CDD) calculated from September 1st"
-
-fig_cdd <- power_cherry |>
-  ggplot(aes(x = date, y = cdd)) +
-  geom_line(colour = "#00b4d8") +
-  labs(
-    title = "Chilling Degree Days (CDD)",
-    subtitle = "Calculated from September 1st",
-    x = NULL, y = "Chilling Degree Days",
-  ) +
-  theme_light() +
-  facet_grid(rows = vars(location))
-
-print(fig_cdd)
-
-ggsave(filename = "figures/fig_cdd.png", plot = fig_cdd, bg = "white")
-```
-
-Let's plot Accumulated Chilling Degree Days (ACDD) from NASA POWER
-
-```{r}
-#| label: fig-plt-acdd
-#| fig-cap: "Accumulated Chilling Degree Days (ACDD) calculated from September 1st"
-
-fig_acdd <- power_cherry |>
-  ggplot(aes(x = date, y = acdd)) +
-  geom_line(colour = "#00b4d8") +
-  labs(
-    title = "Accumulated Chilling Degree Days (ACDD)",
-    subtitle = "Calculated from September 1st",
-    x = NULL, y = "Chilling Degree Days",
-  ) +
-  theme_light() +
-  facet_grid(rows = vars(location))
-
-print(fig_acdd)
-
-ggsave(filename = "figures/fig_acdd.png", plot = fig_acdd, bg = "white")
-```
 
 ## Temporal aggregation
 
+### Seasons
+
 ```{r}
-#| label: aggregate-to-season
+#| label: aggregate-to-seasons
 
 df_seasons <- power_cherry |> 
   pivot_longer(cols = -c(location, date), names_to = "variable", values_to = "value") |> 
@@ -1256,9 +1087,9 @@ df_seasons <- power_cherry |>
   mutate(
     season = case_when(
       .month %in% c(12, 1, 2) ~ "winter",
-      .month %in% c(3, 4, 5) ~ "spring",
-      .month %in% c(6, 7, 8) ~ "summer",
-      .month %in% c(9, 10, 11) ~ "winter"
+      .month %in% c(3, 4, 5) ~ "spring" #,
+      # .month %in% c(6, 7, 8) ~ "summer",
+      # .month %in% c(9, 10, 11) ~ "winter"
     )
   ) |> 
   mutate(.year = if_else(.month == 12, .year - 1, .year)) |>  
@@ -1281,13 +1112,12 @@ df_seasons <- power_cherry |>
 cherry_seasons <- cherry |> 
   inner_join(y = df_seasons, join_by(year, location)) |> 
   select(-c(lat, long, alt, bloom_date))
-
-cherry_seasons
 ```
 
+### Months
 
 ```{r}
-#| label: aggregate-to-monthly
+#| label: aggregate-to-months
 
 df_months <- power_cherry |> 
   pivot_longer(cols = -c(location, date), names_to = "variable", values_to = "value") |> 
@@ -1310,12 +1140,12 @@ df_months <- power_cherry |>
 cherry_months <- cherry |> 
   inner_join(y = df_months, join_by(year, location)) |> 
   select(-c(lat, long, alt, bloom_date))
-
-cherry_months
 ```
 
+### Weeky
+
 ```{r}
-#| label: aggregate-to-weekly
+#| label: aggregate-to-weeks
 
 df_weeks <- power_cherry |> 
   pivot_longer(cols = -c(location, date), names_to = "variable", values_to = "value") |> 
@@ -1338,12 +1168,12 @@ df_weeks <- power_cherry |>
 cherry_weeks <- cherry |> 
   inner_join(y = df_weeks, join_by(year, location)) |> 
   select(-c(lat, long, alt, bloom_date))
-
-cherry_weeks
 ```
 
+### Days
+
 ```{r}
-#| label: aggregate-to-daily
+#| label: aggregate-to-days
 
 df_days <- power_cherry |> 
   pivot_longer(cols = -c(location, date), names_to = "variable", values_to = "value") |> 
@@ -1366,8 +1196,6 @@ df_days <- power_cherry |>
 cherry_days <- cherry |> 
   inner_join(y = df_days, join_by(year, location)) |> 
   select(-c(lat, long, alt, bloom_date))
-
-cherry_days
 ```
 
 
@@ -1406,7 +1234,6 @@ This case is equivalent to fitting five separate models with a linear time trend
 ```{r}
 #| label: fit-linear-model
 
-# Fit a linear time trend without intercept, dummy variables and interaction effect
 ls_fit <- lm(
   formula = bloom_doy ~ 0 + location + location:year,
   data = cherry, 
@@ -1693,27 +1520,11 @@ predictions <- predictions |>
   bind_rows(predictions_nyc)
 ```
 
-
-## Submission
-
-To submit your entries, enter the predicted bloom dates from your models in the **submission form**.
-
-```{r}
-#| label: tbl-predictions-for-submission
-#| tbl-cap: "Predictions for Submission"
-
-predictions |>
-  filter(year == 2025) |>
-  mutate(prediction_date = strptime(paste(year, prediction), "%Y %j") |> as_date()) |>
-  kable() |> 
-  kable_styling()
-```
-
-**NOTE**: The question is if we need to round the point estimates or if we can submit partial days.
-
 ## Using predictors
 
-### Seasonal predictors
+### Linear model
+
+#### Seasonal predictors
 
 A simple model may average weather data of the seasons into account:
 
@@ -1726,7 +1537,7 @@ Plot `t2m_max_winter`
 cherry_seasons |>
   ggplot(aes(x = year, y = t2m_max_winter)) +
   geom_line() +
-  labs(x = NULL, y = "Average winter temperature (°C)") +
+  labs(x = NULL, y = "Average maximum winter temperature (°C)") +
   facet_grid(rows = vars(location)) +
   scale_x_continuous(limits = c(1970, 2025)) +
   theme_light()
@@ -1769,7 +1580,7 @@ cherry_seasons |>
   theme_light()
 ```
 
-### Monthly predictors
+#### Monthly predictors
 
 Plot the average maximum temperature in February
 
@@ -1783,7 +1594,6 @@ cherry_months |>
   scale_x_continuous(limits = c(1970, 2025)) +
   theme_light()
 ```
-
 
 Now let's use a linear model with monthly data
 
@@ -1822,7 +1632,7 @@ cherry_months |>
   theme_light()
 ```
 
-### Weekly predictors
+#### Weekly predictors
 
 Now let's use a linear model with weekly data
 
@@ -1861,7 +1671,7 @@ cherry_weeks |>
   theme_light()
 ```
 
-## Daily predictors
+#### Daily predictors
 
 Now let's use a linear model with daily data
 
@@ -1900,6 +1710,9 @@ cherry_days |>
   theme_light()
 ```
 
+### Nonlinear models
+
+#### Random forest
 
 Let's fit a random forest
 
@@ -1993,32 +1806,33 @@ final_tree |>
 ```
 
 
-
-
-The following plot shows a comparison of predictions for Vancouver using the two methods described in this demo.
+#### LightGBM
 
 ```{r}
-#| label: fig-pedictions-vancouver
-#| fig-cap: "Predicted peak bloom (days since Jan 1st) for Vancouver"
 
-predictions_vancouver |>
-  left_join(predictions_from_temp,
-    by = c("location", "year")
-  ) |>
-  select(year, pred_temporal = prediction, pred_temp = pred_bloom) |>
-  pivot_longer(cols = -year) |>
-  mutate(name = if_else(name == "pred_temporal",
-    "Method 1: location-based model",
-    "Method 2: temperature-based model"
-  )) |>
-  ggplot() +
-  aes(x = year, y = value, linetype = name) +
-  geom_line() +
-  scale_x_continuous(breaks = 2008:2025) +
-  labs(
-    x = NULL, linetype = "",
-    y = "Predicted peak bloom (days since Jan 1st) for Vancouver"
-  ) +
-  theme_light() +
-  theme(legend.position = "bottom")
 ```
+
+
+#### XGboost
+
+```{r}
+
+```
+
+
+## Submission
+
+To submit your entries, enter the predicted bloom dates from your models in the **submission form**.
+
+```{r}
+#| label: tbl-predictions-for-submission
+#| tbl-cap: "Predictions for Submission"
+
+predictions |>
+  filter(year == 2025) |>
+  mutate(prediction_date = strptime(paste(year, prediction), "%Y %j") |> as_date()) |>
+  kable() |> 
+  kable_styling()
+```
+
+**NOTE**: The question is if we need to round the point estimates or if we can submit partial days.

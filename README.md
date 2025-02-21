@@ -37,6 +37,22 @@ The true bloom dates for 2025 are taken to be the dates reported by the followin
 
 The full competition rules are available under https://competition.statistics.gmu.edu.
 
+## Resources
+
+- [Tidymodels](https://www.tidymodels.org/packages/)
+
+- [Deep Learning and Scientific Computing with R torch](https://skeydan.github.io/Deep-Learning-and-Scientific-Computing-with-R-torch/) by Sigrid Keydana
+
+- [ISLR tidymodels labs](https://emilhvitfeldt.github.io/ISLR-tidymodels-labs/) by Emil Hvitfeldt
+
+- [Tidy Modeling with R](https://www.tmwr.org/) by Max Kuhn and Julia Silge
+
+- [Applied Machine Learning for Tabular Data](https://aml4td.org/) by Max Kuhn and Kjell Johnson
+
+- [Efficient Machine Learning with R](https://emlwr.org/) by Simon P. Couch
+
+- [Feature Engineering A-Z](https://feaz-book.com/) by Emil Hvitfeldt
+
 ## Previous Winners
 
 - 2024: <https://github.com/Cyb3rPandaH/CherryPeakBloomPrediction>
