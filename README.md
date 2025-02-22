@@ -79,7 +79,7 @@ The full competition rules are available under https://competition.statistics.gm
 
 ## Others Analyses
 
-- [`{chillR}`](https://CRAN.R-project.org/package=chillR )
+- [Tree phenology analysis with R](https://inresgb-lehre.iaas.uni-bonn.de/chillR_book/introduction.html) by Eike Luedeling (creator of [`{chillR}`](https://CRAN.R-project.org/package=chillR ))
 
 - [Hybrid Phenology Modeling for Predicting Temperature Effects on Tree Dormancy](https://doi.org/10.48550/arXiv.2501.16848) Python code available on [GitHub](https://github.com/WUR-AI/HybridML-Phenology)
 
