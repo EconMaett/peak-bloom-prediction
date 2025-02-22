@@ -47,6 +47,7 @@ library(rvest)
 library(httr2)
 library(jsonlite)
 library(nasapower)
+library(openmeteo)
 library(sf)
 library(mapview)
 
@@ -1121,6 +1122,8 @@ We load the following variables:
 
 - `HDD18_3`: Heating Degree Days Below 18.3 C. The daily accumulation of degrees below an 18.3-degree-Celsius threshold when the daily mean temperature is below the threshold.
 
+- `PS`: Surface pressure (kPa)
+
 Learn more about heating degree days at <https://en.wikipedia.org/wiki/Heating_degree_day>.
 
 ```{r}
@@ -1130,15 +1133,8 @@ vars <- c(
   "T2M",
   "T2M_MAX",
   "T2M_MIN",
-  "CDD0",
-  "CDD18_3",
-  "HDD0",
-  "HDD18_3",
-  "FROST_DAYS",
   "PRECTOTCORR",
-  "QV2M",
   "RH2M",
-  "TO3",
   "PS",
   "WS10M"
 )
@@ -1234,6 +1230,125 @@ power_cherry <- power_cherry |>
   rename(date = yyyymmdd, prcp = prectotcorr) |> 
   select(-c(lat, lon, year, mm, dd, doy)) |> 
   relocate(location, date)
+```
+
+## Open Meteo
+
+Use the `{openmeteo}` package to retrieve weather forecasts from the Open Meteo API at <https://open-meteo.com/>.
+
+- `weather_forecast()` - retrieve weather forecasts for a location
+- `weather_history()` - retrieve historical weather observations for a location
+- `weather_now()` - simple function to return current weather for a location
+- `weather_variables()` - retrieve a shortlist of valid forecast or historical weather variables
+provided
+
+Find the weather stations located near the cherry tree locations
+
+```{r}
+kyoto_gc <- geocode(location_name = "kyoto", n_results = 1, language = "en", silent = TRUE)
+
+liestal_gc <- geocode(location_name = "liestal", n_results = 1, language = "en", silent = TRUE)
+
+newyorkcity_gc <- geocode(location_name = "new york city", n_results = 1, language = "en", silent = TRUE)
+
+vancouver_gc <- geocode(location_name = "vancouver", n_results = 1, language = "en", silent = TRUE)
+
+washingtondc_gc <- geocode(location_name = "washington", n_results = 1, language = "en", silent = TRUE)
+
+locations_gc <- list(
+  kyoto_gc,
+  liestal_gc,
+  newyorkcity_gc,
+  vancouver_gc,
+  washingtondc_gc
+)
+```
+
+
+Check out the available variables
+
+```{r}
+available_variables <- weather_variables()
+```
+
+Hourly forecast variables
+
+```{r}
+available_variables$hourly_forecast_vars
+```
+
+Daily forecast variables
+
+```{r}
+available_variables$daily_forecast_vars
+```
+
+
+```{r}
+get_fcst <- function(loc_gc) {
+  
+  fcst <- weather_forecast(
+    location = c(loc_gc$latitude, loc_gc$longitude), 
+    start = as.character(today() - days(7)), 
+    end = "2025-03-09", 
+    hourly = c(
+      "temperature_2m", 
+      "relative_humidity_2m", 
+      "pressure_msl",
+      "wind_speed_10m"
+    ),
+    daily = c(
+      "temperature_2m_max",
+      "temperature_2m_min",
+      "precipitation_sum"
+    )
+  )
+  
+  fcst$location <- tolower(loc_gc$name)
+  
+  return(fcst)
+}
+
+locations_fcst <- purrr::map_dfr(.x = locations_gc, .f = get_fcst)
+View(locations_fcst)
+locations_fcst <- locations_fcst |> 
+  rename(
+    t2m = hourly_temperature_2m,
+    t2m_max = daily_temperature_2m_max,
+    t2m_min = daily_temperature_2m_min,
+    prcp = daily_precipitation_sum,
+    rh2m = hourly_relative_humidity_2m,
+    ps = hourly_pressure_msl,
+    ws10m = hourly_wind_speed_10m
+  ) |> 
+  group_by(location, date) |> 
+  summarise(across(where(is.numeric), ~ mean(.x, na.rm = TRUE))) |> 
+  ungroup() |> 
+  relocate(location, date) |> 
+  mutate(
+    location = case_match(location,
+      "new york" ~ "newyorkcity",
+      "washington" ~ "washingtondc", 
+      .default = location
+    )
+  )
+```
+
+Add the weather forecast to the predictors
+
+```{r}
+power_cherry <- power_cherry |> 
+  full_join(
+    y = locations_fcst, 
+    by = join_by(location, date, t2m, t2m_max, t2m_min, prcp, rh2m, ps, ws10m)
+  )
+```
+
+Check out if the forecast was appended correctly
+
+```{r}
+power_cherry |> 
+  tail(n = 20)
 ```
 
 
