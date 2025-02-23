@@ -1,0 +1,250 @@
+---
+title: "AccuWeather"
+format: html
+---
+
+## AccuWeather
+
+It is likely that the weather in March and April is a very important predictor for the peak bloom date of cherry blossoms. However, because the submission date is February 28, we won't have any data available for these two months.
+
+We can either train our model exclusively on data from January 1st 1981 to January 27th of the current year. Or we can include data for April and March and use Weather forecasts to extend our data set for the current year. 
+
+This is still dangerous, as the weather forecast is likely to be inaccurate. And because the past spring months are actual weather observations and not forecasts, the model will likely give too much weight to the current forecast.
+
+AccuWeather forecasts daily maximum and minimum temperatures three months into the future.  We do not evaluate the quality of these forecasts.
+
+We use the AccuWeather forecast as it appeared on the webpage [AccuWeather.com](https://www.accuweather.com/en/be/brussels/27581/january-weather/27581?year=2023) on February 19, 2023. 
+
+AccuWeather reports the forecast for each month on a separate webpage. 
+
+For reproducibility, we saved each page on the [Internet Archive](https://web.archive.org/web/20230219151906/https://www.accuweather.com/en/be/brussels/27581/january-weather/27581?year=2023&unit=c). 
+
+The following R code creates the function `get_weather_table()` to retrieve each page we saved, extract the forecast contained within that page, and arrange the data as a tibble.
+
+The `get_weather_table()` function combines several functions from the `{rvest}` package.
+
+In particular, the forecast on each page is contained within the div `monthly-calendar` and can be extracted with the `html_nodes()` and `html_text2()` functions.
+
+Applying the `get_weather_table()` function to the URL for each page yields a five column tibble `temp_*`, with columns defined in the same way as the tibble `temp`, discussed in previous sections. 
+
+The first 10 rows are below; the data are also available on the author's [GitHub](https://raw.githubusercontent.com/jauerbach/miscellaneous/main/temp_br.csv).
+
+We now predict the day the lilacs will bloom. The R code below uses the `doy_prediction` and `doy_last_frost` functions created in earlier sections and displays the prediction in a table. 
+
+The forecast is easily updated by providing the url to the updated AccuWeather webpage. 
+
+(You might use the url [https://web.archive.org/save](https://web.archive.org/save) to save a webpage to the Internet Archive to ensure your work is reproducible.)
+
+
+```{r}
+#| label: get_weather_table
+
+get_weather_table <- function(url) {
+  read_html(url) |> 
+    html_nodes("div.monthly-calendar") |> 
+    html_text2() |> 
+    str_remove_all("°|Hist. Avg. ") |> 
+    str_split(" ", simplify = TRUE) |> 
+    parse_number() |> 
+    matrix(
+      ncol = 3,
+      byrow = TRUE,
+      dimnames = list(NULL, c("day", "tmax", "tmin"))
+    ) |> 
+    as_tibble() |> 
+    filter(
+      row_number() %in%
+        (which(diff(day) < 0) %>% (function(x) if (length(x) == 1) seq(1, x[1], 1) else seq(x[1] + 1, x[2], 1)))
+    )
+}
+```
+
+Get the weather forecast for Kyoto, Japan
+
+```{r}
+#| label: get_temp_kyoto
+#| eval: false
+
+curr_year <- year(Sys.Date())
+
+temp_kyoto <- tibble(
+  base_url = "https://web.archive.org/web/20250221214619/https://www.accuweather.com/en/jp/kyoto-shi/2-224436_1_al/",
+  month = month.name[2:4],
+  year = curr_year,
+  url = str_c(base_url, tolower(month), "-weather/2-224436_1_al?year=", year)
+  ) |> 
+  mutate(temp = map(url, get_weather_table)) |> 
+  pull(temp) |> 
+  reduce(bind_rows) |> 
+  mutate(
+    location = "kyoto",
+    date = as.Date("2025-02-01"),
+    date = date + days(row_number() - 1),
+    year = parse_number(format(date, "%Y")),
+    t2m_max = round((tmax - 32) * 5/9, 1),
+    t2m_min = round((tmin - 32) * 5/9, 1),
+    t2m_range = (t2m_max + t2m_min) / 2,
+    .keep = "none"
+  )
+```
+
+Get the weather forecast for Liestal, Switzerland
+
+```{r}
+#| label: get_temp_liestal
+#| eval: false
+
+temp_liestal <- tibble(
+  base_url = "https://web.archive.org/web/20250221224017/https://www.accuweather.com/en/ch/liestal/311994/",
+  month = month.name[2:4],
+  year = curr_year,
+  url = str_c(base_url, tolower(month), "-weather/311994?year=", year)
+  ) |> 
+  mutate(temp = map(url, get_weather_table)) |> 
+  pull(temp) |> 
+  reduce(bind_rows) |> 
+  mutate(
+    location = "liestal",
+    date = as.Date("2025-02-01"),
+    date = date + days(row_number() - 1),
+    year = parse_number(format(date, "%Y")),
+    t2m_max = round((tmax - 32) * 5/9, 1),
+    t2m_min = round((tmin - 32) * 5/9, 1),
+    t2m_range = (t2m_max + t2m_min) / 2,
+    .keep = "none"
+  )
+```
+
+Get the weather forecast for New York City, USA
+
+```{r}
+#| label: get_temp_newyorkcity
+#| eval: false
+
+temp_newyorkcity <- tibble(
+  base_url = "https://web.archive.org/web/20250221230235/https://www.accuweather.com/en/us/new-york/10021/",
+  month = month.name[2:4],
+  year = curr_year,
+  url = str_c(base_url, tolower(month), "-weather/14-349727_1_al?year=", year)
+  ) |> 
+  mutate(temp = map(url, get_weather_table)) |> 
+  pull(temp) |> 
+  reduce(bind_rows) |> 
+  mutate(
+    location = "newyorkcity",
+    date = as.Date("2025-02-01"),
+    date = date + days(row_number() - 1),
+    year = parse_number(format(date, "%Y")),
+    t2m_max = round((tmax - 32) * 5/9, 1),
+    t2m_min = round((tmin - 32) * 5/9, 1),
+    t2m_range = (t2m_max + t2m_min) / 2,
+    .keep = "none"
+  )
+```
+
+Get the weather forecast for Vancouver BC, Canada
+
+```{r}
+#| label: get_temp_vancouver
+#| eval: false
+
+temp_vancouver <- tibble(
+  base_url = "https://web.archive.org/web/20250222014224/https://www.accuweather.com/en/ca/vancouver/v6c/",
+  month = month.name[2:4],
+  year = curr_year,
+  url = str_c(base_url, tolower(month), "-weather/53286?year=", year)
+  ) |> 
+  mutate(temp = map(url, get_weather_table)) |> 
+  pull(temp) |> 
+  reduce(bind_rows) |> 
+  mutate(
+    location = "vancouver",
+    date = as.Date("2025-02-01"),
+    date = date + days(row_number() - 1),
+    year = parse_number(format(date, "%Y")),
+    t2m_max = round((tmax - 32) * 5/9, 1),
+    t2m_min = round((tmin - 32) * 5/9, 1),
+    t2m_range = (t2m_max + t2m_min) / 2,
+    .keep = "none"
+  )
+```
+
+Get the weather forecast for Washington D.C., USA
+
+```{r}
+#| label: get_temp_washingtondc
+#| eval: false
+
+temp_washingtondc <- tibble(
+  base_url = "https://web.archive.org/web/20250221235102/https://www.accuweather.com/en/us/washington/20006/",
+  month = month.name[2:4],
+  year = curr_year,
+  url = str_c(base_url, tolower(month), "-weather/18-327659_1_al?year=", year)
+  ) |> 
+  mutate(temp = map(url, get_weather_table)) |> 
+  pull(temp) |> 
+  reduce(bind_rows) |> 
+  mutate(
+    location = "washingtondc",
+    date = as.Date("2025-02-01"),
+    date = date + days(row_number() - 1),
+    year = parse_number(format(date, "%Y")),
+    t2m_max = round((tmax - 32) * 5/9, 1),
+    t2m_min = round((tmin - 32) * 5/9, 1),
+    t2m_range = (t2m_max + t2m_min) / 2,
+    .keep = "none"
+  )
+```
+
+Combine the weather forecasts for the five locations
+
+```{r}
+#| label: combine-temp_fcst
+#| eval: false
+
+temp_fcst <- bind_rows(
+  temp_kyoto,
+  temp_liestal,
+  temp_newyorkcity,
+  temp_vancouver,
+  temp_washingtondc
+)
+
+write_csv(temp_fcst, file = "data/temp_fcst.csv")
+```
+
+Read in the temperature forecasts for the five main locations
+
+```{r}
+#| label: read-temp_fcst
+
+temp_fcst <- read_csv("data/temp_fcst.csv")
+```
+
+Create a table of the temperature forecasts
+
+```{r}
+temp_fcst |> 
+  relocate(year) |> 
+  kable(
+    dig = 2,
+    align = "c",
+    col.names = c(
+      "location", "year", "date", "maximum temp (°C)",
+      "minimum temp (°C)", "midrange temp (°C)"
+    )
+  ) |> 
+  kable_styling() |> 
+  scroll_box(width = "100%", height = "400px")
+```
+
+
+Add the minimum and maximum temperature forecast data to the variables. Replace the missing temperature with the midrange temperature forecast.
+
+```{r}
+#| label: add-temp_fcst-to-power_cherry
+
+power_cherry <- power_cherry |> 
+  full_join(y = temp_fcst, by = join_by(location, date, t2m_max, t2m_min)) |> 
+  mutate(t2m = if_else(is.na(t2m), (t2m_max + t2m_min) / 2, t2m))
+```
