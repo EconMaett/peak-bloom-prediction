@@ -1,0 +1,1680 @@
+---
+title: "International Cherry Blossom Prediction Competition"
+subtitle: "Modeling: Feature Engineering and Feature Selection"
+author: "Edimer David Jaramillo"
+date: "February 29, 2024"
+lang: en-US
+format:
+  html:
+    page-layout: article
+    toc: true
+    code-fold: true
+    df-print: paged
+    toc-location: left
+    number-depth: 4
+    theme: yeti
+    code-copy: true
+    highlight-style: github
+    embed-resources: true
+    code-tools:
+      source: true    
+---
+
+```{r}
+#| label: setup
+#| include: false
+knitr::opts_chunk$set(echo = TRUE,
+                      warning = FALSE,
+                      error = FALSE, 
+                      message = FALSE,
+                      fig.align = 'center')
+```
+
+# Libraries and setup
+
+```{r}
+# Libraries
+library(tidyverse)
+library(arrow)
+library(glue)
+library(furrr)
+library(splines)
+
+# Colors
+colors_custom <-
+  c("#014e25",
+    "#800080",
+    "#ffa500",
+    "#008080",
+    "#ff6347",
+    "#0000cd")
+
+# Theme ggplot2
+theme_set(theme_bw() + theme(legend.position = "top"))
+
+# Functions
+fs::dir_ls("../source/r/module-models/") |>
+  walk(.f = source) 
+  
+
+# Inputs
+countries <- c("Japan", "Switzerland", "South Korea", "USA-WDC")
+```
+
+# Initial data
+
+- Filter information older than the year 1980 for all databases.
+- I do not take into account the `shrubs` variable due to lack of data.
+- To avoid problems with the coordinates, I round the latitude and longitude to 4 digits.
+- I create a variable named `id_coord` to identify each coordinate and facilitate some calculations.
+
+```{r}
+#| eval: false
+
+# ---- Initial data ----
+df_bloom_complete <-
+  read_parquet("../external-data/data-models/df_full_complete.parquet") |>
+  filter(year > 1980) |>
+  mutate(lat = round(lat, digits = 4),
+         long = round(long, digits = 4),
+         id_coord = str_c(lat, "-", long))
+
+df_weather <-
+  read_parquet("../external-data/df_weather.parquet") |>
+  mutate(lat = round(lat, digits = 4),
+         long = round(long, digits = 4),
+         id_coord = str_c(lat, "-", long))
+
+df_photoperiod <-
+  read_parquet("../external-data/df_photoperiod.parquet") |>
+  filter(year(date_photoperiod) > 1980) |>
+  mutate(lat = round(lat, digits = 4))
+```
+
+# Feature Engineering
+
+- I create several data sets with **fixed** predictor variables and summary metrics (*average*, *median*, *standard deviation* and *sum*) for the **dynamic** predictor variables (climatic and photoperiod) . All predictor variables are at the coordinate level. -
+- **`data_predictors_fixed`:** fixed information for each coordinate. In this database, predictors that summarize climate information (*bio_*) from 1970 to 2000 are considered. Cover variables and soil information (*SoilGrids*) are also included. For more information about these variables see the document *01-extract-soilgrids.ipynb* (*01-extract-soilgrids.html*).
+- **`data_predictors_summary_weather[w]M`:** I generate five databases with summary climate information (10 climate variables) from a time period $t_0$ to one day before flowering $t_{\gamma-1 }$. I summarize with the *average*, *median* and *standard deviation* of all the climatic variables except `FROST_DAYS`, on which I calculate the sum of days with frost and obtain the proportion. I also obtained the sum (accumulation) of temperature, precipitation and evaporation, with these accumulations I calculated a *rate* of *temperature* and *precipitation* by dividing the first by the second, another *rate* between *precipitation* and *evaporation* was calculated by dividing *evaporation* by *precipitation*. For example, if at a coordinate $c_i$ the flowering date $t_\gamma$ was recorded on "1992-03-24" and a time window $w = 3$ (in months) is selected, then $t_0$ is "1991-12-25", the summary metrics $\theta$ for variables $X$ will take date ranges between *"1991-12-25"* and *"1992-03-23"*. I programmed this whole process in the `FEWeatherSummary()` function and it can be implemented for any coordinate. To obtain the five databases with a climate summary for months prior to flowering, I used $w = 1, 3, 6, 9, 12$, that is, I summarized the climate for a month, quarter, semester, 3/4 of year and 1 year before flowering. 
+  
+$$\theta_i = \sum_{t_0}^{t_{\gamma-1}}X_i$$
+
+Where: $$t_0 = t_\gamma - (30 * w)$$
+  
+  - **`data_predictors_summary_photo[w]M`:** for the photoperiod I implement the same strategy previously described for the predictors derived based on meteorological information. I built the function `FEPhotopSummary()` for this purpose and the underlying process is the same, choosing a time window $w$ which is used to summarize the photoperiod $(X)$ with the metric $\theta$. I generate five databases with a summary of the photoperiod of months prior to flowering, with $w = 1, 3, 6, 9, 12$.
+   - **`data_predictors_gdd`:** to calculate the *growing degree-days:* (GDD) I use three approximations. In order to simplify the problem, I use January 1 of each year as the starting date to do the calculations, however, the function `featureEngGDD()` receives an argument named `start_date` $(t_0)$ with which You can choose a different date. I choose the *basal temperature* or limit $(t_b)$ to consider thermal absorption as 5°C, however, the function in question has an argument named `t_base` that allows testing with different values. The daily temperatures $x_t$ (variables `TS`, `TS_MAX`, `TS_MIN`) are used for this calculation. Due to time issues I was not able to experiment enough to estimate optimal values of $t_b$ and $t_0$. The three ways of calculating GDD are described below ([Piña, R. A. et al., 2021](https://www.mdpi.com/2223-7747/10/3/502); [McCaster, G. S. & Wilhelm , W.W., 1997](https://www.sciencedirect.com/science/article/abs/pii/S0168192397000270#:~:text=The%20basic%20equation%20used%20is,BASE%20is%20the%20base%20temperature .)):
+     - **Equation 1:** classic approach in calculating GDD ([Piña, R. A. et al., 2021](https://www.mdpi.com/2223-7747/10/3/502)). If a basal temperature $t_b = 5$ is exceeded then the difference in degrees Celsius will be taken into account to calculate the accumulated GDD (`AGDD1`).
+     - **Equation 2:** Equation 2 ([Piña, R. A. et al., 2021](https://www.mdpi.com/2223-7747/10/3/502)) represents the *triangular model of GDD*, this model represents a non-linear triangular function based on temperatures. This equation takes into account the minimum, maximum temperature and an *optimal temperature*. Since I do not have enough information to consider an optimal temperature, I use the same basal temperature with a value of 5°C.
+     - **Equation 3:** this equation is another classic approximation ([McCaster, G. S. & Wilhelm, W.W., 1997](https://www.sciencedirect.com/science/article/abs/pii/S0168192397000270#:~: text=The%20basic%20equation%20used%20is,BASE%20is%20the%20base%20temperature.)) for the calculation of GDD, where the maximum and minimum temperature is used. In this case *equation 1* coincides with this, however, for the first I use the average temperature directly, in *equation 2* I use the average of the maximum and minimum temperatures. I verified that the results are not the same from the three methods.
+
+$$
+\begin{equation}
+GDD_{1(x_t)} = \begin{cases}
+0\ if\ x_t < t_b \\x_t -t_b\ if\ x_t \geq t_b
+\end{cases}
+\tag{1}\label{ec:gdd1}
+\end{equation}
+$$
+
+ 
+$$
+\begin{equation}
+GDD_{2(x_t)} = \begin{cases}0\ if\ x_t < t_{min} \\\frac{x_t -T_{min}}{T_{opt} - T_{min}}\ if\ T_{min} \leq x_t \leq T_{opt} \\ \frac{x_t -T_{max}}{T_{opt} - T_{max}} if\ T_{opt} \leq x_t \leq T_{max} \\ 0\ if\ x_t \geq T_{max} \end{cases}
+\tag{2}\label{ec:gdd2}
+\end{equation}
+$$
+
+$$
+\begin{equation}
+GDD_{3(x_t)} = \begin{cases}
+0\ if\ \left [ \frac{T_{max} - T_{min}}{2} \right ] - t_b < t_b \\
+\left [ \frac{T_{max} - T_{min}}{2} \right ] - t_b\ if\ \left [ \frac{T_{max} - T_{min}}{2} \right ] - t_b > t_b
+\end{cases}
+\tag{3}\label{ec:gdd3}
+\end{equation}
+$$
+
+With the previous equations, the $GDD_{(x_t)}$ are obtained for each day that is between the initial date $t_0$ and one day before flowering $t_{\gamma-1}$, then they are added for each coordinate and the accumulated growth degree days (`AGDD1`, `AGDD2` and `AGDD3`) are obtained.
+
+$$AGDD_i = \sum_{t_0}^{t_{\gamma-1}} GDD_i$$
+  
+```{r}
+#| eval: false
+
+# ---- Predictors ----
+
+## Fixed ----
+data_predictors_fixed <-
+  df_bloom_complete |>
+  distinct(lat, long, .keep_all = TRUE) |>
+  select(-c(location, year, bloom_date, bloom_doy, shrubs, id_coord)) |>
+  distinct(lat, long, .keep_all = TRUE) |>
+  janitor::clean_names()
+
+write_parquet(data_predictors_fixed,
+              "../external-data/data-models/data_predictors_fixed.parquet")
+
+## Summary predictors with climate ----
+options(future.globals.maxSize= 1000*1024^2) # Config furrr
+plan(multisession, workers = parallel::detectCores() - 2)
+
+### 1 Month ----
+number_months_weather <- 1
+
+data_predictors_summary_weather1M <-
+  FEWeatherSummary(
+    months_window = number_months_weather,
+    data_bloom = df_bloom_complete,
+    data_weather = df_weather
+  )
+
+write_parquet(data_predictors_summary_weather1M,
+              "../external-data/data-models/data_predictors_summary_weather1M.parquet")
+
+### 3 Months ----
+number_months_weather <- 3
+
+data_predictors_summary_weather3M <-
+  FEWeatherSummary(
+    months_window = number_months_weather,
+    data_bloom = df_bloom_complete,
+    data_weather = df_weather
+  )
+
+write_parquet(data_predictors_summary_weather3M,
+              "../external-data/data-models/data_predictors_summary_weather3M.parquet")
+
+### 6 Months ----
+number_months_weather <- 6
+
+data_predictors_summary_weather6M <-
+  FEWeatherSummary(
+    months_window = number_months_weather,
+    data_bloom = df_bloom_complete,
+    data_weather = df_weather
+  )
+
+write_parquet(data_predictors_summary_weather6M,
+              "../external-data/data-models/data_predictors_summary_weather6M.parquet")
+
+### 9 Months ----
+number_months_weather <- 9
+
+data_predictors_summary_weather9M <-
+  FEWeatherSummary(
+    months_window = number_months_weather,
+    data_bloom = df_bloom_complete,
+    data_weather = df_weather
+  )
+
+write_parquet(data_predictors_summary_weather9M,
+              "../external-data/data-models/data_predictors_summary_weather9M.parquet")
+
+### 12 Months ----
+number_months_weather <- 12
+
+data_predictors_summary_weather12M <-
+  FEWeatherSummary(
+    months_window = number_months_weather,
+    data_bloom = df_bloom_complete,
+    data_weather = df_weather
+  )
+
+write_parquet(data_predictors_summary_weather12M,
+              "../external-data/data-models/data_predictors_summary_weather12M.parquet")
+
+## Summary predictors with photoperiod ----
+options(future.globals.maxSize= 1000*1024^2) # Config furrr
+plan(multisession, workers = parallel::detectCores() - 2)
+
+### 1 Month ----
+number_months_photo <- 1
+
+data_predictors_summary_photo1M <-
+  FEPhotopSummary(months_window = number_months_photo,
+                  data_bloom = df_bloom_complete,
+                  data_photo = df_photoperiod)
+
+write_parquet(
+  data_predictors_summary_photo1M,
+  "../external-data/data-models/data_predictors_summary_photo1M.parquet"
+)
+
+### 3 Months ----
+number_months_photo <- 3
+
+data_predictors_summary_photo3M <-
+  FEPhotopSummary(months_window = number_months_photo,
+                  data_bloom = df_bloom_complete,
+                  data_photo = df_photoperiod)
+
+write_parquet(
+  data_predictors_summary_photo3M,
+  "../external-data/data-models/data_predictors_summary_photo3M.parquet"
+)
+
+### 6 Months ----
+number_months_photo <- 6
+
+data_predictors_summary_photo6M <-
+  FEPhotopSummary(months_window = number_months_photo,
+                  data_bloom = df_bloom_complete,
+                  data_photo = df_photoperiod)
+
+write_parquet(
+  data_predictors_summary_photo6M,
+  "../external-data/data-models/data_predictors_summary_photo6M.parquet"
+)
+
+### 9 Months ----
+number_months_photo <- 9
+
+data_predictors_summary_photo9M <-
+  FEPhotopSummary(months_window = number_months_photo,
+                  data_bloom = df_bloom_complete,
+                  data_photo = df_photoperiod)
+
+write_parquet(
+  data_predictors_summary_photo9M,
+  "../external-data/data-models/data_predictors_summary_photo9M.parquet"
+)
+
+### 12 Months ----
+number_months_photo <- 12
+
+data_predictors_summary_photo12M <-
+  FEPhotopSummary(months_window = number_months_photo,
+                  data_bloom = df_bloom_complete,
+                  data_photo = df_photoperiod)
+
+write_parquet(
+  data_predictors_summary_photo12M,
+  "../external-data/data-models/data_predictors_summary_photo12M.parquet"
+)
+
+## Summary predictors with weather (GDD) ----
+options(future.globals.maxSize = 1000 * 1024 ^ 2) # Config furrr
+plan(multisession, workers = parallel::detectCores() - 2)
+
+data_predictors_GDD <-
+  featureEngGDD(
+    start_date = "01-01", # MMDD
+    t_basal = 5, # °C
+    data_bloom = df_bloom_complete,
+    data_weather = df_weather
+  )
+
+write_parquet(data_predictors_GDD,
+              "../external-data/data-models/data_predictors_GDD.parquet")
+```
+
+# Complete data: modeling
+
+- I join the databases `data_predictors_fixed`, `data_predictors_summary_weather[w]M`, `data_predictors_summary_photo[w]M` and `data_predictors_gdd`. This is the final database for model building.
+- The final table has 10,118 rows and 241 columns, of which 234 are predictors generated with fixed information (bioclimatic, coverage, etc.), meteorological, photoperiod and GDD. The other 7 columns are identifiers such as country, location, among others. This table has the response variable `bloom_doy` in a year $t$ and all the predictors were obtained with information prior to the event of interest.
+
+```{r}
+#| eval: false
+
+# Auxiliar function ----
+extract_number <- function(text) {
+  match <- gregexpr("\\d+", text)
+  number <- regmatches(text, match)
+  number <- as.integer(number)
+  return(number)
+}
+
+# =================== PREDICTORS =========================================
+
+# Import data: 36 predictors ----
+data_predictors_fixed <- 
+  read_parquet("../external-data/data-models/data_predictors_fixed.parquet")
+
+## Weather: 180 predictors ----
+data_predictors_summary_weather <-
+  fs::dir_ls("../external-data/data-models/", regexp = "summary_weather") |>
+  map(
+    .f = function(x = .x) {
+      read_parquet(x) |>
+        mutate(month_weather = str_c("month_", extract_number(x)))
+    }
+  ) |>
+  list_rbind() |>
+  pivot_wider(
+    names_from = month_weather,
+    values_from = -c(lat, long, month_weather, year_bloom)
+  ) |>
+  unnest() |>
+  distinct_all()
+
+## Photoperiod: 15 predictors ----
+data_predictors_summary_photo <-
+  fs::dir_ls("../external-data/data-models/", regexp = "summary_photo") |>
+  map(
+    .f = function(x = .x) {
+      read_parquet(x) |>
+        mutate(month_photo = str_c("month_", extract_number(x)))
+    }
+  ) |>
+  list_rbind() |>
+  pivot_wider(
+    names_from = month_photo,
+    values_from = -c(lat, month_photo, year_bloom)
+  ) |>
+  unnest() |>
+  distinct_all()
+
+## AGDD: 3 predictors ----
+data_predictors_gdd <-
+  read_parquet("../external-data/data-models/data_predictors_GDD.parquet")
+
+# =================== TARGET =========================================
+data_modeling <-
+  df_bloom_complete |>
+  select(location, lat, long, year_bloom = year, bloom_doy) |>
+  left_join(data_predictors_fixed, by = c("lat", "long")) |>
+  left_join(data_predictors_summary_weather,
+            by = c("lat", "long", "year_bloom")) |>
+  left_join(data_predictors_summary_photo, by = c("lat", "year_bloom")) |>
+  left_join(data_predictors_gdd, by = c("lat", "long", "year_bloom")) |>
+  relocate(location, country, everything()) |>
+  distinct(lat, long, year_bloom, .keep_all = TRUE)
+
+write_parquet(data_modeling,
+              "../external-data/data-models/data_modeling.parquet")
+```
+
+# Predictors vs Target
+
+## AGDD vs DOY
+
+- With these graphs I not only intend to observe the relationship between AGDD and the DOY but also validate whether the three equations proposed to calculate the GDD disagree with each other.
+
+```{r}
+#| fig-width: 5.5
+#| fig-height: 3.2
+#| layout-nrow: 3
+#| column: screen
+
+data_modeling <-
+  read_parquet("../external-data/data-models/data_modeling.parquet") |> 
+  mutate(lat = round(lat, 4),
+         long = round(long, 4))
+
+data_coords_predict <-
+  read_parquet("../external-data/data-models/df_coords_predict.parquet") |> 
+  mutate(lat = round(lat, 4),
+         long = round(long, 4))
+
+location_predict <- data_coords_predict$location_name
+
+lat_predict <-
+  data_coords_predict$lat
+
+long_predict <-
+  data_coords_predict$long
+
+
+names_location <-
+  unique(data_modeling$location)
+
+names_country <-
+  unique(data_modeling$country)
+
+
+# Plots AGDD1 ----
+data_modeling |>
+  filter(country == names_country[1]) |>
+  filter(agdd1 > 5) |>
+  filter(bloom_doy > 80) |>
+  ggplot(aes(x = agdd1, y = bloom_doy)) +
+  geom_point(color = colors_custom[1],
+             alpha = 0.35,
+             size = 0.85) +
+  geom_smooth(
+      method = "gam",
+      formula = y ~ ns(x, df = 3),
+      color = colors_custom[2],
+      size = 0.5
+    ) +
+  scale_x_log10() +
+  scale_y_log10() +
+  labs(title = names_country[1],
+       x = "AGDD1",
+       y = "DOY")
+
+data_modeling |>
+  filter(country == names_country[2]) |>
+  filter(agdd1 > 5) |>
+  ggplot(aes(x = agdd1, y = bloom_doy)) +
+  geom_point(color = colors_custom[1],
+             alpha = 0.35,
+             size = 0.85) +
+  geom_smooth(
+      method = "gam",
+      formula = y ~ ns(x, df = 3),
+      color = colors_custom[2],
+      size = 0.5
+    ) +
+  scale_x_log10() +
+  scale_y_log10() +
+  labs(title = names_country[2],
+       x = "AGDD1",
+       y = "DOY")
+
+data_modeling |>
+  filter(country == names_country[3]) |>
+  filter(agdd1 > 5) |>
+  ggplot(aes(x = agdd1, y = bloom_doy)) +
+  geom_point(color = colors_custom[1],
+             alpha = 0.35,
+             size = 0.85) +
+  geom_smooth(
+      method = "gam",
+      formula = y ~ ns(x, df = 3),
+      color = colors_custom[2],
+      size = 0.5
+    ) +
+  scale_x_log10() +
+  scale_y_log10() +
+  labs(title = names_country[3],
+       x = "AGDD1",
+       y = "DOY")
+
+data_modeling |>
+  filter(country == names_country[5]) |>
+  filter(agdd1 > 5) |>
+  ggplot(aes(x = agdd1, y = bloom_doy)) +
+  geom_point(color = colors_custom[1],
+             alpha = 0.75,
+             size = 0.85) +
+  geom_smooth(
+      method = "gam",
+      formula = y ~ ns(x, df = 3),
+      color = colors_custom[2],
+      size = 0.5
+    ) +
+  scale_x_log10() +
+  scale_y_log10() +
+  labs(title = names_country[5],
+       x = "AGDD1",
+       y = "DOY")
+
+data_modeling |>
+  filter(country == names_country[6]) |>
+  filter(agdd1 > 5) |>
+  ggplot(aes(x = agdd1, y = bloom_doy)) +
+  geom_point(color = colors_custom[1],
+             alpha = 0.55,
+             size = 0.85) +
+  geom_smooth(
+      method = "gam",
+      formula = y ~ ns(x, df = 3),
+      color = colors_custom[2],
+      size = 0.5
+    ) +
+  scale_x_log10() +
+  scale_y_log10() +
+  labs(title = names_country[6],
+       x = "AGDD1",
+       y = "DOY")
+
+# Plots AGDD2 ----
+data_modeling |>
+  filter(country == names_country[1]) |>
+  filter(agdd2 > 5) |>
+  filter(bloom_doy > 80) |>
+  ggplot(aes(x = agdd2, y = bloom_doy)) +
+  geom_point(color = colors_custom[1],
+             alpha = 0.35,
+             size = 0.85) +
+  geom_smooth(
+    method = "gam",
+    formula = y ~ ns(x, df = 3),
+    color = colors_custom[2],
+    size = 0.5
+  ) +
+  scale_x_log10() +
+  scale_y_log10() +
+  labs(title = names_country[1],
+       x = "agdd2",
+       y = "DOY")
+
+data_modeling |>
+  filter(country == names_country[2]) |>
+  filter(agdd2 > 5) |>
+  ggplot(aes(x = agdd2, y = bloom_doy)) +
+  geom_point(color = colors_custom[1],
+             alpha = 0.35,
+             size = 0.85) +
+  geom_smooth(
+    method = "gam",
+    formula = y ~ ns(x, df = 3),
+    color = colors_custom[2],
+    size = 0.5
+  ) +
+  scale_x_log10() +
+  scale_y_log10() +
+  labs(title = names_country[2],
+       x = "agdd2",
+       y = "DOY")
+
+data_modeling |>
+  filter(country == names_country[3]) |>
+  filter(agdd2 > 5) |>
+  ggplot(aes(x = agdd2, y = bloom_doy)) +
+  geom_point(color = colors_custom[1],
+             alpha = 0.35,
+             size = 0.85) +
+  geom_smooth(
+    method = "gam",
+    formula = y ~ ns(x, df = 3),
+    color = colors_custom[2],
+    size = 0.5
+  ) +
+  scale_x_log10() +
+  scale_y_log10() +
+  labs(title = names_country[3],
+       x = "agdd2",
+       y = "DOY")
+
+data_modeling |>
+  filter(country == names_country[5]) |>
+  filter(agdd2 > 5) |>
+  ggplot(aes(x = agdd2, y = bloom_doy)) +
+  geom_point(color = colors_custom[1],
+             alpha = 0.75,
+             size = 0.85) +
+  geom_smooth(
+    method = "gam",
+    formula = y ~ ns(x, df = 3),
+    color = colors_custom[2],
+    size = 0.5
+  ) +
+  scale_x_log10() +
+  scale_y_log10() +
+  labs(title = names_country[5],
+       x = "agdd2",
+       y = "DOY")
+
+data_modeling |>
+  filter(country == names_country[6]) |>
+  filter(agdd2 > 5) |>
+  ggplot(aes(x = agdd2, y = bloom_doy)) +
+  geom_point(color = colors_custom[1],
+             alpha = 0.55,
+             size = 0.85) +
+  geom_smooth(
+    method = "gam",
+    formula = y ~ ns(x, df = 3),
+    color = colors_custom[2],
+    size = 0.5
+  ) +
+  scale_x_log10() +
+  scale_y_log10() +
+  labs(title = names_country[6],
+       x = "agdd2",
+       y = "DOY")
+
+# Plots AGDD3 ----
+data_modeling |>
+  filter(country == names_country[1]) |>
+  filter(agdd3 > 5) |>
+  filter(bloom_doy > 80) |>
+  ggplot(aes(x = agdd3, y = bloom_doy)) +
+  geom_point(color = colors_custom[1],
+             alpha = 0.35,
+             size = 0.85) +
+  geom_smooth(
+    method = "gam",
+    formula = y ~ ns(x, df = 3),
+    color = colors_custom[2],
+    size = 0.5
+  ) +
+  scale_x_log10() +
+  scale_y_log10() +
+  labs(title = names_country[1],
+       x = "agdd3",
+       y = "DOY")
+
+data_modeling |>
+  filter(country == names_country[2]) |>
+  filter(agdd3 > 5) |>
+  ggplot(aes(x = agdd3, y = bloom_doy)) +
+  geom_point(color = colors_custom[1],
+             alpha = 0.35,
+             size = 0.85) +
+  geom_smooth(
+    method = "gam",
+    formula = y ~ ns(x, df = 3),
+    color = colors_custom[2],
+    size = 0.5
+  ) +
+  scale_x_log10() +
+  scale_y_log10() +
+  labs(title = names_country[2],
+       x = "agdd3",
+       y = "DOY")
+
+data_modeling |>
+  filter(country == names_country[3]) |>
+  filter(agdd3 > 5) |>
+  ggplot(aes(x = agdd3, y = bloom_doy)) +
+  geom_point(color = colors_custom[1],
+             alpha = 0.35,
+             size = 0.85) +
+  geom_smooth(
+    method = "gam",
+    formula = y ~ ns(x, df = 3),
+    color = colors_custom[2],
+    size = 0.5
+  ) +
+  scale_x_log10() +
+  scale_y_log10() +
+  labs(title = names_country[3],
+       x = "agdd3",
+       y = "DOY")
+
+data_modeling |>
+  filter(country == names_country[5]) |>
+  filter(agdd3 > 5) |>
+  ggplot(aes(x = agdd3, y = bloom_doy)) +
+  geom_point(color = colors_custom[1],
+             alpha = 0.75,
+             size = 0.85) +
+  geom_smooth(
+    method = "gam",
+    formula = y ~ ns(x, df = 3),
+    color = colors_custom[2],
+    size = 0.5
+  ) +
+  scale_x_log10() +
+  scale_y_log10() +
+  labs(title = names_country[5],
+       x = "agdd3",
+       y = "DOY")
+
+data_modeling |>
+  filter(country == names_country[6]) |>
+  filter(agdd3 > 5) |>
+  ggplot(aes(x = agdd3, y = bloom_doy)) +
+  geom_point(color = colors_custom[1],
+             alpha = 0.55,
+             size = 0.85) +
+  geom_smooth(
+    method = "gam",
+    formula = y ~ ns(x, df = 3),
+    color = colors_custom[2],
+    size = 0.5
+  ) +
+  scale_x_log10() +
+  scale_y_log10() +
+  labs(title = names_country[6],
+       x = "agdd3",
+       y = "DOY")
+```
+
+## Precipitation/Evaporation (last quarter before flowering) vs DOY
+
+```{r}
+#| fig-width: 5.5
+#| fig-height: 3.2
+#| layout-nrow: 1
+#| column: screen
+
+data_modeling |>
+  filter(country == names_country[1]) |>
+  # filter(rate_acumm_precip_evap_month_3 > 5) |>
+  filter(bloom_doy > 80) |>
+  ggplot(aes(x = rate_acumm_precip_evap_month_3, y = bloom_doy)) +
+  geom_point(color = colors_custom[1],
+             alpha = 0.35,
+             size = 0.85) +
+  geom_smooth(
+    method = "gam",
+    formula = y ~ ns(x, df = 3),
+    color = colors_custom[2],
+    size = 0.5
+  ) +
+  scale_x_log10() +
+  scale_y_log10() +
+  labs(title = names_country[1],
+       x = "Precipitation/Evaporation (last quarter before flowering)",
+       y = "DOY")
+
+data_modeling |>
+  filter(country == names_country[2]) |>
+  # filter(rate_acumm_precip_evap_month_3 > 5) |>
+  ggplot(aes(x = rate_acumm_precip_evap_month_3, y = bloom_doy)) +
+  geom_point(color = colors_custom[1],
+             alpha = 0.35,
+             size = 0.85) +
+  geom_smooth(
+    method = "gam",
+    formula = y ~ ns(x, df = 3),
+    color = colors_custom[2],
+    size = 0.5
+  ) +
+  scale_x_log10() +
+  scale_y_log10() +
+  labs(title = names_country[2],
+       x = "Precipitation/Evaporation (last quarter before flowering)",
+       y = "DOY")
+
+data_modeling |>
+  filter(country == names_country[3]) |>
+  # filter(rate_acumm_precip_evap_month_3 > 5) |>
+  ggplot(aes(x = rate_acumm_precip_evap_month_3, y = bloom_doy)) +
+  geom_point(color = colors_custom[1],
+             alpha = 0.35,
+             size = 0.85) +
+  geom_smooth(
+    method = "gam",
+    formula = y ~ ns(x, df = 3),
+    color = colors_custom[2],
+    size = 0.5
+  ) +
+  scale_x_log10() +
+  scale_y_log10() +
+  labs(title = names_country[3],
+       x = "Precipitation/Evaporation (last quarter before flowering)",
+       y = "DOY")
+
+data_modeling |>
+  filter(country == names_country[5]) |>
+  # filter(rate_acumm_precip_evap_month_3 > 5) |>
+  ggplot(aes(x = rate_acumm_precip_evap_month_3, y = bloom_doy)) +
+  geom_point(color = colors_custom[1],
+             alpha = 0.75,
+             size = 0.85) +
+  geom_smooth(
+    method = "gam",
+    formula = y ~ ns(x, df = 3),
+    color = colors_custom[2],
+    size = 0.5
+  ) +
+  scale_x_log10() +
+  scale_y_log10() +
+  labs(title = names_country[5],
+       x = "Precipitation/Evaporation (last quarter before flowering)",
+       y = "DOY")
+
+data_modeling |>
+  filter(country == names_country[6]) |>
+  # filter(rate_acumm_precip_evap_month_3 > 5) |>
+  ggplot(aes(x = rate_acumm_precip_evap_month_3, y = bloom_doy)) +
+  geom_point(color = colors_custom[1],
+             alpha = 0.55,
+             size = 0.85) +
+  geom_smooth(
+    method = "gam",
+    formula = y ~ ns(x, df = 3),
+    color = colors_custom[2],
+    size = 0.5
+  ) +
+  scale_x_log10() +
+  scale_y_log10() +
+  labs(title = names_country[6],
+       x = "Precipitation/Evaporation (last quarter before flowering)",
+       y = "DOY")
+```
+
+
+## Frost days (last quarter before flowering)
+
+```{r}
+#| fig-width: 5.5
+#| fig-height: 3.2
+#| layout-nrow: 1
+#| column: screen
+
+data_modeling |>
+  filter(country == names_country[1]) |>
+  # filter(prop_frost_days1_month_3 > 5) |>
+  filter(bloom_doy > 80) |>
+  ggplot(aes(x = prop_frost_days1_month_3, y = bloom_doy)) +
+  geom_point(color = colors_custom[1],
+             alpha = 0.35,
+             size = 0.85) +
+  geom_smooth(
+    method = "gam",
+    formula = y ~ ns(x, df = 3),
+    color = colors_custom[2],
+    size = 0.5
+  ) +
+  scale_x_log10() +
+  scale_y_log10() +
+  labs(title = names_country[1],
+       x = "Frost days (last quarter before flowering)",
+       y = "DOY")
+
+data_modeling |>
+  filter(country == names_country[2]) |>
+  # filter(prop_frost_days1_month_3 > 5) |>
+  ggplot(aes(x = prop_frost_days1_month_3, y = bloom_doy)) +
+  geom_point(color = colors_custom[1],
+             alpha = 0.35,
+             size = 0.85) +
+  geom_smooth(
+    method = "gam",
+    formula = y ~ ns(x, df = 3),
+    color = colors_custom[2],
+    size = 0.5
+  ) +
+  scale_x_log10() +
+  scale_y_log10() +
+  labs(title = names_country[2],
+       x = "Frost days (last quarter before flowering)",
+       y = "DOY")
+
+data_modeling |>
+  filter(country == names_country[3]) |>
+  # filter(prop_frost_days1_month_3 > 5) |>
+  ggplot(aes(x = prop_frost_days1_month_3, y = bloom_doy)) +
+  geom_point(color = colors_custom[1],
+             alpha = 0.35,
+             size = 0.85) +
+  geom_smooth(
+    method = "gam",
+    formula = y ~ ns(x, df = 3),
+    color = colors_custom[2],
+    size = 0.5
+  ) +
+  scale_x_log10() +
+  scale_y_log10() +
+  labs(title = names_country[3],
+       x = "Frost days (last quarter before flowering)",
+       y = "DOY")
+
+data_modeling |>
+  filter(country == names_country[5]) |>
+  # filter(prop_frost_days1_month_3 > 5) |>
+  ggplot(aes(x = prop_frost_days1_month_3, y = bloom_doy)) +
+  geom_point(color = colors_custom[1],
+             alpha = 0.75,
+             size = 0.85) +
+  geom_smooth(
+    method = "gam",
+    formula = y ~ ns(x, df = 3),
+    color = colors_custom[2],
+    size = 0.5
+  ) +
+  scale_x_log10() +
+  scale_y_log10() +
+  labs(title = names_country[5],
+       x = "Frost days (last quarter before flowering)",
+       y = "DOY")
+
+data_modeling |>
+  filter(country == names_country[6]) |>
+  # filter(prop_frost_days1_month_3 > 5) |>
+  ggplot(aes(x = prop_frost_days1_month_3, y = bloom_doy)) +
+  geom_point(color = colors_custom[1],
+             alpha = 0.55,
+             size = 0.85) +
+  geom_smooth(
+    method = "gam",
+    formula = y ~ ns(x, df = 3),
+    color = colors_custom[2],
+    size = 0.5
+  ) +
+  scale_x_log10() +
+  scale_y_log10() +
+  labs(title = names_country[6],
+       x = "Frost days (last quarter before flowering)",
+       y = "DOY")
+```
+
+
+
+# Feature selection - Lasso
+
+- Given that the number of predictor variables is relatively high and given that it was previously observed in the exploratory analysis that some predictors have a high correlation, I implement [lasso regression](https://en.wikipedia.org/wiki/Lasso_( statistics)) to select a smaller set of predictors and mitigate multicollinearity problems. Finally, I take this subset of variables into account for building the model.
+- I use the library [`tidymodels`](https://www.tidymodels.org/) to fit the lasso regression model. I adjust the hyperparameters to find the optimal value.
+- The reference book I use to guide the predictor selection strategy is [Feature Engineering and Selection: A Practical Approach for Predictive Models](https://bookdown.org/max/FES/) by *Max Kuhn and Kjell Johnson *.
+- To validate the precision of the model after selecting the predictors, I use the last flowering year that each coordinate has.
+- Before adjusting the models I select values whose variance is greater than 0.
+
+::: {.panel-tabset}
+
+## Model training
+
+```{r}
+library(tidymodels)
+
+# Data modeling
+data_feature_sel <-
+  data_modeling |>
+  select(-c(location)) |>
+  relocate(bloom_doy, everything())
+
+# Train
+data_train <-
+  data_feature_sel |>
+  group_by(lat, long) |>
+  mutate(year_max = max(year_bloom, na.rm = TRUE)) |>
+  ungroup() |>
+  filter(year_bloom < year_max)
+
+# Test
+data_test <-
+  data_feature_sel |>
+  group_by(lat, long) |>
+  mutate(year_max = max(year_bloom, na.rm = TRUE)) |>
+  ungroup() |>
+  filter(year_bloom == year_max)
+
+# Split with train
+set.seed(2024)
+initial_split <- initial_split(data = data_train,
+                               strata = "bloom_doy",
+                               prop = 0.8)
+
+train_data <- training(initial_split)
+test_data <- testing(initial_split)
+
+# Cross validation with k = 10
+set.seed(2023)
+folds <- vfold_cv(data = train_data,
+                  strata = "bloom_doy")
+
+# Preprocessing
+recipe_doy <-
+  recipe(bloom_doy ~ ., data = data_train) |>
+  step_impute_median(all_numeric_predictors(), -year_bloom) |>
+  step_zv(all_numeric_predictors(), -year_bloom) |>
+  step_nzv(all_numeric_predictors(), -year_bloom) |>
+  step_dummy(all_nominal_predictors(), one_hot = TRUE) |> 
+  step_YeoJohnson(all_numeric_predictors(), -year_bloom) |>
+  step_normalize(all_numeric_predictors(), -year_bloom)
+
+# Model architecture
+model_lasso <-
+  linear_reg(penalty = tune(), mixture = 1) %>%
+  set_engine("glmnet")
+
+# Hyperparameter grid (n = 20)
+set.seed(2024)
+my_grid <- grid_max_entropy(penalty(), size = 20)
+
+# Modeling pipeline
+my_flow <- workflow() %>%
+  add_recipe(recipe_doy) %>%
+  add_model(model_lasso)
+
+# Tuning setup
+grid_ctrl <-
+  control_grid(
+    save_pred = TRUE,
+    parallel_over = "everything",
+    save_workflow = TRUE
+  )
+
+# # Fit
+# doParallel::registerDoParallel()
+# set.seed(2024)
+# my_tuning <- tune_grid(
+#   my_flow,
+#   resamples = folds,
+#   grid = my_grid,
+#   control = grid_ctrl,
+#   metrics = metric_set(mae)
+# )
+# doParallel::stopImplicitCluster()
+# 
+# # Save tuning grid
+# write_rds(x = my_tuning,
+#           file = "../models-trained/01-grid-tuning-lasso.rds",
+#           compress = "xz")
+
+# Load .rds
+my_tuning <- read_rds("../models-trained/01-grid-tuning-lasso.rds")
+```
+
+## Best results
+
+- **Best results:** with this model the error (*MAE*) of training with resampling was 2.13 days.
+
+```{r}
+my_tuning %>% 
+  show_best(metric = "mae")
+```
+
+## Best model
+
+```{r}
+best_model <- my_tuning %>%
+  select_best(metric = "mae")
+
+doParallel::registerDoParallel()
+set.seed(2024)
+model_tuned <- my_flow %>%
+  finalize_workflow(best_model) %>%
+  last_fit(initial_split)
+
+doParallel::stopImplicitCluster()
+```
+
+
+## MAE en validation
+
+- This is the error in the test set (*validation*) that was used during training with resampling.
+
+```{r}
+prediction_validation <-
+  model_tuned %>%
+  collect_predictions() %>%
+  pull(.pred)
+
+truth_validation <-
+  model_tuned %>%
+  collect_predictions() %>%
+  pull(bloom_doy)
+  
+mae_vec(truth = truth_validation, estimate = prediction_validation)
+```
+## Final model
+
+```{r}
+final_model <- my_flow %>%
+  finalize_workflow(best_model) %>%
+  fit(bind_rows(train_data, test_data))
+```
+
+
+## MAE en Test
+
+- This is the error with data from the last flowering year of each coordinate.
+
+```{r}
+prediction_test <-
+  final_model |> 
+  predict(new_data = data_test) |> 
+  pull(.pred)
+
+truth_test <-
+  data_test %>%
+  pull(bloom_doy)
+  
+mae_vec(truth = truth_test, estimate = prediction_test)
+```
+
+## Predicted vs actual
+
+- The model predictions are quite approximate with a greater degree of uncertainty in late flowering, early flowering seems to predict well.
+
+```{r}
+ggplot() +
+  geom_point(aes(x = truth_test, y = prediction_test),
+             color = colors_custom[1]) +
+  geom_abline(intercept = 0, slope = 1, lty = 2, color = colors_custom[2]) +
+  labs(title = "Predicted vs actual",
+       subtitle = "Lasso regression",
+       x = "Actual",
+       y = "Predicted")
+```
+
+## Variable importance
+
+- The importance of variables in this case is the magnitude of the coefficient, a result that is very useful since lasso regression allows to cancel predictor variables by forcing their coefficient to be zero, for this reason the variables shown in the following graph could be considered to have the greatest predictive capacity, according to this model. In this case I am taking 20% of the initial predictor variables, that is, $239 * 0.20 = 48$ predictor variables.
+
+```{r}
+#| fig-width: 6.5
+#| fig-height: 7
+
+library(vip)
+
+num_vars <-  ((ncol(data_feature_sel) - 1) * 0.20) |> 
+  round(digits = 0)
+
+var_importance <-
+  final_model %>%
+  extract_fit_parsnip() %>%
+  vi() |>
+  dplyr::slice(1:num_vars)
+
+var_importance |>
+  arrange(desc(Importance)) |>
+  mutate(Importance = abs(Importance),
+         Variable = fct_reorder(Variable, Importance)) %>%
+  ggplot(aes(
+    x = Importance,
+    y = Variable,
+    fill = Sign,
+    color = Sign
+  )) +
+  geom_col(alpha = 0.55) +
+  scale_x_continuous(expand = c(0, 0)) +
+  labs(y = NULL) +
+  scale_color_manual(values = c(colors_custom[2], colors_custom[1])) +
+  scale_fill_manual(values = c(colors_custom[2], colors_custom[1]))
+```
+
+
+:::
+
+# XGBoost (1)
+
+- I use the algorithm [XGBoost](https://xgboost.readthedocs.io/en/stable/) with the subset of predictor variables (48) that were the most important in the lasso model.
+
+::: {.panel-tabset}
+
+## Model training
+
+```{r}
+# Data modeling
+data_subset_xgboost <-
+  data_feature_sel |> 
+  select(bloom_doy, lat, long, year_bloom, contains(var_importance$Variable))
+
+# Train
+data_train <-
+  data_subset_xgboost |>
+  group_by(lat, long) |>
+  mutate(year_max = max(year_bloom, na.rm = TRUE)) |>
+  ungroup() |>
+  filter(year_bloom < year_max)
+
+# Test
+data_test <-
+  data_subset_xgboost |>
+  group_by(lat, long) |>
+  mutate(year_max = max(year_bloom, na.rm = TRUE)) |>
+  ungroup() |>
+  filter(year_bloom == year_max)
+
+# Split with train
+set.seed(2024)
+initial_split <- initial_split(data = data_train,
+                               strata = "bloom_doy",
+                               prop = 0.8)
+
+train_data <- training(initial_split)
+test_data <- testing(initial_split)
+
+# Cross validation with k = 10
+set.seed(2023)
+folds <- vfold_cv(data = train_data,
+                  strata = "bloom_doy")
+
+# Preprocessing
+recipe_doy <-
+  recipe(bloom_doy ~ ., data = data_train) |>
+  step_impute_median(all_numeric_predictors(), -year_bloom) |>
+  step_zv(all_numeric_predictors(), -year_bloom) |>
+  step_nzv(all_numeric_predictors(), -year_bloom) |>
+  step_dummy(all_nominal_predictors(), one_hot = TRUE) |> 
+  step_YeoJohnson(all_numeric_predictors(), -year_bloom) |>
+  step_normalize(all_numeric_predictors(), -year_bloom)
+
+# Model architecture
+model_xgboost <-
+  boost_tree(
+    tree_depth = tune(),
+    learn_rate = tune(),
+    loss_reduction = tune(),
+    min_n = tune(),
+    trees = tune(),
+    mtry = tune()
+  ) %>%
+  set_engine("xgboost") %>%
+  set_mode("regression")
+
+# Hyperparameter grid (n = 20)
+set.seed(2024)
+my_grid <- grid_max_entropy(
+  tree_depth(),
+  learn_rate(),
+  loss_reduction(),
+  min_n(),
+  trees(),
+  finalize(mtry(), data_train),
+  size = 15
+)
+
+# Modeling pipeline
+my_flow <- workflow() %>%
+  add_recipe(recipe_doy) %>%
+  add_model(model_xgboost)
+
+# Tuning setup
+grid_ctrl <-
+  control_grid(
+    save_pred = TRUE,
+    parallel_over = "everything",
+    save_workflow = TRUE
+  )
+
+# # Fit
+# doParallel::registerDoParallel()
+# set.seed(2024)
+# my_tuning <- tune_grid(
+#   my_flow,
+#   resamples = folds,
+#   grid = my_grid,
+#   control = grid_ctrl,
+#   metrics = metric_set(mae)
+# )
+# doParallel::stopImplicitCluster()
+
+# Save tuning grid xgboost
+# write_rds(x = my_tuning,
+#           file = "../models-trained/02-grid-tuning-xgboost.rds",
+#           compress = "xz")
+
+# Load .rds
+my_tuning <- read_rds("../models-trained/02-grid-tuning-xgboost.rds")
+```
+
+## Best results
+
+- **Best results:** with this model the error (*MAE*) of training with resampling was 0.41 days.
+
+```{r}
+my_tuning %>% 
+  show_best(metric = "mae")
+```
+
+## Best model
+
+```{r}
+best_model <- my_tuning %>%
+  select_best(metric = "mae")
+
+doParallel::registerDoParallel()
+set.seed(2024)
+model_tuned <- my_flow %>%
+  finalize_workflow(best_model) %>%
+  last_fit(initial_split)
+
+doParallel::stopImplicitCluster()
+```
+
+
+## MAE en validation
+
+- This is the error in the test set (*validation*) that was used during training with resampling.
+
+```{r}
+prediction_validation <-
+  model_tuned %>%
+  collect_predictions() %>%
+  pull(.pred)
+
+truth_validation <-
+  model_tuned %>%
+  collect_predictions() %>%
+  pull(bloom_doy)
+  
+mae_vec(truth = truth_validation, estimate = prediction_validation)
+```
+## Final model
+
+```{r}
+final_model <- my_flow %>%
+  finalize_workflow(best_model) %>%
+  fit(bind_rows(train_data, test_data))
+```
+
+
+## MAE en Test
+
+- This is the error with data from the last flowering year of each coordinate. It is much better than the lasso model.
+
+```{r}
+prediction_test <-
+  final_model |> 
+  predict(new_data = data_test) |> 
+  pull(.pred)
+
+truth_test <-
+  data_test %>%
+  pull(bloom_doy)
+  
+mae_vec(truth = truth_test, estimate = prediction_test)
+```
+
+## Predicted vs actual
+
+- The model predictions are quite approximate with a greater degree of uncertainty in late flowering, early flowering seems to predict well. Blooms above 200 exhibit high variability in model predictions.
+
+```{r}
+ggplot() +
+  geom_point(aes(x = truth_test, y = prediction_test),
+             color = colors_custom[1]) +
+  geom_abline(intercept = 0, slope = 1, lty = 2, color = colors_custom[2]) +
+  labs(title = "Predicted vs actual",
+       subtitle = "XGBoost",
+       x = "Actual",
+       y = "Predicted")
+```
+
+## Variable importance
+
+```{r}
+#| fig-width: 6.5
+#| fig-height: 7
+
+library(vip)
+
+num_vars <-  ((ncol(data_feature_sel) - 1) * 0.20) |> 
+  round(digits = 0)
+
+final_model %>%
+  extract_fit_parsnip() %>%
+  vip(geom = "point", 10) +
+  labs(title = "Top ten variable importance ",
+       subtitle = "XGBoost")
+```
+
+:::
+
+# XGBoost (2)
+
+- I use the [XGBoost](https://xgboost.readthedocs.io/en/stable/) algorithm with a smaller subset of variables, these variables I select based on what I observed in the exploratory analysis. In total I keep 23 predictor variables.
+- In this case I am going to use the response variable transformed with a natural logarithm.
+
+::: {.panel-tabset}
+
+## Model training
+
+```{r}
+# Data modeling
+data_subset_xgboost <-
+  data_feature_sel |>
+  select(
+    bloom_doy,
+    year_bloom,
+    lat,
+    long,
+    alt,
+    contains("agdd"),
+    contains("nitrogen"),
+    contains("soc"),
+    contains("cec"),
+    bio1,
+    bio12,
+    bio4,
+    contains("prop_frost"),
+    rate_acumm_precip_evap_month_1,
+    rate_acumm_precip_evap_month_3,
+    rate_acumm_precip_evap_month_6,
+    rate_acumm_precip_evap_month_9,
+    rate_acumm_precip_evap_month_12
+  ) |> 
+  mutate(bloom_doy = log(bloom_doy))
+
+# Train
+data_train <-
+  data_subset_xgboost |>
+  group_by(lat, long) |>
+  mutate(year_max = max(year_bloom, na.rm = TRUE)) |>
+  ungroup() |>
+  filter(year_bloom < year_max) |> 
+  select(-year_max)
+
+# Test
+data_test <-
+  data_subset_xgboost |>
+  group_by(lat, long) |>
+  mutate(year_max = max(year_bloom, na.rm = TRUE)) |>
+  ungroup() |>
+  filter(year_bloom == year_max) |> 
+  select(-year_max)
+
+# Split with train
+set.seed(2024)
+initial_split <- initial_split(data = data_train,
+                               strata = "bloom_doy",
+                               prop = 0.8)
+
+train_data <- training(initial_split)
+test_data <- testing(initial_split)
+
+# Cross validation with k = 5
+set.seed(2023)
+folds <- vfold_cv(data = train_data,
+                  strata = "bloom_doy",
+                  v = 5)
+
+# Preprocessing
+recipe_doy <-
+  recipe(bloom_doy ~ ., data = data_train) |>
+  step_impute_median(all_numeric_predictors(), -year_bloom) |>
+  step_zv(all_numeric_predictors(), -year_bloom) |>
+  step_nzv(all_numeric_predictors(), -year_bloom) |>
+  step_dummy(all_nominal_predictors(), one_hot = TRUE) |> 
+  step_YeoJohnson(all_numeric_predictors(), -year_bloom) |>
+  step_normalize(all_numeric_predictors(), -year_bloom)
+
+# Model architecture
+model_xgboost <-
+  boost_tree(
+    tree_depth = tune(),
+    learn_rate = tune(),
+    loss_reduction = tune(),
+    min_n = tune(),
+    trees = 1000,
+    mtry = tune()
+  ) %>%
+  set_engine("xgboost") %>%
+  set_mode("regression")
+
+# Hyperparameter grid (n = 20)
+set.seed(2024)
+my_grid <- grid_max_entropy(
+  tree_depth(),
+  learn_rate(),
+  loss_reduction(),
+  min_n(),
+  finalize(mtry(), data_train),
+  size = 15
+)
+
+# Modeling pipeline
+my_flow <- workflow() %>%
+  add_recipe(recipe_doy) %>%
+  add_model(model_xgboost)
+
+# Tuning setup
+grid_ctrl <-
+  control_grid(
+    save_pred = TRUE,
+    parallel_over = "everything",
+    save_workflow = TRUE
+  )
+
+# # # Fit
+# doParallel::registerDoParallel()
+# set.seed(2024)
+# my_tuning <- tune_grid(
+#   my_flow,
+#   resamples = folds,
+#   grid = my_grid,
+#   control = grid_ctrl,
+#   metrics = metric_set(mae)
+# )
+# doParallel::stopImplicitCluster()
+# 
+# # Save tuning grid xgboost
+# write_rds(x = my_tuning,
+#           file = "../models-trained/03-grid-tuning-xgboost.rds",
+#           compress = "xz")
+
+# Load .rds
+my_tuning <- read_rds("../models-trained/03-grid-tuning-xgboost.rds")
+```
+
+## Best results
+
+```{r}
+my_tuning %>% 
+  show_best(metric = "mae")
+```
+
+## Best model
+
+```{r}
+best_model <- my_tuning %>%
+  select_best(metric = "mae")
+
+doParallel::registerDoParallel()
+set.seed(2024)
+model_tuned <- my_flow %>%
+  finalize_workflow(best_model) %>%
+  last_fit(initial_split)
+
+doParallel::stopImplicitCluster()
+```
+
+
+## MAE en validation
+
+```{r}
+prediction_validation <-
+  model_tuned %>%
+  collect_predictions() %>%
+  pull(.pred)
+
+truth_validation <-
+  model_tuned %>%
+  collect_predictions() %>%
+  pull(bloom_doy)
+  
+mae_vec(truth = truth_validation, estimate = prediction_validation)
+```
+## Final model
+
+```{r}
+final_model <- my_flow %>%
+  finalize_workflow(best_model) %>%
+  fit(bind_rows(train_data, test_data))
+```
+
+
+## MAE en Test
+
+```{r}
+prediction_test <-
+  final_model |> 
+  predict(new_data = data_test) |> 
+  pull(.pred)
+
+truth_test <-
+  data_test %>%
+  pull(bloom_doy)
+  
+mae_vec(truth = truth_test, estimate = prediction_test)
+```
+
+## Predicted vs actual
+
+```{r}
+ggplot() +
+  geom_point(aes(x = truth_test, y = prediction_test),
+             color = colors_custom[1]) +
+  geom_abline(intercept = 0, slope = 1, lty = 2, color = colors_custom[2]) +
+  labs(title = "Predicted vs actual",
+       subtitle = "XGBoost",
+       x = "Actual",
+       y = "Predicted")
+```
+
+## Variable importance
+
+```{r}
+#| fig-width: 6.5
+#| fig-height: 7
+
+library(vip)
+
+num_vars <-  ((ncol(data_feature_sel) - 1) * 0.20) |> 
+  round(digits = 0)
+
+final_model %>%
+  extract_fit_parsnip() %>%
+  vip(geom = "point", 10) +
+  labs(title = "Top ten variable importance ",
+       subtitle = "XGBoost")
+```
+
+:::
+
+# Predicciones 2024
+
+- At this point I load the data for predictions for the year 2024 in the 5 coordinates of interest.
+- I use the second XGBoost model to make predictions for the year 2024.
+
+```{r}
+data_pred_2024 <-
+  read_parquet("../external-data/data-predict/data_predictors_2024.parquet") 
+```
+
+- I use [resampling techniques](https://www.tidymodels.org/learn/models/conformal-regression/) to estimate the confidence intervals:
+
+```{r}
+library(probably)
+
+my_flow2 <- workflow() %>%
+  add_recipe(recipe_doy) %>%
+  add_model(final_model$fit$fit$spec)
+
+ctrl <- control_resamples(save_pred = TRUE, extract = I)
+
+set.seed(2024)
+folds <- vfold_cv(train_data)
+
+doParallel::registerDoParallel()
+xgb_rs <-
+  my_flow2 %>%
+  fit_resamples(folds, control = ctrl)
+doParallel::stopImplicitCluster()
+
+
+cv_int <- int_conformal_cv(xgb_rs)
+
+final_predictions <-
+  cv_int |> 
+  predict(new_data = data_pred_2024, level = 0.9) |> 
+  mutate(.pred_lower = exp(.pred_lower),
+         .pred  = exp(.pred),
+         .pred_upper = exp(.pred_upper)) 
+
+df_pred_xgb_2024 <-
+  data_pred_2024 |>
+  distinct(lat, long, location) |>
+  mutate(prediction = final_predictions$.pred,
+         lower = final_predictions$.pred_lower,
+         upper = final_predictions$.pred_upper) |>
+  mutate(location = if_else(location == "NPN",
+                            true = "newyorkcity",
+                            false = location),
+         prediction = round(prediction, digits = 0),
+         lower = round(lower, digits = 0),
+         upper = round(upper, digits = 0)) |> 
+  select(-c(lat, long))
+
+write_csv(df_pred_xgb_2024, "../cherry-predictions.csv")
+
+df_pred_xgb_2024 |> gt::gt()
+```
+
+
+# References
+
+- [Estimating flowering transition dates from status-based phenological observations: a test of methods](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC6764363/)
+- [Beyond seasonal climate: statistical estimation of phenological responses to weather](https://www.jstor.org/stable/24432272)
+- [Modelling flowering of plants using time-to-event methods](https://www.sciencedirect.com/science/article/pii/S1161030109001002)
+- [A model comparison for daylength as a function of latitude and day of year](https://www.sciencedirect.com/science/article/abs/pii/030438009400034F)
+- [A DEMONSTRATION OF THE LAW OF THE FLOWERING PLANTS](https://realworlddatascience.net/ideas/tutorials/posts/2023/04/13/flowers.html)
+- [Phenological Model to Predict Budbreak and Flowering Dates of Four Vitis vinifera L. Cultivars Cultivated in DO. Ribeiro (North-West Spain)](https://www.mdpi.com/2223-7747/10/3/502)
+- [Comparison of Phenology Models for Predicting the Onset of Growing Season over the Northern Hemisphere](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4184861/)
+- [The Smart Predicting of Algal Concentration for Safer Drinking Water Production with Sensor Data](https://www.mdpi.com/1424-8220/23/11/5151)
+- [Chapter 21 Delineating temperature response phases with PLS regression](https://inresgb-lehre.iaas.uni-bonn.de/chillR_book/pls_intro.html)
+- [Using R in hydrology: a review of recent developments and future directions](https://hess.copernicus.org/articles/23/2939/2019/)
+- [PhaseR: R functions for downloading, filtering and interpolating phenological observations](https://rpubs.com/JKI-GDM/PhaseR)
+- [Modeling Weed Seed Germination and Seedling Emergence](https://rpubs.com/mbmesgaran/495385)
+- [Modern-Era Retrospective analysis for Research and Applications (MERRA)](https://gmao.gsfc.nasa.gov/reanalysis/MERRA/)
+- [Partial least squares regression and principal component analysis: similarity and differences between two popular variable reduction approaches](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC8796256/)
+- [Addressing food insecurity: An exploration of wheat production expansion](https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0290684#pone.0290684.e003)
+

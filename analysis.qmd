@@ -25,11 +25,15 @@ invisible(Sys.setlocale("LC_ALL","English"))
 
 library(tidymodels)
 library(tidyverse)
+library(bonsai)
+library(rules)
+library(finetune)
+library(probably)
+library(kernlab)
 library(corrr)
 library(rpart.plot)
 library(vip)
 library(gt)
-library(rvest)
 library(nasapower)
 library(openmeteo)
 
@@ -1284,19 +1288,27 @@ Add the weather forecast to the predictors
 ```{r}
 #| label: combine-power-openmeteo
 
+last_obs_date <- power_cherry |> 
+  filter(!is.na(t2m)) |> 
+  slice_max(order_by = date) |> 
+  select(date) |> 
+  pull() |> 
+  unique()
+
 power_cherry <- bind_rows(
   power_cherry,
-  locations_fcst
+  locations_fcst |> filter(date > last_obs_date)
   ) |> 
   filter(!is.na(t2m))
 ```
 
-Check out if the forecast was appended correctly
+Check out if the forecast was appended correctly. If not, there will be duplicates.
 
 ```{r}
 power_cherry |> 
-  filter(location == "kyoto") |> 
-  tail(n = 20) 
+  pivot_longer(cols = -c(location, date), names_to = "variable", values_to = "value") |> 
+  summarise(n = dplyr::n(), .by = c(location, date, variable)) |>
+  filter(n > 1L)
 ```
 
 Unfortunately, this will only give us a couple days of weather into March. We can either extrapolate this or combine it with additional sources.
@@ -1317,19 +1329,9 @@ power_cherry <- power_cherry |>
   relocate(location, date, t2m, t2m_max, t2m_min, t2m_range)
 ```
 
-Plot the midrange temperature 
-
-```{r}
-power_cherry |> 
-  ggplot(mapping = aes(x = date, y = t2m_range)) +
-  geom_step() +
-  facet_grid(rows = vars(location))
-```
-
-
 ### Aggregated precipitation since January 1st
 
-We use the variable daily measured precipitation (in mm) to calculate accumulated precipitation (in mm) starting from January 1st of the year of the observation date. 
+We use the variable daily measured precipitation (in mm) to calculate accumulated precipitation starting from January 1st of the year of the observation date. 
 
 ```{r}
 #| label: create-aprcp
@@ -1342,16 +1344,6 @@ power_cherry <- power_cherry |>
   ungroup() |> 
   select(-year)
 ```
-
-Plot aggregated precipitation since January 1st
-
-```{r}
-power_cherry |> 
-  ggplot(mapping = aes(x = date, y = aprcp)) +
-  geom_step() +
-  facet_grid(rows = vars(location))
-```
-
 
 ### Aggregated growing degree days since January 1st
 
@@ -1370,15 +1362,6 @@ power_cherry <- power_cherry |>
   mutate(agdd = cumsum(gdd)) |> 
   ungroup() |>
   select(-c(year, gdd))
-```
-
-Plot the aggregated growing degree days since January 1st
-
-```{r}
-power_cherry |> 
-  ggplot(mapping = aes(x = date, y = agdd)) +
-  geom_step() +
-  facet_grid(rows = vars(location))
 ```
 
 
@@ -1408,20 +1391,13 @@ power_cherry <- power_cherry |>
   mutate(acdd = if_else(is.na(acdd), 0, acdd))
 ```
 
-Plot the aggregated chilling degree days since September 1st
-
-```{r}
-power_cherry |> 
-  ggplot(mapping = aes(x = date, y = acdd)) +
-  geom_step() +
-  facet_grid(rows = vars(location))
-```
-
 ## Select time range
 
 I select only days between October 1st and the last available forecast date of the current year. That way, the model won't rely on data which is not available on the day of the submission deadline.
 
 ```{r}
+#| label: select-time-range
+
 last_fcst_date <- power_cherry |> 
   select(date) |>
   pull() |> 
@@ -1430,10 +1406,9 @@ last_fcst_date <- power_cherry |>
 power_cherry <- power_cherry |> 
   mutate(day = yday(date)) |> 
   relocate(location, date, day) |> 
-  filter(day %in% c(1:yday(last_fcst_date)))
-  # filter(day %in% c(yday(date("1980-10-01")):366, 1:yday(last_fcst_date)))
+  # filter(day %in% c(1:yday(last_fcst_date)))
+  filter(day %in% c(yday(date("1980-12-01")):366, 1:yday(last_fcst_date)))
 ```
-
 
 ## Temporal aggregation
 
@@ -1762,94 +1737,73 @@ cart_fit |>
   vip()
 ```
 
-AGDDs in winter and spring are the most important predictor.
+## Modeling
 
-# section 3
+### Data spending
 
-How to apply tabular ml?
+We only have `r nrow(cherry_days)` observations of the peak bloom date. We therefore need to be careful how we spend our data.
 
-## Workflows
+We need to split these observations randomly into
+- a training set that will be used to train the model
+- a validation set that will be used to calibrate the model
+- a test set that will be used to compare the performance different models against each other
 
-- while fitting a one-off model like above for EDA was fine
-- if we want to quickly iterate pre-, post- and parameter tuning
-- workflow objects via `{tidymodels}` is necessary
-
-## Data Splitting
-
-- ML modeling processes benefit from data splitting
-- data splitting usually involves splitting the initial data into at least two parts: training and testing, sometimes a third called validation
-- defining data that the model can see (training) and data held away (validation & testing)
-- training data will be used to *train* the model
-- testing/validation data is held out to *test* and *calibrate* the accuracy of the trained model
-- this is an important step to measure over/under fitting and determine post-processes
+Because the number of observations are so small, any random split will have huge consequences. Stratified splitting may somewhat help here.
 
 ```{r}
-set.seed(31)
+set.seed(123)
 
-data_split <- initial_validation_split(magpie_data)
+data_split <- initial_validation_split(cherry_days)
 
 training <- training(data_split)
 validate <- validation(data_split)
 testing  <- testing(data_split)
 ```
 
-## Feature Engineering and Pre-Processing
-
-- a crucial step before training is feature engineering
-- feature engineering can come in many flavors
-- these steps can be used to scale data, extract components, adjustments, cross-effects, etc.
-- some features come from industry knowledge
-- some come from EDA, training, testing, iterating
-- recipes package is designed to help the ML practitioner with pre-processing
+### Feature engineering and pre-processing
 
 ```{r}
-magpie_recipe <- recipe(formula = magpie_count ~ ., data = training) |>
+cherry_recipe <- recipe(formula = bloom_doy ~ ., data = training) |>
   step_corr(threshold = 0.90) |>
   step_dummy(all_nominal_predictors()) |>
   step_YeoJohnson(all_nominal_predictors())
 ```
 
-## Training Stage, Part 1
+## Training stage
 
-- within the training stage we will evaluate hyperparameter estimations, model engines, & final performance
-- *that's a lot of moving pieces!*
-- this means we will most likely need to split our training data into *many pieces*
-- this is done via cross-validation
-- this is cost effective, we want to test as many possibilities in the shortest amount of time and compute
-- within the training data we will have *analysis* and *assessment* sets
+Within the training stage we will evaluate hyperparameters via cross-validation.
+In 10-fold cross validation (CV), we will randomly split the training set into 10 roughly equally-sized subsets, and we will repeatedly fit the model on 9 of these folds, which constitute the *analysis* set, and evaluate the models' performance on the remaining fold, the *asssessment* set.
 
-## Training Stage, Part 2
-
-- let's create our cross-validation and fit many models
-- below shows hyper-parameter estimations for each model engine
-- given all the moving pieces, we'll use racing to quickly drop the bad performers
+We also want to ensure the sampling is stratified. This ensures the samples represent all quantiles of bloom_doy. We use the option `strata = bloom_doy` in `vfold_cv()`.
 
 ```{r}
-set.seed(72)
-# we also want to ensure the sampling is stratified
-# this ensures the samples represent all quantiles of our magpie count
-folds <- vfold_cv(training, v = 10, strata = magpie_count)
+set.seed(123)
 
-## random forest ----
+folds <- vfold_cv(training, v = 10, strata = bloom_doy)
+```
+
+Random forest
+
+```{r}
 forest_grid <- expand.grid(
   trees = c(20, 50),
   mtry  = c(2, 4, 6)
 )
 
-orf_spec <- rand_forest(
+rf_spec <- rand_forest(
   trees = tune(),
   mtry  = tune()
   ) |>
-  # accelerated oblique random forest
-  set_engine("aorsf") |>
+  set_engine("ranger") |>
   set_mode("regression")
 
-orf_results <- finetune::tune_race_anova(
+# Use the {finetune} function tune_race_anova()
+rf_results <- tune_race_anova(
   object = workflow() |>
     # our pre-process
-    add_recipe(magpie_recipe) |>
+    add_recipe(cherry_recipe) |>
     # our model
-    add_model(orf_spec),
+    add_model(rf_spec),
   # folds
   resamples = folds,
   # parameters
@@ -1859,7 +1813,11 @@ orf_results <- finetune::tune_race_anova(
   # loss function to minimize
   metrics = metric_set(yardstick::rmse)
 )
+```
 
+Boosted tree
+
+```{r}
 ## boosted tree ----
 lgb_grid <- expand.grid(
   trees      = c(3, 10, 25),
@@ -1877,7 +1835,7 @@ lgb_spec <- boost_tree(
 lgb_results <- finetune::tune_race_anova(
     workflow() |>
       # our pre-process
-      add_recipe(magpie_recipe) |>
+      add_recipe(cherry_recipe) |>
       # our model
       add_model(lgb_spec),
     # folds
@@ -1888,8 +1846,12 @@ lgb_results <- finetune::tune_race_anova(
     control = control_race(),
     # loss function to minimize
     metrics = metric_set(yardstick::rmse)
-  )
+)
+```
 
+Cubist rules
+
+```{r}
 # cubist rules -----
 cub_grid <- expand.grid(
   committees      = c(30, 45),
@@ -1907,7 +1869,7 @@ cub_spec <- cubist_rules(
 cub_results <- tune_race_anova(
   object = workflow() |>
     # our pre-process
-    add_recipe(magpie_recipe) |>
+    add_recipe(cherry_recipe) |>
     # our model
     add_model(cub_spec),
   # folds
@@ -1919,234 +1881,227 @@ cub_results <- tune_race_anova(
   # loss function to minimize
   metrics = metric_set(rmse)
 )
-
-
-## svm ----
-svm_grid <- expand.grid(
-  laplace_sigma = c(0.5, 1, 2, 5)
-)
-
-svm_spec <- svm_laplace(
-  laplace_sigma = tune()
-) |>
-  # support vector with laplacian kernel
-  set_engine("kernlab") |>
-  set_mode("regression")
-
-svm_results <- finetune::tune_race_anova(
-    workflow() |>
-      # our pre-process
-      add_recipe(magpie_recipe) |>
-      # our model
-      add_model(svm_spec),
-    # folds
-    resamples = folds,
-    # parameters
-    grid = svm_grid,
-    # racing as control
-    control = control_race(),
-    # loss function to minimize
-    metrics = metric_set(yardstick::rmse)
-  )
 ```
 
-## Training Stage, Part 3
 
-- selecting our best performers based on analysis and assessment
-- next is to do a final fit
-- taking the best hyperparameter sets and fitting to the entire training data
+
+### Model selection
+
+After selecting the model with the best hyperparameter specification based on the results of k-fold CV, we fit the model to the whole training data set.
+
+We then evaluate these models on the test set, and compare their performance.
+
+We can have a look at the best hyperparameter specification for each model based on k-fold CV.
 
 ```{r}
-select_best(orf_results)
+select_best(rf_results)
 select_best(lgb_results)
 select_best(cub_results)
-select_best(svm_results)
+```
 
-# final fits with all workflow details ---
-## random forest ----
-orf_fit <- fit(
+Then we fit these models on the whole training data set
+
+Random forest
+
+```{r}
+rf_fit <- fit(
   object = finalize_workflow(
     x = workflow() |>
-      add_recipe(magpie_recipe) |>
-      add_model(orf_spec),
-    parameters = select_best(orf_results)
+      add_recipe(cherry_recipe) |>
+      add_model(rf_spec),
+    parameters = select_best(rf_results)
     ),
   data = training
   )
+```
 
-## boosted tree ----
+Boosted tree
+
+```{r}
 lgb_fit <- fit(
   object = finalize_workflow(
     x = workflow() |>
-        add_recipe(magpie_recipe) |>
+        add_recipe(cherry_recipe) |>
         add_model(lgb_spec),
     parameters = select_best(lgb_results)
     ),
   data = training
   )
+```
 
-# cubist rules ----
+Cubist rules
+
+```{r}
 cub_fit <- fit(
   object = finalize_workflow(
     x = workflow() |>
-      add_recipe(magpie_recipe) |>
+      add_recipe(cherry_recipe) |>
       add_model(cub_spec),
       select_best(cub_results)
     ),
   data = training
   )
-
-# support vector machine ----
-svm_fit <- fit(
-  object = finalize_workflow(
-    x = workflow() |>
-        add_recipe(magpie_recipe) |>
-        add_model(svm_spec),
-    parameters = select_best(svm_results)
-    ),
-  data = training
-  )
 ```
 
-## Validation Stage
+### Validation stage
 
-- Validation data will be used to validate, evaluate, calibrate our models
-- add prediction intervals to point forecasts
-- post-processing is important to handle any adjustments and bias for predictions
-- we can then use the calibrated models on our test dataset for a final evaluation
+The validation set is used to validate, and calibrate the models that were selected using k-fold CV and fitted on the whole training data set.
+
+We use the `{probably}` package to add prediction intervals to our point forecasts.
+
+Post-processing is important to handle any adjustments and bias for predictions.
+
+We then use the calibrated models on our test dataset for a final evaluation.
+
+Create the predictions for validation data
 
 ```{r}
-# final models & probably
-library(probably) # point calibration and intervals
-
-# predictions for validation data
-orf_vpreds <- predict(orf_fit, validate)
+rf_vpreds <- predict(rf_fit, validate)
 lgb_vpreds <- predict(lgb_fit, validate)
 cub_vpreds <- predict(cub_fit, validate)
-svm_vpreds <- predict(svm_fit, validate)
+```
 
-# making a large dataframe with all preds and truth
+Make a large dataframe with all preds and truth
+
+```{r}
 validate_preds <- validate |>
   cbind(
-    orf = orf_vpreds$.pred,
+    rf = rf_vpreds$.pred,
     lgb = lgb_vpreds$.pred,
-    cub = cub_vpreds$.pred,
-    svm = svm_vpreds$.pred
+    cub = cub_vpreds$.pred
   ) |>
-  dplyr::select(magpie_count:svm) |>
-  tidyr::pivot_longer(-magpie_count)
+  relocate(year, location, bloom_doy, rf, lgb, cub) |> 
+  pivot_longer(cols = c(rf, lgb, cub), names_to = "model", values_to = "value") |> 
+  select(year, location, bloom_doy, model, value)
+```
 
-# visualize the certainty in predictions
-ggplotly(
-  validate_preds |>
-    ggplot() +
-    geom_point(aes(x = magpie_count, y = value, color = name)) +
-    coord_equal() +
-    geom_abline(lty = 2) +
-    labs(
-      title = "magpie count & predictions",
-      caption = "models disagree at high magpie counts"
-    )
-)
-# quick error measurement
+Visualize the certainty in predictions
+
+```{r}
 validate_preds |>
-  mutate(
-    abs_error = abs(magpie_count - value)
-  ) |>
-  group_by(name) |>
-  summarize(
-    total_abs_error = sum(abs_error)
-  )
+  ggplot(aes(x = bloom_doy, y = value, color = model)) +
+  geom_point() +
+  coord_equal() +
+  geom_abline(lty = 2) +
+  labs(title = "bloom_doy & predictions")
+```
+
+Quick error measurement
+
+```{r}
+validate_preds |>
+  mutate(abs_error = abs(bloom_doy - value)) |>
+  group_by(model) |>
+  summarize(avg_abs_error = mean(abs_error)) |> 
+  arrange(avg_abs_error)
 ```
 
 ## Calibration Stage
 
-- our top performing models on validation are cubist and random forest
-- cubist is already pretty precise and accurate
-- but we will calibrate our random forest to see if we increase accuracy on validation data
+The top performing models on validation are cubist and random forest
+
+Cubist is already pretty precise and accurate but we will calibrate our random forest to see if we increase accuracy on the validation set.
+
+Calibrate random forest with validation data
 
 ```{r}
-# calibrate ORF with validation data
-calibrate_orf <- data.frame(
-  magpie_count = validate$magpie_count,
-  .pred        = orf_vpreds$.pred
+calibrate_rf <- data.frame(
+  bloom_doy = validate$bloom_doy,
+  .pred = rf_vpreds$.pred
 )
 
-orf_fit_cal <- calibrate_orf |>
-  cal_estimate_linear(magpie_count)
+rf_fit_cal <- calibrate_rf |>
+  cal_estimate_linear(bloom_doy)
 
-calibrated_orf_preds <- calibrate_orf |>
-  cal_apply(orf_fit_cal)
+calibrated_rf_preds <- calibrate_rf |>
+  cal_apply(rf_fit_cal)
 
-calibrated_orf_preds |>
-  mutate(
-    abs_error = abs(magpie_count - .pred)
-  ) |>
-  # there is an improvement but note we need to 'test' the calibration
-  summarize(total_abs_error = sum(abs_error))
+calibrated_rf_preds |>
+  mutate(abs_error = abs(bloom_doy - .pred)) |>
+  summarize(avg_abs_error = mean(abs_error))
 ```
 
-## Model with Conformal Coverage
+There is an improvement but note we need to **test** the calibration
 
-- while we have optimized our point forecasts with pre-, tuning, and post-processing
-- it's also important to capture our model uncertainty
-- create robust prediction intervals via validation data
+### Model with conformal coverage
+
+While we have optimized our point forecasts with pre-processing, tuning, and post-processing, it's also important to capture our model uncertainty and to create robust prediction intervals with the validation set.
+
+Let's create confidence intervals for our models. The simplest form being is the conformal split method implemented in the `{probably}` function `int_conformal_split()`.
 
 ```{r}
-# create confidence intervals for our models
-
-### simplest form being a conformal split method --
-svm_int_model <- probably::int_conformal_split(svm_fit, validate)
-
-# just like that, we have a conformal interval model!
-svm_int_model
+rf_int_model <- probably::int_conformal_split(rf_fit, validate)
+lgb_int_model <- probably::int_conformal_split(lgb_fit, validate)
+cub_int_model <- probably::int_conformal_split(cub_fit, validate)
 ```
 
-## Testing Stage
-
-- Testing data will *finally* be used to see the overall performance
+We have obtained conformal interval models.
 
 ```{r}
-# our original top performer in the validation stage
-cubist_preds <- predict(cub_fit, testing)
+rf_int_model
+lgb_int_model
+cub_int_model
+```
 
-# our 2nd best, calibrated during validation stage
-orf_cal_preds <- predict(orf_fit, testing) |> cal_apply(orf_fit_cal)
+## Testing stage
 
-# a weaker model, to show conformal prediction intervals
-svm_int_preds <- predict(svm_int_model, testing, level = 0.875)
+We use the test data set to evaluate the performance of the models that we have trained on the test set and calibrated on the validation set.
 
+Create the predictions and prediction intervals on the test set
+
+```{r}
+cubist_preds <- predict(cub_int_model, testing, level = 0.90)
+
+rf_cal_preds <- predict(rf_int_model, testing, level = 0.90) |> 
+  cal_apply(rf_fit_cal)
+
+lgb_int_preds <- predict(lgb_int_model, testing, level = 0.90)
+```
+
+Combine the test set and the predictions
+
+```{r}
 test_df <- testing |>
   cbind(
     cubist = cubist_preds$.pred,
-    orf_cal = orf_cal_preds$.pred,
-    svm_upper = svm_int_preds$.pred_upper,
-    svm_lower = svm_int_preds$.pred_lower
-  )
+    cubist_upper = cubist_preds$.pred_upper,
+    cubist_lower = cubist_preds$.pred_lower,
+    rf_cal = rf_cal_preds$.pred,
+    rf_cal_upper = rf_cal_preds$.pred_upper,
+    rf_cal_lower = rf_cal_preds$.pred_lower,
+    lgb = lgb_int_preds$.pred,
+    lgb_upper = lgb_int_preds$.pred_upper,
+    lgb_lower = lgb_int_preds$.pred_lower
+  ) |> 
+  select(year, location, bloom_doy, cubist, cubist_upper, cubist_lower, rf_cal, rf_cal_upper, rf_cal_lower, lgb, lgb_upper, lgb_lower)
+```
 
-ggplotly(
-  test_df |>
-    ggplot() +
-    geom_point(aes(x = magpie_count, y = magpie_count, color = "actual")) +
-    geom_errorbar(aes(xmin = svm_lower, xmax = svm_upper, y = magpie_count, color = "svm_interval"), alpha = .4) +
-    geom_point(aes(x = cubist, y = magpie_count, color = "cubist")) +
-    geom_point(aes(x = orf_cal, y = magpie_count, color = "orf_calibrated")) +
-    coord_equal() +
-    geom_abline(lty = 2)
-)
 
-# test accuracy:
+```{r}
+test_df |>
+  ggplot() +
+  geom_point(aes(x = bloom_doy, y = bloom_doy, color = "actual")) +
+  geom_errorbar(aes(xmin = lgb_lower, xmax = lgb_upper, y = bloom_doy, color = "lgb_interval"), alpha = 0.4) +
+  geom_point(aes(x = cubist, y = bloom_doy, color = "cubist")) +
+  geom_point(aes(x = rf_cal, y = bloom_doy, color = "rf_calibrated")) +
+  coord_equal() +
+  geom_abline(lty = 2) +
+  labs(x = "predictions", y = "bloom_doy")
+```
+Test accuracy
+
+```{r}
 test_df |>
   mutate(
-    cub_abs_error = abs(magpie_count - cubist),
-    orf_abs_error = abs(magpie_count - orf_cal),
-    svm_coverage  = ifelse(magpie_count >= svm_lower & magpie_count <= svm_upper, 1, 0),
-    n             = row_number()
+    cub_abs_error = abs(bloom_doy - cubist),
+    rf_abs_error = abs(bloom_doy - rf_cal),
+    lgb_coverage = ifelse(bloom_doy >= lgb_lower & bloom_doy <= lgb_upper, 1, 0),
+    n = row_number()
   ) |>
   summarize(
     cub_total_abs_error = sum(cub_abs_error),
-    orf_total_abs_error = sum(orf_abs_error),
-    svm_coverage_pct = sum(svm_coverage) / max(n)
+    rf_total_abs_error = sum(rf_abs_error),
+    lgb_coverage_pct = sum(lgb_coverage) / max(n)
   )
 ```
 
@@ -2160,233 +2115,6 @@ test_df |>
 - `{stacks}`: we can also ensemble many models to outperform any one model
 - meta learners & diagnostics: while in production, we can refit as we have additional observations, potentially add another model to learn best hyperparameter setpoints for best out-of-sample accuracy
 - it's important to understand trade-offs of the model in operation over time and when to refit, calibrate, or start from scratch
-
-Let's plot the daily average maximum temperature obtained from the NASA POWER project
-
-```{r}
-#| label: fig-power-max-temp
-#| fig-cap: "Average maximum temperature (°C)"
-
-fig_tmax <- power_cherry |>
-  ggplot(aes(x = date)) +
-  geom_hline(yintercept = 0, colour = "grey") +
-  geom_line(aes(y = t2m_max), colour = "#d62828") +
-  labs(
-    title = "Average maximum temperature (°C)", 
-    x = NULL, y = "Degrees (°C)"
-  ) +
-  theme_minimal() +
-  facet_grid(rows = vars(location))
-
-print(fig_tmax)
-
-ggsave(filename = "figures/fig_tmax.png", plot = fig_tmax, bg = "white")
-```
-
-Let's plot the daily average minimum temperature obtained from the NASA POWER project
-
-```{r}
-#| label: fig-power-min-temp
-#| fig-cap: "Average minimum temperature (°C)"
-
-fig_tmin <- power_cherry |>
-  ggplot(aes(x = date)) +
-  geom_hline(yintercept = 0, colour = "grey") +
-  geom_line(aes(y = t2m_min), colour = "#00b4d8") +
-  labs(
-    title = "Average minimum temperature (°C)",
-    x = NULL, y = "Degrees (°C)"
-  ) +
-  theme_light() +
-  facet_grid(rows = vars(location))
-
-print(fig_tmin)
-
-ggsave(filename = "figures/fig_tmin.png", plot = fig_tmin, bg = "white")
-```
-Plot `frost_days` from NASA Power: 
-
-Create average number of frost days
-
-```{r}
-power_cherry <- power_cherry |> 
-  mutate(year = year(date)) |> 
-  group_by(location, year) |> 
-  arrange(location, year, date) |> 
-  mutate(afrost_days = cumsum(frost_days)) |> 
-  ungroup() |> 
-  select(-year)
-```
-
-
-```{r}
-#| label: fig-frost_days
-#| fig-cap: "Average preciptation"
-
-fig_prcp <- power_cherry |>
-  ggplot(aes(x = date, y = afrost_days)) +
-  geom_line(colour = "#4361ee") +
-  labs(
-    title = "Average preciptation (in mm)",
-    x = NULL, y = "Average preciptation (in mm)"
-  ) +
-  theme_light() +
-  facet_grid(rows = vars(location))
-
-print(fig_prcp)
-
-ggsave(filename = "figures/fig_prcp.png", plot = fig_prcp, bg = "white")
-```
-
-
-Plot the `prcp` from NASA POWER:
-
-```{r}
-#| label: fig-avg-prcp
-#| fig-cap: "Average preciptation"
-
-fig_prcp <- power_cherry |>
-  ggplot(aes(x = date, y = prcp)) +
-  geom_line(colour = "#4361ee") +
-  labs(
-    title = "Average preciptation (in mm)",
-    x = NULL, y = "Average preciptation (in mm)"
-  ) +
-  theme_light() +
-  facet_grid(rows = vars(location))
-
-print(fig_prcp)
-
-ggsave(filename = "figures/fig_prcp.png", plot = fig_prcp, bg = "white")
-```
-
-Let's plot `APRCP`:
-
-```{r}
-#| label: fig-aprcp
-#| fig-cap: "Average aggregated preciptation since January 1st (in mm)"
-
-fig_aprcp <- power_cherry |>
-  ggplot(aes(x = date, y = aprcp)) +
-  geom_line(colour = "#4361ee") +
-  labs(
-    title = "Average aggregated preciptation since January 1st (in mm)",
-    x = NULL, y = "Average agregated preciptation (in mm)"
-  ) +
-  theme_light() +
-  facet_grid(rows = vars(location))
-
-print(fig_aprcp)
-
-ggsave(filename = "figures/fig_aprcp.png", plot = fig_aprcp, bg = "white")
-```
-
-Plot cooling and heating degree days
-  "CDD0", # temp above 0C
-  "CDD18_3",# Temp above 18C
-  "HDD0", # Temp below 0C
-  "HDD18_3", # Temp below 18C
-
-```{r}
-power_cherry |> 
-  ggplot(aes(x = date)) +
-  geom_line(aes(y = hdd18_3), colour = "red") +
-  facet_grid(rows = vars(location))
-```
-  
-
-
-
-Let's plot the Growing Degree Days (GDD) from NASA POWER
-
-```{r}
-#| label: fig-gdd
-#| fig-cap: "Growing Degree Days (GDD) calculated from January 1st"
-
-fig_gdd <- power_cherry |>
-  ggplot(aes(x = date, y = gdd)) +
-  geom_line(colour = "#d62828") +
-  labs(
-    title = "Growing Degree Days (GDD)",
-    subtitle = "Calculated from January 1st",
-    x = NULL, y = "Growing Degree Days (GDD)"
-  ) +
-  theme_light() +
-  facet_grid(rows = vars(location))
-
-print(fig_gdd)
-
-ggsave(filename = "figures/fig_gdd.png", plot = fig_gdd, bg = "white")
-```
-
-Let's plot Accumulated Growing Degree Days (AGDD) from NASA POWER
-
-```{r}
-#| label: fig-agdd
-#| fig-cap: "Accumulated Growing Degree Days (AGDD) calculated from January 1s"
-
-fig_agdd <- power_cherry |>
-  ggplot(aes(x = date, y = agdd)) +
-  geom_step(colour = "#d62828") +
-  labs(
-    title = "Accumulated Growing Degree Days (AGDD)", 
-    subtitle = "Calculated from January 1st",
-    x = NULL, y = "Accumulated Growing Degree Days (AGDD)"
-  ) +
-  theme_light() +
-  facet_grid(rows = vars(location))
-
-print(fig_agdd)
-
-ggsave(filename = "figures/fig_agdd.png", plot = fig_agdd, bg = "white")
-```
-
-
-
-Let's plot the Chilling Degree Days (CDD) from NASA POWER
-
-```{r}
-#| label: fig-plt-cdd
-#| fig-cap: "Chilling Degree Days (CDD) calculated from October 1st"
-
-fig_cdd <- power_cherry |>
-  ggplot(aes(x = date, y = cdd)) +
-  geom_line(colour = "#00b4d8") +
-  labs(
-    title = "Chilling Degree Days (CDD)",
-    subtitle = "Calculated from October 1st",
-    x = NULL, y = "Chilling Degree Days",
-  ) +
-  theme_light() +
-  facet_grid(rows = vars(location))
-
-print(fig_cdd)
-
-ggsave(filename = "figures/fig_cdd.png", plot = fig_cdd, bg = "white")
-```
-
-Let's plot Accumulated Chilling Degree Days (ACDD) from NASA POWER
-
-```{r}
-#| label: fig-plt-acdd
-#| fig-cap: "Accumulated Chilling Degree Days (ACDD) calculated from October 1st"
-
-fig_acdd <- power_cherry |>
-  ggplot(aes(x = date, y = acdd)) +
-  geom_line(colour = "#00b4d8") +
-  labs(
-    title = "Accumulated Chilling Degree Days (ACDD)",
-    subtitle = "Calculated from October 1st",
-    x = NULL, y = "Chilling Degree Days",
-  ) +
-  theme_light() +
-  facet_grid(rows = vars(location))
-
-print(fig_acdd)
-
-ggsave(filename = "figures/fig_acdd.png", plot = fig_acdd, bg = "white")
-```
-
 
 ### Nonlinear models
 

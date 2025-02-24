@@ -1,0 +1,365 @@
+---
+title: "International Cherry Blossom Prediction Competition"
+subtitle: "Data 2024"
+author: "Edimer David Jaramillo"
+date: "February 29, 2024"
+lang: en-US
+format:
+  html:
+    page-layout: article
+    toc: true
+    code-fold: true
+    df-print: paged
+    toc-location: left
+    number-depth: 4
+    theme: yeti
+    code-copy: true
+    highlight-style: github
+    embed-resources: true
+    code-tools:
+      source: true    
+---
+
+```{r}
+#| label: setup
+#| include: false
+knitr::opts_chunk$set(echo = TRUE,
+                      warning = FALSE,
+                      error = FALSE, 
+                      message = FALSE,
+                      fig.align = 'center')
+```
+
+# Libraries and setup
+
+```{r}
+# Libraries
+library(tidyverse)
+library(arrow)
+library(glue)
+library(furrr)
+library(splines)
+
+# Colors
+colors_custom <-
+  c("#014e25",
+    "#800080",
+    "#ffa500",
+    "#008080",
+    "#ff6347",
+    "#0000cd")
+
+# Theme ggplot2
+theme_set(theme_bw() + theme(legend.position = "top"))
+
+# Functions
+fs::dir_ls("../source/r/module-models/") |>
+  walk(.f = source) 
+  
+
+# Inputs
+countries <- c("Japan", "Switzerland", "South Korea", "USA-WDC")
+```
+
+# Initial data
+
+- Filter information older than the year 1980 for all databases.
+- I do not take into account the `shrubs` variable due to lack of data.
+- To avoid problems with the coordinates, I round the latitude and longitude to 4 digits.
+- I create a variable named `id_coord` to identify each coordinate and facilitate some calculations.
+- In this execution I only take into account the coordinates of interest to predict. In order to execute the functions without problem, I must assume a reference date to extract summaries prior to that date, as explained in the document **07-Modeling-FeatEnginer-FeatSelection.qmd**, the date I use in this case is "2024-03-25", I choose this date to guarantee that I will have data from moments before flowering.
+
+
+```{r}
+#| eval: false
+
+# ---- Initial data ----
+data_coords_predict <-
+  read_parquet("../external-data/data-models/df_coords_predict.parquet") |>
+  mutate(lat = round(lat, digits = 4),
+         long = round(long, digits = 4))
+
+df_bloom_complete <-
+  read_parquet("../external-data/data-models/df_full_complete.parquet") |>
+  filter(year > 1980) |>
+  mutate(
+    lat = round(lat, digits = 4),
+    long = round(long, digits = 4),
+    id_coord = str_c(lat, "-", long)
+  ) |>
+  filter(lat %in% data_coords_predict$lat) |>
+  distinct(lat, long, .keep_all = TRUE) |>
+  mutate(bloom_date = ymd("2024-03-25"))
+
+df_weather <-
+  read_parquet("../external-data/df_weather.parquet") |>
+  mutate(
+    lat = round(lat, digits = 4),
+    long = round(long, digits = 4),
+    id_coord = str_c(lat, "-", long)
+  )
+
+df_photoperiod <-
+  read_parquet("../external-data/df_photoperiod.parquet") |>
+  filter(year(date_photoperiod) > 1980) |>
+  mutate(lat = round(lat, digits = 4))
+
+# Feature Engineering
+
+# ---- Predictors ----
+
+## Fixed ----
+data_predictors_fixed <-
+  df_bloom_complete |>
+  distinct(lat, long, .keep_all = TRUE) |>
+  select(-c(location, year, bloom_date, bloom_doy, shrubs, id_coord)) |>
+  distinct(lat, long, .keep_all = TRUE) |>
+  janitor::clean_names()
+
+write_parquet(
+  data_predictors_fixed,
+  "../external-data/data-predict/data_predictors_fixed.parquet"
+)
+
+## Summary predictors with climate ----
+options(future.globals.maxSize = 1000 * 1024 ^ 2) # Config furrr
+plan(multisession, workers = parallel::detectCores() - 2)
+
+### 1 Month ----
+number_months_weather <- 1
+
+data_predictors_summary_weather1M <-
+  FEWeatherSummary(
+    months_window = number_months_weather,
+    data_bloom = df_bloom_complete,
+    data_weather = df_weather
+  )
+
+write_parquet(
+  data_predictors_summary_weather1M,
+  "../external-data/data-predict/data_predictors_summary_weather1M.parquet"
+)
+
+### 3 Months ----
+number_months_weather <- 3
+
+data_predictors_summary_weather3M <-
+  FEWeatherSummary(
+    months_window = number_months_weather,
+    data_bloom = df_bloom_complete,
+    data_weather = df_weather
+  )
+
+write_parquet(
+  data_predictors_summary_weather3M,
+  "../external-data/data-predict/data_predictors_summary_weather3M.parquet"
+)
+
+### 6 Months ----
+number_months_weather <- 6
+
+data_predictors_summary_weather6M <-
+  FEWeatherSummary(
+    months_window = number_months_weather,
+    data_bloom = df_bloom_complete,
+    data_weather = df_weather
+  )
+
+write_parquet(
+  data_predictors_summary_weather6M,
+  "../external-data/data-predict/data_predictors_summary_weather6M.parquet"
+)
+
+### 9 Months ----
+number_months_weather <- 9
+
+data_predictors_summary_weather9M <-
+  FEWeatherSummary(
+    months_window = number_months_weather,
+    data_bloom = df_bloom_complete,
+    data_weather = df_weather
+  )
+
+write_parquet(
+  data_predictors_summary_weather9M,
+  "../external-data/data-predict/data_predictors_summary_weather9M.parquet"
+)
+
+### 12 Months ----
+number_months_weather <- 12
+
+data_predictors_summary_weather12M <-
+  FEWeatherSummary(
+    months_window = number_months_weather,
+    data_bloom = df_bloom_complete,
+    data_weather = df_weather
+  )
+
+write_parquet(
+  data_predictors_summary_weather12M,
+  "../external-data/data-predict/data_predictors_summary_weather12M.parquet"
+)
+
+## Summary predictors with photoperiod ----
+options(future.globals.maxSize = 1000 * 1024 ^ 2) # Config furrr
+plan(multisession, workers = parallel::detectCores() - 2)
+
+### 1 Month ----
+number_months_photo <- 1
+
+data_predictors_summary_photo1M <-
+  FEPhotopSummary(months_window = number_months_photo,
+                  data_bloom = df_bloom_complete,
+                  data_photo = df_photoperiod)
+
+write_parquet(
+  data_predictors_summary_photo1M,
+  "../external-data/data-predict/data_predictors_summary_photo1M.parquet"
+)
+
+### 3 Months ----
+number_months_photo <- 3
+
+data_predictors_summary_photo3M <-
+  FEPhotopSummary(months_window = number_months_photo,
+                  data_bloom = df_bloom_complete,
+                  data_photo = df_photoperiod)
+
+write_parquet(
+  data_predictors_summary_photo3M,
+  "../external-data/data-predict/data_predictors_summary_photo3M.parquet"
+)
+
+### 6 Months ----
+number_months_photo <- 6
+
+data_predictors_summary_photo6M <-
+  FEPhotopSummary(months_window = number_months_photo,
+                  data_bloom = df_bloom_complete,
+                  data_photo = df_photoperiod)
+
+write_parquet(
+  data_predictors_summary_photo6M,
+  "../external-data/data-predict/data_predictors_summary_photo6M.parquet"
+)
+
+### 9 Months ----
+number_months_photo <- 9
+
+data_predictors_summary_photo9M <-
+  FEPhotopSummary(months_window = number_months_photo,
+                  data_bloom = df_bloom_complete,
+                  data_photo = df_photoperiod)
+
+write_parquet(
+  data_predictors_summary_photo9M,
+  "../external-data/data-predict/data_predictors_summary_photo9M.parquet"
+)
+
+### 12 Months ----
+number_months_photo <- 12
+
+data_predictors_summary_photo12M <-
+  FEPhotopSummary(months_window = number_months_photo,
+                  data_bloom = df_bloom_complete,
+                  data_photo = df_photoperiod)
+
+write_parquet(
+  data_predictors_summary_photo12M,
+  "../external-data/data-predict/data_predictors_summary_photo12M.parquet"
+)
+
+## Summary predictors with weather (GDD) ----
+options(future.globals.maxSize = 1000 * 1024 ^ 2) # Config furrr
+plan(multisession, workers = parallel::detectCores() - 2)
+
+data_predictors_GDD <-
+  featureEngGDD(
+    start_date = "01-01",
+    # MMDD
+    t_basal = 5,
+    # °C
+    data_bloom = df_bloom_complete,
+    data_weather = df_weather
+  )
+
+write_parquet(
+  data_predictors_GDD,
+  "../external-data/data-predict/data_predictors_GDD.parquet"
+)
+```
+
+# Complete data: predict 2024
+
+- I join the databases `data_predictors_fixed`, `data_predictors_summary_weather[w]M`, `data_predictors_summary_photo[w]M` and `data_predictors_gdd`. This is the final database to make predictions for the year 2024.
+
+```{r}
+#| eval: false
+
+# Auxiliar function ----
+extract_number <- function(text) {
+  match <- gregexpr("\\d+", text)
+  number <- regmatches(text, match)
+  number <- as.integer(number)
+  return(number)
+}
+
+# =================== PREDICTORS =========================================
+
+# Import data: 36 predictors ----
+data_predictors_fixed <- 
+  read_parquet("../external-data/data-predict/data_predictors_fixed.parquet")
+
+## Weather: 180 predictors ----
+data_predictors_summary_weather <-
+  fs::dir_ls("../external-data/data-predict/", regexp = "summary_weather") |>
+  map(
+    .f = function(x = .x) {
+      read_parquet(x) |>
+        mutate(month_weather = str_c("month_", extract_number(x)))
+    }
+  ) |>
+  list_rbind() |>
+  pivot_wider(
+    names_from = month_weather,
+    values_from = -c(lat, long, month_weather, year_bloom)
+  ) |>
+  unnest() |>
+  distinct_all()
+
+## Photoperiod: 15 predictors ----
+data_predictors_summary_photo <-
+  fs::dir_ls("../external-data/data-predict/", regexp = "summary_photo") |>
+  map(
+    .f = function(x = .x) {
+      read_parquet(x) |>
+        mutate(month_photo = str_c("month_", extract_number(x)))
+    }
+  ) |>
+  list_rbind() |>
+  pivot_wider(
+    names_from = month_photo,
+    values_from = -c(lat, month_photo, year_bloom)
+  ) |>
+  unnest() |>
+  distinct_all()
+
+## AGDD: 3 predictors ----
+data_predictors_gdd <-
+  read_parquet("../external-data/data-predict/data_predictors_GDD.parquet")
+
+# =================== TARGET =========================================
+data_modeling <-
+  df_bloom_complete |>
+  select(location, lat, long, year_bloom = year, bloom_doy) |>
+  left_join(data_predictors_fixed, by = c("lat", "long")) |>
+  left_join(data_predictors_summary_weather,
+            by = c("lat", "long", "year_bloom")) |>
+  left_join(data_predictors_summary_photo, by = c("lat", "year_bloom")) |>
+  left_join(data_predictors_gdd, by = c("lat", "long", "year_bloom")) |>
+  relocate(location, country, everything()) |>
+  distinct(lat, long, year_bloom, .keep_all = TRUE)
+
+write_parquet(data_modeling,
+              "../external-data/data-predict/data_predictors_2024.parquet")
+```
