@@ -28,9 +28,6 @@ invisible(Sys.setlocale("LC_ALL","English"))
 library(tidymodels)
 library(tidyverse)
 library(arrow)
-library(chillR)
-library(ChillModels)
-library(pls)
 library(bonsai)
 library(rules)
 library(finetune)
@@ -39,7 +36,6 @@ library(kernlab)
 library(corrr)
 library(rpart.plot)
 library(vip)
-library(torch)
 library(brulee)
 library(stacks)
 library(gt)
@@ -94,10 +90,11 @@ Plot the time series for Kyoto
 #| label: fig-kyoto
 #| fig-cap: "Peak cherry blossom days in Kyoto, Japan"
 #| warning: false
+#| message: false
 
 fig_kyoto <- kyoto |> 
   ggplot(mapping = aes(x = year, y = bloom_doy)) +
-  geom_smooth(method = "lm", formula = y ~ poly(x, 20), colour = "#644128", se = TRUE) +
+  geom_smooth(method = "loess", formula = y ~ x, colour = "#644128", se = TRUE) +
   geom_step(linetype = "dotted", colour = "#a53860", lwd = 0.5) +
   geom_point(color = "#ff0054", alpha = 0.5) +
   scale_x_continuous(breaks = c(seq(800, 2000, by = 100), NA)) +
@@ -156,10 +153,11 @@ Let's plot the time series for Liestal, Switzerland:
 #| label: fig-liestal
 #| fig-cap: "Peak cherry blossom days for Liestal-Weideli, Switzerland"
 #| warning: false
+#| message: false
 
 fig_liestal <- liestal |> 
   ggplot(mapping = aes(x = year, y = bloom_doy)) +
-  geom_smooth(method = "lm", formula = y ~ poly(x, 10), colour = "#644128", se = TRUE) +
+  geom_smooth(method = "loess", formula = y ~ x, colour = "#644128", se = TRUE) +
   geom_step(linetype = "dotted", colour = "#a53860", lwd = 0.75) +
   geom_point(color = "#ff0054", alpha = 0.5, size = 1.5) +
   scale_x_continuous(breaks = c(seq(1880, 2020, by = 20), NA)) +
@@ -254,6 +252,7 @@ Plot the time series for New York City, USA
 #| label: fig-newyorkcity
 #| fig-cap: "Peak cherry blossom days for New York City, USA"
 #| warning: false
+#| message: false
 
 fig_newyorkcity <- newyorkcity |> 
   ggplot(mapping = aes(x = year, y = bloom_doy)) +
@@ -353,7 +352,6 @@ fig_vancouver <- vancouver |>
   geom_smooth(method = "loess", formula = y ~ x, colour = "#644128", se = TRUE) +
   geom_step(linetype = "dotted", colour = "#a53860", lwd = 0.75) +
   geom_point(color = "#ff0054", alpha = 0.5, size = 1.5) +
-  # scale_x_continuous(breaks = c(seq(1920, 2020, by = 20), NA)) +
   labs(
     title = "Peak cherry blossom days for Vancouver BC, Canada", 
     subtitle = "Cultivar: Akebono (daybreak cherry)",
@@ -396,7 +394,7 @@ Let's plot the data for Washington D.C
 
 fig_washingtondc <- washingtondc |> 
   ggplot(mapping = aes(x = year, y = bloom_doy)) +
-  geom_smooth(method = "lm", formula = y ~ poly(x, 10), colour = "#644128", se = TRUE) +
+  geom_smooth(method = "loess", formula = y ~ x, colour = "#644128", se = TRUE) +
   geom_step(linetype = "dotted", colour = "#a53860", lwd = 0.75) +
   geom_point(color = "#ff0054", alpha = 0.5, size = 1.5) +
   scale_x_continuous(breaks = c(seq(1920, 2020, by = 20), NA)) +
@@ -589,7 +587,7 @@ The competition organizers provide additional data sets for sites other than the
 
 #### Japan
 
-The data file `japan.csv` is provided by the [Japanese Meteorological Agency (JMA)](https://www.data.jma.go.jp/sakura/data/pdf/005.pdf) and contains recorded peak bloom dates for cherry trees at various sites across Japan. The sample trees are located within a 5km radius of the location indicated in the data file. 
+The data file `japan.csv` is provided by the [Japanese Meteorological Agency (JMA)](https://www.data.jma.go.jp/sakura/data/) and contains recorded peak bloom dates for cherry trees at various sites across Japan. The sample trees are located within a 5km radius of the location indicated in the data file. 
 
 Load the data set, make implicit missing values explicit and change the `location` variable to only include the city names in lowercase letters.
 
@@ -609,33 +607,77 @@ japan <- read_csv("data/japan.csv") |>
 
 The `japan.csv` file contains observations between `r min(japan$year)` and `r max(japan$year)` for `r length(unique(japan$location))` locations in Japan.
 
-Let's plot peak bloom dates for Kyoto, Japan
+Select some locations in Japan with altitudes in the range of the five main locations and more than 60 observations. This should hopefully allow us to estimate the effect of altitude on the peak bloom date. Most locations will be close to sea level, which is okay since New York City and Vancouver are at this very low altitude.
 
 ```{r}
-#| label: fig-bloom-kyoto2
-#| fig-cap: "Peak bloom dates in Kyoto, Japan"
+#| label: select-locations-in-japan
 #| warning: false
 #| message: false
 
-fig_kyoto2 <- japan |>
-  filter(location == "kyoto") |> 
+altitudes <- c(unique(kyoto$alt), unique(liestal$alt), unique(newyorkcity$alt), unique(vancouver$alt), unique(washingtondc$alt))
+
+japan <- japan |>
+  group_by(location, lat, long, alt) |> 
+  filter(alt %in% seq(min(altitudes) - 10, max(altitudes) + 10)) |> 
+  filter(sum(!is.na(bloom_doy)) >= 60) |> 
+  ungroup()
+```
+
+Let's plot peak bloom dates for selected locations in Japan
+
+```{r}
+#| label: fig-bloom-japan
+#| fig-cap: "Peak bloom dates for selected locations Japan"
+#| warning: false
+#| message: false
+
+fig_japan <- japan |>
   ggplot(mapping = aes(x = year, y = bloom_doy)) +
   geom_smooth(method = "loess", colour = "#644128", se = FALSE) +
   geom_step(linetype = "dotted", colour = "#ffa5ab", lwd = 1) +
   geom_point(color = "#f72585", alpha = 0.5, size = 2) +
-  scale_x_continuous(breaks = c(seq(1950, 2020, by = 10), NA)) +
+  scale_x_continuous(breaks = c(seq(1950, 2020, by = 20), NA)) +
+  facet_wrap(facets = vars(location)) +
   labs(
-    title = "Peak bloom (since Jan 1st) in Kyoto, Japan",
+    title = "Peak bloom (since Jan 1st) for selected locations in Japan",
     subtitle = NULL,
     x = NULL, y = NULL,
     caption = "Source: Japanese Meteorological Agency (JMA)"
   ) +
   theme_light()
 
-print(fig_kyoto2)
+print(fig_japan)
 
-ggsave(filename = "figures/fig_kyoto2.png", plot = fig_kyoto2, bg = "white")
+ggsave(filename = "figures/fig_japan.png", plot = fig_japan, bg = "white")
 ```
+
+I choose to include observations from these locations and save them in separate tibbles.
+
+```{r}
+#| label: save-selected-japan
+
+hakodate <- japan |> 
+  filter(location == "hakodate", alt == 35)
+
+kochi <- japan |> 
+  filter(location == "kochi", alt == 3)
+
+kumagaya <- japan |> 
+  filter(location == "kumagaya", alt == 30)
+
+mito <- japan |> 
+  filter(location == "mito", alt == 29)
+
+muroran <- japan |> 
+  filter(location == "muroran", alt == 3)
+
+osaka <- japan |> 
+  filter(location == "osaka", alt == 23)
+
+tottori <- japan |> 
+  filter(location == "tottori", alt == 6)
+```
+
 
 #### Korea
 
@@ -663,32 +705,47 @@ korea <- read_csv("data/south_korea.csv") |>
 
 The `south_korea.csv` file contains observations between `r min(korea$year)` and `r max(korea$year)` at `r length(unique(korea$location))` locations in South Korea.
 
-Let's plot the first bloom dates in Seoul, South Korea:
+The locations in Korea have between 15 and 25 observations. 
 
 ```{r}
-#| label: fig-seoul
-#| fig-cap: "First bloom in Seoul, South Korea"
+#| label: select-locations-korea
 #| warning: false
 #| message: false
 
-fig_seoul <- korea |>
-  filter(location == "seoul") |> 
+korea <- korea |>
+  group_by(location, lat, long, alt) |> 
+  filter(alt %in% seq(min(altitudes) - 10, max(altitudes) + 10)) |> 
+  filter(sum(!is.na(bloom_doy)) >= 15) |> 
+  ungroup()
+```
+
+
+Let's plot the first bloom dates for selected locations in Korea
+
+```{r}
+#| label: fig-korea
+#| fig-cap: "First bloom of selected locations in South Korea"
+#| warning: false
+#| message: false
+
+fig_korea <- korea |>
   ggplot(mapping = aes(x = year, y = bloom_doy)) +
   geom_smooth(method = "loess", colour = "#644128", se = FALSE) +
   geom_step(linetype = "dotted", colour = "#ffa5ab", lwd = 1) +
   geom_point(color = "#f72585", alpha = 0.5, size = 2.5) +
   scale_x_continuous(breaks = c(seq(1980, 2020, by = 5), NA)) +
+  facet_wrap(facets = vars(location)) +
   labs(
-    title = "First bloom (since Jan 1st) in Seoul, Korea", 
+    title = "First bloom (since Jan 1st) of selected locations in Korea", 
     subtitle = "Cultivar: Prunus × yedoensis", 
     x = NULL, y = NULL, 
     caption = "Source: Korean Meteorological Administration (KMA)"
   ) +
   theme_light()
 
-print(fig_seoul)
+print(fig_korea)
 
-ggsave(filename = "figures/fig_seoul.png", plot = fig_seoul, bg = "white")
+ggsave(filename = "figures/fig_korea.png", plot = fig_korea, bg = "white")
 ```
 
 #### MeteoSwiss
@@ -713,96 +770,107 @@ meteoswiss <- read_csv("data/meteoswiss.csv") |>
 
 The `meteoswiss.csv` file contains observations between `r min(meteoswiss$year)` and `r max(meteoswiss$year)` at `r length(unique(meteoswiss$location))` locations.
 
-Plot the data for Liestal, Switzerland. Remove the observation for the year 1952. Note that for this data set, peak bloom is defined as **50%** of blossoms being in bloom.
+The locations have up to 70 observations, but most are at very high altitudes, much higher than the five main locations. I therefore select two locations which have a similar altitude to Liestal and are in close geographical proximity.
 
 ```{r}
-#| label: fig-liestal2
-#| fig-cap: "Peak bloom dates in Liestal, Switzerland"
+#| label: select-locations-meteoswiss
 #| warning: false
 #| message: false
 
-fig_liestal2 <- meteoswiss |>
-  filter(location == "liestal", year != 1952) |>
+meteoswiss_selected <- meteoswiss |>
+  group_by(location, lat, long, alt) |> 
+  filter(alt %in% seq(min(altitudes) - 10, max(altitudes) + 10)) |> 
+  filter(sum(!is.na(bloom_doy)) >= 40) |> 
+  ungroup()
+```
+
+
+Plot the data for selected locations in Switzerland. Note that for this data set, peak bloom is defined as **50%** of blossoms being in bloom.
+
+```{r}
+#| label: fig-meteoswiss
+#| fig-cap: "Peak bloom dates for selected locations in Switzerland"
+#| warning: false
+#| message: false
+
+fig_meteoswiss <- meteoswiss_selected |>
   ggplot(mapping = aes(x = year, y = bloom_doy)) +
   geom_smooth(method = "loess", colour = "#644128", se = FALSE) +
   geom_step(linetype = "dotted", colour = "#ffa5ab", lwd = 1) +
   geom_point(color = "#f72585", alpha = 0.5, size = 2) +
+  facet_wrap(facets = vars(location)) +
   scale_x_continuous(
-    limits = c(1985, NA), 
-    breaks = c(seq(1985, 2020, by = 5), NA)
+    limits = c(1955, NA), 
+    breaks = c(seq(1955, 2020, by = 20), NA)
   ) +
   labs(
-    title = "Peak bloom (since Jan 1st) in Liestal, Switzerland",
+    title = "Peak bloom (since Jan 1st) for selected locations in Switzerland",
     subtitle = "Peak bloom defined as 50% of blossoms being in bloom",
     x = NULL, y = NULL,
     caption = "Source: MeteoSwiss"
   ) +
   theme_light()
 
-print(fig_liestal2)
+print(fig_meteoswiss)
 
-ggsave(filename = "figures/fig_liestal2.png", plot = fig_liestal2, bg = "white")
+ggsave(filename = "figures/fig_meteoswiss.png", plot = fig_meteoswiss, bg = "white")
 ```
 
-
-Plot the data for Zurich, Switzerland
+I choose only to use "basel-binningen" and "laufenburg" as these locations are reasonably close to Liestal and hence should enjoy a similar climate, and because they include recent observations. Just for fun, I also want to include the three locations near my hometown of Zurich.
 
 ```{r}
-#| label: fig-zurich
-#| fig-cap: "Peak bloom (since Jan 1st) in Zurich, Switzerland"
+#| label: save-select-meteoswiss
+
+binningen <- meteoswiss |> 
+  filter(location == "basel-binningen") |> 
+  filter(alt == 315) |> 
+  mutate(location = str_remove(location, "basel-"))
+
+laufenburg <- meteoswiss |> 
+  filter(location == "laufenburg") |> 
+  filter(alt == 330)
+
+albisgutli <- meteoswiss |> 
+  filter(location == "zürich-albisgütli") |> 
+  mutate(location = str_remove(location, "zürich-")) |> 
+  filter(alt == 530)
+
+meteoschweiz <- meteoswiss |> 
+  filter(location == "zürich-meteoschweiz") |> 
+  mutate(location = str_remove(location, "zürich-")) |> 
+  filter(alt == 555)
+
+witikon <- meteoswiss |> 
+  filter(location == "zürich-witikon") |> 
+  mutate(location = str_remove(location, "zürich-")) |> 
+  filter(alt == 620)
+```
+
+I enhance the dataset of the five main locations with observations from the selected locations in Japan and Switzerland. I do not use data from Korea because the observations are few and the phenological event observed is first bloom and not peak bloom.
+
+```{r}
+#| label: enhance-cherry-with-selected-locations
 #| warning: false
 #| message: false
 
-fig_zurich <- meteoswiss |> 
-  filter(str_detect(location, "zürich-")) |>
-  mutate(location = str_remove(location, "zürich-")) |> 
-  ggplot(mapping = aes(x = year, y = bloom_doy)) +
-  geom_smooth(method = "loess", colour = "#644128", se = TRUE) +
-  geom_step(linetype = "dotted", colour = "#ffa5ab", lwd = 1) +
-  geom_point(color = "#f72585", alpha = 0.5, size = 2) +
-  scale_x_continuous(breaks = c(seq(1950, 2020, by = 10), NA)) +
-  labs(
-    title = "Peak bloom (since Jan 1st) in Zurich, Switzerland",
-    subtitle = "Peak bloom defined as 50% of blossoms being in bloom",
-    x = NULL, y = NULL,
-    caption = "Source: MeteoSwiss"
-  ) +
-  theme_light() +
-  facet_grid(rows = vars(str_to_title(location)))
-
-print(fig_zurich)
-
-ggsave(filename = "figures/fig_zurich.png", plot = fig_zurich, bg = "white")
+cherry <- cherry |> 
+  mutate(bloom_date = date(bloom_date)) |> 
+  bind_rows(
+  hakodate,
+  kochi,
+  kumagaya,
+  mito,
+  muroran,
+  osaka,
+  tottori,
+  binningen,
+  laufenburg,
+  albisgutli,
+  meteoschweiz,
+  witikon
+)
 ```
 
-#### NPN
-
-Two additional files are provided by the **USA National Phenology Network (USA-NPN)** and the many participants who contribute to its *Nature’s Notebook* program.
-
-The file `USA-NPN_individual_phenometrics_data.csv`contains observations on **individual phenometrics** of cherry trees. It is available at <http://doi.org/10.5066/F78S4N1V>.
-
-```{r}
-#| label: load-npn-individual-phenometrics
-#| output: false
-
-npn_ind_obs <- read_csv("data/USA-NPN_status_intensity_observations_data.csv") |> 
-  mutate(Observation_Date = mdy(Observation_Date))
-
-npn_ind_des <- read_csv("data/USA-NPN_individual_phenometrics_datafield_descriptions.csv")
-```
-
-The file `USA-NPN_status_intensity_data.csv` contains observations on the **status and intensity** of cherry trees. It is available at <http://doi.org/10.5066/F78S4N1V>.
-
-```{r}
-#| label: load-npn-status-intensity
-#| output: false
-
-npn_int_obs <- read_csv("data/USA-NPN_status_intensity_observations_data.csv")
-
-npn_int_des <- read_csv("data/USA-NPN_status_intensity_datafield_descriptions.csv")
-```
-
-These files can help augment the existing data sets for which you don't have many observations such as New York City (and perhaps even Vancouver). 
 
 ## Time trend
 
@@ -1116,7 +1184,13 @@ We use the `{nasapower}` package described at <https://docs.ropensci.org/nasapow
 ```{r}
 #| label: get_power
 
-get_power <- function(vars, start = "1981-01-01", end = as.character(Sys.Date()), freq = "daily", lat, long) {
+get_power <- function(
+    vars, 
+    start = "1981-01-01", 
+    end = as.character(Sys.Date()), 
+    freq = "daily", 
+    lat, long
+  ) {
   power <- map2(
     .x  = long,
     .y = lat,
@@ -1172,19 +1246,34 @@ We retrieve the **coordinates** which we will use to match to the nearest weathe
 ```{r}
 #| label: get-coordinates
 
-crd_kyoto        <- distinct(kyoto, location, lat, long)
-crd_liestal      <- distinct(liestal, location, lat, long)
-crd_nyc          <- distinct(newyorkcity, location, lat, long)
-crd_vancouver    <- distinct(vancouver, location, lat, long)
-crd_washingtondc <- distinct(washingtondc, location, lat, long)
+crd_kyoto        <- distinct(kyoto, location, country, lat, long)
+crd_liestal      <- distinct(liestal, location, country, lat, long)
+crd_nyc          <- distinct(newyorkcity, location, country, lat, long)
+crd_vancouver    <- distinct(vancouver, location, country, lat, long)
+crd_washingtondc <- distinct(washingtondc, location, country, lat, long)
+
+crd_hakodate     <- distinct(hakodate, location, country, lat, long)
+crd_kochi        <- distinct(kochi, location, country, lat, long)
+crd_kumagaya     <- distinct(kumagaya, location, country, lat, long)
+crd_mito         <- distinct(mito, location, country, lat, long)
+crd_muroran      <- distinct(muroran, location, country, lat, long)
+crd_osaka        <- distinct(osaka, location, country, lat, long)
+crd_tottori      <- distinct(tottori, location, country, lat, long)
+
+crd_binningen    <- distinct(binningen, location, country, lat, long)
+crd_laufenburg   <- distinct(laufenburg, location, country, lat, long)
+crd_albisgutli   <- distinct(albisgutli, location, country, lat, long)
+crd_meteoschweiz <- distinct(meteoschweiz, location, country, lat, long)
+crd_witikon      <- distinct(witikon, location, country, lat, long)
 ```
 
-Load the predictors for the five main locations
+Load the predictors for the locations
 
 ```{r}
 #| label: load-main-nasa-power
 #| eval: false
 
+# Five main locations
 power_kyoto <- get_power(vars, lat = crd_kyoto$lat, long = crd_kyoto$long) |> 
   mutate(location = "kyoto", country = "japan")
 
@@ -1199,8 +1288,46 @@ power_vancouver <- get_power(vars, lat = crd_vancouver$lat, long = crd_vancouver
 
 power_washingtondc <- get_power(vars, lat = crd_washingtondc$lat, long = crd_washingtondc$long) |> 
   mutate(location = "washingtondc", country = "unitedstates")
-```
 
+# Selected locations in Japan
+power_hakodate <- get_power(vars, lat = crd_hakodate$lat, long = crd_hakodate$long) |> 
+  left_join(crd_hakodate, by = c("LAT" = "lat", "LON" = "long"))
+
+power_kochi <- get_power(vars, lat = crd_kochi$lat, long = crd_kochi$long) |> 
+  left_join(crd_kochi, by = c("LAT" = "lat", "LON" = "long"))
+
+power_kumagaya <- get_power(vars, lat = crd_kumagaya$lat, long = crd_kumagaya$long) |> 
+  left_join(crd_kumagaya, by = c("LAT" = "lat", "LON" = "long"))
+
+power_mito <- get_power(vars, lat = crd_mito$lat, long = crd_mito$long) |> 
+  left_join(crd_mito, by = c("LAT" = "lat", "LON" = "long"))
+
+power_muroran <- get_power(vars, lat = crd_muroran$lat, long = crd_muroran$long) |> 
+  left_join(crd_muroran, by = c("LAT" = "lat", "LON" = "long"))
+
+power_osaka <- get_power(vars, lat = crd_osaka$lat, long = crd_osaka$long) |> 
+  left_join(crd_osaka, by = c("LAT" = "lat", "LON" = "long"))
+
+power_tottori <- get_power(vars, lat = crd_tottori$lat, long = crd_tottori$long) |> 
+  left_join(crd_tottori, by = c("LAT" = "lat", "LON" = "long"))
+
+
+# Selected locations in Switzerland
+power_binningen <- get_power(vars, lat = crd_binningen$lat, long = crd_binningen$long) |> 
+  left_join(crd_binningen, by = c("LAT" = "lat", "LON" = "long"))
+
+power_laufenburg <- get_power(vars, lat = crd_laufenburg$lat, long = crd_laufenburg$long) |> 
+  left_join(crd_laufenburg, by = c("LAT" = "lat", "LON" = "long"))
+
+power_albisgutli <- get_power(vars, lat = crd_albisgutli$lat, long = crd_albisgutli$long) |> 
+  left_join(crd_albisgutli, by = c("LAT" = "lat", "LON" = "long"))
+
+power_meteoschweiz <- get_power(vars, lat = crd_meteoschweiz$lat, long = crd_meteoschweiz$long) |> 
+  left_join(crd_meteoschweiz, by = c("LAT" = "lat", "LON" = "long"))
+
+power_witikon <- get_power(vars, lat = crd_witikon$lat, long = crd_witikon$long) |> 
+  left_join(crd_witikon, by = c("LAT" = "lat", "LON" = "long"))
+```
 
 Combine the downloaded data sets and save them to a CSV file
 
@@ -1213,7 +1340,19 @@ power_cherry <- bind_rows(
   power_liestal,
   power_nyc,
   power_vancouver,
-  power_washingtondc
+  power_washingtondc,
+  power_hakodate,
+  power_kochi,
+  power_kumagaya,
+  power_mito,
+  power_muroran,
+  power_osaka,
+  power_tottori,
+  power_binningen,
+  power_laufenburg,
+  power_albisgutli,
+  power_meteoschweiz,
+  power_witikon
   ) |> 
   rename_with(.fn = tolower, .cols = everything()) |> 
   rename(date = yyyymmdd, prcp = prectotcorr, long = lon, month = mm, day = dd) |> 
@@ -1226,7 +1365,9 @@ write_csv(power_cherry, file = "data/power_cherry.csv")
 
 Use the [`{openmeteo}`](https://CRAN.R-project.org/package=openmeteo) package to retrieve weather forecasts from the [Open Meteo API](https://open-meteo.com/).
 
-We have already used the coordinates of the five main locations so all we have to do is to combine them into a list.
+We have already used the coordinates of the five main locations so all we have to do is to combine them into a list. Because I only want to forecast the five main locations for the current year, I will only load weather forecasts for these locations.
+
+Note that fore locations in Japan and Switzerland, the coordinates for individual trees are given, and I have to select a single location to draw weather forecasts from, hence I choose either the most common location or the one in the middle. Since the coordinates are matched to the nearest weather station, such a choice should not matter much.
 
 ```{r}
 #| label: list-locations
@@ -1236,7 +1377,19 @@ locations <- list(
   crd_liestal,
   crd_nyc,
   crd_vancouver,
-  crd_washingtondc
+  crd_washingtondc,
+  crd_hakodate,
+  crd_kochi,
+  crd_kumagaya,
+  crd_mito,
+  crd_muroran,
+  crd_osaka,
+  crd_tottori,
+  crd_binningen,
+  crd_laufenburg,
+  crd_albisgutli,
+  crd_meteoschweiz,
+  crd_witikon
 )
 ```
 
@@ -1403,94 +1556,21 @@ With the previous equations, the $GDD_{(x_t)}$ are obtained for each day that is
 
 $$AGDD_i = \sum_{t_0}^{t_{\gamma-1}} GDD_i$$
 
-```{r}
-hourly_temps <- power_cherry |>
-  group_by(location, year) |>
-  mutate(
-    hourly_temps = map2(
-      .x = t2m_min, 
-      .y = t2m_max, 
-      .f = function(t2m_min, t2m_max) {
-        hours <- 0:23
-        amplitude <- (t2m_max - t2m_min) / 2
-        midpoint <- (t2m_max + t2m_min) / 2
-        phase_shift <- 3
-        period <- 24
-      
-        temps <- midpoint - amplitude * cos(2 * pi * (hours - phase_shift) / period)
-      return(temps)
-    })
-  ) |> 
-  unnest(hourly_temps) |> 
-  group_by(location, year, date, hour = rep(0:23, n() / 24)) |> 
-  mutate(
-    gdd_base4 = pmax(0, hourly_temps - 4) / 24,
-    gdd_base0 = pmax(0, hourly_temps - 0) / 24,
-    gdd_base5 = pmax(0, hourly_temps - 5) / 24,
-    gdd_base4_cap25 = case_when(
-      hourly_temps < 4 ~ 0,
-      hourly_temps > 25 ~ (25 - 4) / 24,
-      TRUE ~ (hourly_temps - 4) / 24
-    ),
-    triangle_gdd = case_when(
-      hourly_temps <= 4 ~ 0,
-      hourly_temps > 4 & hourly_temps <= 15 ~ 
-        (hourly_temps - 4) * (1 / (15 - 4)) / 24,
-      hourly_temps > 15 & hourly_temps <= 25 ~ 
-        (25 - hourly_temps) * (1 / (25 - 15)) / 24,
-      TRUE ~ 0
-    ),
-    beta_gdd = case_when(
-      hourly_temps <= 0 ~ 0,
-      hourly_temps >= 30 ~ 0,
-      TRUE ~ (((hourly_temps - 0) / (16 - 0))^1.5) * (1 - ((hourly_temps - 0) / (30 - 0))^2.5) / 24
-    ),
-    exp_gdd = if_else(
-      condition = hourly_temps > 4, 
-      true = (1.05^(hourly_temps - 4) - 1) / 24, 
-      false = 0
-      )
-  ) |> 
-  mutate(
-    # Define temperature thresholds for chilling
-    base_temp = 7.0,    # Upper threshold for chilling (°C)
-    lower_temp = 0.0,   # Lower threshold for chilling (°C)
-    
-    # Calculate chilling degree hour (CDH)
-    cdh = case_when(
-      hourly_temps <= lower_temp ~ 0,  # Too cold for effective chilling
-      hourly_temps >= base_temp ~ 0,   # Too warm for chilling
-      TRUE ~ base_temp - hourly_temps  # Chilling degrees proportional to temperature below base
-    ),
-    
-    # Utah model weights (optional enhancement - different temperature ranges have different effectiveness)
-    utah_weight = case_when(
-      hourly_temps < 1.4 ~ 0,                  # Ineffective range
-      hourly_temps >= 1.4 & hourly_temps < 2.4 ~ 0.5,  # Low efficiency
-      hourly_temps >= 2.4 & hourly_temps < 9.1 ~ 1.0,  # Optimal chilling
-      hourly_temps >= 9.1 & hourly_temps < 12.4 ~ 0.5, # Low efficiency 
-      hourly_temps >= 12.4 & hourly_temps < 15.9 ~ 0,  # Ineffective
-      hourly_temps >= 15.9 & hourly_temps < 18.0 ~ -0.5, # Negation of chilling
-      hourly_temps >= 18.0 ~ -1.0                       # Strong negation
-    ),
-    
-    # Utah model chilling units
-    utah_cu = utah_weight,
-    
-    # Dynamic Model chilling portions (simplified approximation)
-    # The actual Dynamic Model is more complex with an intermediate state
-    dynamic_weight = case_when(
-      hourly_temps < -1.0 ~ 0,                 # Too cold
-      hourly_temps >= -1.0 & hourly_temps < 13.0 ~ 
-        (exp(3.1 * (hourly_temps - (-1.0)) / (13.0 - (-1.0))) - 
-           exp(-3.1 * (hourly_temps - (-1.0)) / (13.0 - (-1.0)))) / 
-        (exp(3.1) - exp(-3.1)), # Approximately sigmoid
-      TRUE ~ 0                                  # Too warm
-    )
-  )
+Calculate chilling degree hour (CDH) with a base temperature of 7 and a lower temperature threshold of zero degrees. Below the lower threshold it is too cold for effective chilling, and above the threshold it is too warm.
 
-```
+Utah chilling units assign different weights to temperature ranges
+Ineffective range below 1.4
+Low efficiency above 1.4
+Optimal chilling between 2.4 and 9.1
+Low efficiency between 9.1 and 12.4
+Ineffective between 12.4 and 15.9
+Negation of chilling between 15.9 and 18
+Strong negation above 18
 
+dynamic weights
+Too cold below -1
+A dynamic weight from a sigmoid function for temperatures between -1 and 13
+No weight above 13
 
 Instead of starting from the winter low, we can aggregate **from January 1st** of each year.
 
@@ -1579,6 +1659,59 @@ The model is based on chill-units, where 1 chill-unit is when the tree is expose
 The function returns values the chill-units for each temperature of vector (Total = FALSE), or returns the chill-units accumulation (Total = TRUE).
 
 This model was make for quantifying the chill accumulation rates to ’Sweetheart’ Sweet Cherry. We don’t recommended the application for others species.
+
+First we interpolate hourly temperatures
+
+```{r}
+#| label: interpolate-hourly-temperatures
+
+hourly_temp <- power_cherry |>
+  group_by(location, year) |>
+  mutate(
+    hourly_temps = map2(
+      .x = t2m_min, 
+      .y = t2m_max, 
+      .f = function(t2m_min, t2m_max) {
+        hours <- 0:23
+        amplitude <- (t2m_max - t2m_min) / 2
+        midpoint <- (t2m_max + t2m_min) / 2
+        phase_shift <- 3
+        period <- 24
+      
+        temps <- midpoint - amplitude * cos(2 * pi * (hours - phase_shift) / period)
+      return(temps)
+    })
+  ) 
+```
+
+Then we apply some of the growing degree day formulas to the hourly temperatures
+
+```{r}
+#| label: hourly-gdd
+
+hourly_features <- hourly_temp |> 
+  unnest(hourly_temps) |> 
+  group_by(location, year, date) |> 
+  mutate(
+    gdh = pmax(0, hourly_temps - 4),
+    cdh = case_when(hourly_temps <= 0.00 ~ 0, hourly_temps >= 7.00 ~ 0, TRUE ~ 7.00 - hourly_temps)
+  )
+```
+
+Aggregate the hourly features to a daily level
+
+```{r}
+hourly_features |> 
+  group_by(location, date) |> 
+  summarise(
+    gdh = sum(gdh),
+    cdh = sum(cdh)
+  ) |> 
+  ungroup()
+```
+
+
+
 
 
 
