@@ -20,12 +20,16 @@ We start by loading all the packages necessary to run this analysis
 ```{r}
 #| label: load-pkgs
 #| output: false
+#| warning: false
+#| message: false
 
 invisible(Sys.setlocale("LC_ALL","English"))
 
 library(tidymodels)
 library(tidyverse)
+library(arrow)
 library(chillR)
+library(ChillModels)
 library(pls)
 library(bonsai)
 library(rules)
@@ -75,9 +79,12 @@ Note that the data set for Kyoto includes implicit missing values (`NA`s). [Chap
 ```{r}
 #| label: load-kyoto
 #| output: false
+#| warning: false
+#| message: false
 
 kyoto <- read_csv("data/kyoto.csv") |> 
   complete(year = full_seq(year, 1), location) |> 
+  mutate(country = "japan") |> 
   fill(location, lat, long, alt, .direction = "downup")
 ```
 
@@ -132,8 +139,11 @@ The file `liestal.csv` contains observations for **a single wild cherry (prunus 
 ```{r}
 #| label: load-liestal
 #| output: false
+#| warning: false
+#| message: false
 
-liestal <- read_csv("data/liestal.csv")
+liestal <- read_csv("data/liestal.csv") |> 
+  mutate(country = "switzerland")
 ```
 
 The **peak bloom date** is defined as the day when **25%** of the blossoms are in full bloom. The date is determined by [MeteoSwiss](https://www.meteoswiss.admin.ch/climate/climate-change/vegetation-development/long-term-series-of-phenological-observations.html). This means that 70% of buds would be open a some days later. This raises the question of whether we should model the locations separately.
@@ -175,8 +185,11 @@ The file `newyorkcity.csv` contains **only a single observation** for the year 2
 ```{r}
 #| label: load-newyorkcity
 #| output: false
+#| warning: false
+#| message: false
 
-newyorkcity <- read_csv("data/nyc.csv")
+newyorkcity <- read_csv("data/nyc.csv") |> 
+  mutate(country = "unitedstates")
 ```
 
 Luckily, there are some historical observations dating *back to 2019* in the data provided by **USA-NPN**. The Washington Square Park has site id `32789` and the **Yoshino** cherry you should predict has species id `228`.
@@ -184,6 +197,8 @@ Luckily, there are some historical observations dating *back to 2019* in the dat
 ```{r}
 #| label: load-historical-data-nyc
 #| output: false
+#| warning: false
+#| message: false
 
 nyc_data_npn <- read_csv("data/USA-NPN_status_intensity_observations_data.csv") |> 
   filter(Site_ID == 32789, Species_ID == 228) |> 
@@ -208,7 +223,7 @@ nyc_data <- nyc_data_npn |>
   ) |>
   filter(!is.na(bloom_doy)) |>
   select(-first_flower_index) |>
-  mutate(location = "newyorkcity") |> 
+  mutate(country = "unitedstates", location = "newyorkcity") |> 
   arrange(year)
 ```
 
@@ -268,8 +283,11 @@ Akebono (daybreak cherry). A medium sized tree growing 8 m × 8 m (25 ft) with a
 ```{r}
 #| label: load-vancouver
 #| output: false
+#| warning: false
+#| message: false
 
-vancouver <- read_csv("data/vancouver.csv")
+vancouver <- read_csv("data/vancouver.csv") |> 
+  mutate(country = "canada")
 ```
 
 Unfortunately, there are **only three observations** for 2022, 2023, and 2024, respectively. But casual observations have been recorded in the form of **photos posted** to the [VCBF Neighbourhood Blog for Kerrisdale](https://forums.botanicalgarden.ubc.ca/threads/kerrisdale.36008/). You can **search the forum** for the keywords `"Akebono"` (i.e., the name of the cultivar) and `"Maple Grove Park"` (i.e., the location of the trees).
@@ -293,7 +311,8 @@ vancouver_forum <- tribble(
   mutate(
     bloom_date = as_date(bloom_date),
     bloom_doy = as.numeric(1 + as_date(bloom_date) - as_date(paste0(year, "-01-01"))),
-    location = "vancouver"
+    location = "vancouver",
+    country = "canada"
   )
 ```
 
@@ -327,6 +346,7 @@ Plot the data for Vancouver BC, Canada
 #| label: fig-vancouver
 #| fig-cap: "Peak cherry blossom days for Vancouver BC, Canada"
 #| warning: false
+#| message: false
 
 fig_vancouver <- vancouver |> 
   ggplot(mapping = aes(x = year, y = bloom_doy)) +
@@ -354,9 +374,12 @@ The file `washingtondc.csv` has been obtained from the EPA's Climate Change Indi
 
 ```{r}
 #| label: load-washingtondc
+#| message: false
+#| warning: false
 #| output: false
 
-washingtondc <- read_csv("data/washingtondc.csv")
+washingtondc <- read_csv("data/washingtondc.csv") |> 
+  mutate(country = "unitedstates")
 ```
 
 The geographical location at `38.88535°N` (latitude), `-77.03863°E` (longitude) and `0` meters above sea level (altitude) correspond to the location of the [Tidal Basin in Washington, DC](https://www.nps.gov/articles/dctidalbasin.htm).
@@ -369,6 +392,7 @@ Let's plot the data for Washington D.C
 #| label: fig-washingtondc
 #| fig-cap: "Peak cherry blossom days for Washington DC, USA"
 #| warning: false
+#| message: false
 
 fig_washingtondc <- washingtondc |> 
   ggplot(mapping = aes(x = year, y = bloom_doy)) +
@@ -395,7 +419,8 @@ Now that we have loaded the datasets for the five locations, we can combine them
 #| label: combine-cherry-csv
 #| eval: false
 
-cherry <- bind_rows(kyoto, liestal, newyorkcity, vancouver, washingtondc)
+cherry <- bind_rows(kyoto, liestal, newyorkcity, vancouver, washingtondc) |> 
+  relocate(year, location, country, lat, long, alt, bloom_date)
 
 write_csv(cherry, file = "data/cherry.csv")
 ```
@@ -405,6 +430,8 @@ Now we can load the `cherry.csv` file from our `data/` folder
 ```{r}
 #| label: load-cherry-csv
 #| output: false
+#| warning: false
+#| message: false
 
 cherry <- read_csv("data/cherry.csv")
 ```
@@ -416,7 +443,7 @@ We can show the last three observation for each location
 #| tbl-cap: "latest 3 observations for each location"
 
 cherry |> 
-  group_by(location) |> 
+  group_by(country, location) |> 
   slice_tail(n = 3) |> 
   gt()
 ```
@@ -425,6 +452,8 @@ We can visualize the time series for our five main locations next to each other.
 
 ```{r}
 #| label: fig-cherries_1880
+#| warning: false
+#| message: false
 #| fig-width: 8
 #| fig-height: 3
 #| out-width: 100%
@@ -566,12 +595,14 @@ Load the data set, make implicit missing values explicit and change the `locatio
 
 ```{r}
 #| label: read-japan
+#| warning: false
+#| message: false
 #| output: false
 
 japan <- read_csv("data/japan.csv") |>  
   complete(year =  full_seq(year, 1), location) |> 
   mutate(location = str_remove(location, "Japan/")) |> 
-  mutate(location = tolower(location)) |> 
+  mutate(location = tolower(location), country = "japan") |> 
   fill(location, lat, long, alt, .direction = "downup") |> 
   mutate(location = factor(location))
 ```
@@ -584,6 +615,7 @@ Let's plot peak bloom dates for Kyoto, Japan
 #| label: fig-bloom-kyoto2
 #| fig-cap: "Peak bloom dates in Kyoto, Japan"
 #| warning: false
+#| message: false
 
 fig_kyoto2 <- japan |>
   filter(location == "kyoto") |> 
@@ -617,12 +649,14 @@ Again, we make implicit missing values explicit, and I change the location names
 
 ```{r}
 #| label: load-korea
+#| warning: false
+#| message: false
 #| output: false
 
 korea <- read_csv("data/south_korea.csv") |> 
   complete(year =  full_seq(year, 1), location) |> 
   mutate(location = str_remove(location, "South Korea/")) |> 
-  mutate(location = tolower(location)) |> 
+  mutate(location = tolower(location), country = "korea") |> 
   fill(location, lat, long, alt, .direction = "downup") |> 
   mutate(location = factor(location))
 ```
@@ -635,6 +669,7 @@ Let's plot the first bloom dates in Seoul, South Korea:
 #| label: fig-seoul
 #| fig-cap: "First bloom in Seoul, South Korea"
 #| warning: false
+#| message: false
 
 fig_seoul <- korea |>
   filter(location == "seoul") |> 
@@ -664,12 +699,14 @@ Note that when you use the `{utils}` function `read.csv()` you need to specify t
 
 ```{r}
 #| label: load-meteoswiss
+#| warning: false
+#| message: false
 #| output: false
 
 meteoswiss <- read_csv("data/meteoswiss.csv") |> 
   complete(year = full_seq(year, 1), location) |> 
   mutate(location = str_remove(location, "Switzerland/")) |> 
-  mutate(location = tolower(location)) |> 
+  mutate(location = tolower(location), country = "switzerland") |> 
   fill(location, lat, long, alt, .direction = "downup") |> 
   mutate(location = factor(location))
 ```
@@ -682,6 +719,7 @@ Plot the data for Liestal, Switzerland. Remove the observation for the year 1952
 #| label: fig-liestal2
 #| fig-cap: "Peak bloom dates in Liestal, Switzerland"
 #| warning: false
+#| message: false
 
 fig_liestal2 <- meteoswiss |>
   filter(location == "liestal", year != 1952) |>
@@ -713,6 +751,7 @@ Plot the data for Zurich, Switzerland
 #| label: fig-zurich
 #| fig-cap: "Peak bloom (since Jan 1st) in Zurich, Switzerland"
 #| warning: false
+#| message: false
 
 fig_zurich <- meteoswiss |> 
   filter(str_detect(location, "zürich-")) |>
@@ -776,9 +815,12 @@ We only use data **from 1880** to fit the trends, as prior data may not be as re
 ```{r}
 #| label: fit-linear-time-trend
 
+cherry_ls <- cherry |> 
+  filter(location %in% c("kyoto", "liestal", "newyorkcity", "vancouver", "washingtondc"))
+
 ls_fit <- lm(
   formula = bloom_doy ~ 0 + location + location:year,
-  data = cherry, 
+  data = cherry_ls, 
   subset = year >= 1880
 )
 ```
@@ -798,7 +840,7 @@ We can compute predictions for both the historical observations and for the curr
 ```{r}
 #| label: create-grid
 
-cherry_grid <- expand_grid(location = unique(cherry$location), year = 1880:2025)
+cherry_grid <- expand_grid(location = unique(cherry_ls$location), year = 1880:2025)
 ```
 
 Then we use these input variables to create both point estimates and 90% confidence intervals with `predict()`
@@ -826,7 +868,7 @@ Plot only the fitted values, i.e., the predictions for the actual observations b
 #|   Predictions and 90% prediction intervals from simple linear regression models fitted to
 #|   five sites.
 
-cherry |>
+cherry_ls |>
   right_join(predictions, by = c("year", "location")) |>
   filter((location == "vancouver" & year >= 2015) | (location != "vancouver" & year >= 2015)) |>
   filter((location == "newyorkcity" & year >= 2019) | (location != "newyorkcity" & year >= 2015)) |> 
@@ -889,7 +931,7 @@ We could have created a new variable explicitly with:
 ```{r}
 #| eval: false
 
-cherry$weight <- (cherry$location == "vancouver") + 0.2 * (cherry$location != "vancouver")
+cherry$weight <- (cherry_ls$location == "vancouver") + 0.2 * (cherry_ls$location != "vancouver")
 
 cherry$weight <- NULL
 ```
@@ -901,7 +943,7 @@ So the weight put on observations from Vancouver are while observations from oth
 
 ls_fit_for_van <- lm(
   formula = bloom_doy ~ year,
-  data = cherry, subset = year >= 1880,
+  data = cherry_ls, subset = year >= 1880,
   weights = (location == "vancouver") + 0.2 * (location != "vancouver")
 )
 ```
@@ -946,13 +988,14 @@ We can plot the fitted values against the actual data from previous years
 
 ```{r}
 #| label: fig-fitted-vancouver
+#| warning: false
 #| fig-width: 8
 #| fig-height: 3
 #| out-width: 100%
 #| fig-cap: |
 #|   Predictions and 90% prediction intervals from a simple linear regression model for Vancouver using data from all four sites.
 
-cherry |>
+cherry_ls |>
   right_join(y = predictions_vancouver, by = c("year", "location")) |>
   ggplot(aes(x = year, y = prediction, ymin = lower, ymax = upper)) +
   geom_line(linewidth = 1) +
@@ -987,7 +1030,7 @@ We once again fit a model on the whole data set, weighting observations from New
 
 ls_fit_for_nyc <- lm(
   formula = bloom_doy ~ year,
-  data = cherry, subset = year >= 1880,
+  data = cherry_ls, subset = year >= 1880,
   weights = (location == "newyorkcity") + 0.2 * (location != "newyorkcity")
 )
 ```
@@ -1038,7 +1081,7 @@ We plot the fitted values for New York City and the actual observations
 #| fig-cap: |
 #|   Predictions and 90% prediction intervals from a simple linear regression model for NYC using data from all five sites.
 
-cherry |>
+cherry_ls |>
   right_join(predictions_nyc, by = c("year", "location")) |>
   ggplot(aes(x = year, y = prediction, ymin = lower, ymax = upper)) +
   geom_line(linewidth = 1) +
@@ -1074,23 +1117,21 @@ We use the `{nasapower}` package described at <https://docs.ropensci.org/nasapow
 #| label: get_power
 
 get_power <- function(vars, start = "1981-01-01", end = as.character(Sys.Date()), freq = "daily", lat, long) {
-  
   power <- map2(
-      .x = long,
-      .y = lat,
-      .f = function(long = .x, lat = .y) {
-        res <- nasapower::get_power(
-          community = "ag",
-          lonlat = c(long, lat),
-          pars = vars,
-          dates = c(start, end),
-          temporal_api = freq
+    .x  = long,
+    .y = lat,
+    .f = function(long = .x, lat = .y) {
+      res <- nasapower::get_power(
+        community = "ag",
+        lonlat = c(long, lat),
+        pars = vars,
+        dates = c(start, end),
+        temporal_api = freq
         )
-        return(res)
+      return(res)
       }
     ) |>
     list_rbind()
-  
   return(power)
 }
 ```
@@ -1136,10 +1177,6 @@ crd_liestal      <- distinct(liestal, location, lat, long)
 crd_nyc          <- distinct(newyorkcity, location, lat, long)
 crd_vancouver    <- distinct(vancouver, location, lat, long)
 crd_washingtondc <- distinct(washingtondc, location, lat, long)
-
-crd_japan      <- distinct(japan, location, lat, long)
-crd_korea      <- distinct(korea, location, lat, long)
-crd_meteoswiss <- distinct(meteoswiss, location, lat, long)
 ```
 
 Load the predictors for the five main locations
@@ -1148,20 +1185,28 @@ Load the predictors for the five main locations
 #| label: load-main-nasa-power
 #| eval: false
 
-power_kyoto <- get_power(vars, lat = crd_kyoto$lat, long = crd_kyoto$long)
-power_kyoto$location <- "kyoto"
+power_kyoto <- get_power(vars, lat = crd_kyoto$lat, long = crd_kyoto$long) |> 
+  mutate(location = "kyoto", country = "japan")
 
-power_liestal <- get_power(vars, lat = crd_liestal$lat, long = crd_liestal$long)
-power_liestal$location <- "liestal"
+power_liestal <- get_power(vars, lat = crd_liestal$lat, long = crd_liestal$long) |> 
+  mutate(location = "liestal", country = "switzerland")
 
-power_nyc <- get_power(vars, lat = crd_nyc$lat, long = crd_nyc$long)
-power_nyc$location <- "newyorkcity"
+power_nyc <- get_power(vars, lat = crd_nyc$lat, long = crd_nyc$long) |> 
+  mutate(location = "newyorkcity", country = "unitedstates")
 
-power_vancouver <- get_power(vars, lat = crd_vancouver$lat, long = crd_vancouver$long)
-power_vancouver$location <- "vancouver"
+power_vancouver <- get_power(vars, lat = crd_vancouver$lat, long = crd_vancouver$long) |> 
+  mutate(location = "vancouver", country = "canada")
 
-power_washingtondc <- get_power(vars, lat = crd_washingtondc$lat, long = crd_washingtondc$long)
-power_washingtondc$location <- "washingtondc"
+power_washingtondc <- get_power(vars, lat = crd_washingtondc$lat, long = crd_washingtondc$long) |> 
+  mutate(location = "washingtondc", country = "unitedstates")
+```
+
+
+Combine the downloaded data sets and save them to a CSV file
+
+```{r}
+#| label: combine-power_cherry
+#| eval: false
 
 power_cherry <- bind_rows(
   power_kyoto,
@@ -1169,44 +1214,15 @@ power_cherry <- bind_rows(
   power_nyc,
   power_vancouver,
   power_washingtondc
-)
+  ) |> 
+  rename_with(.fn = tolower, .cols = everything()) |> 
+  rename(date = yyyymmdd, prcp = prectotcorr, long = lon, month = mm, day = dd) |> 
+  relocate(location, country, date, lat, long, year, month, day, doy)
 
 write_csv(power_cherry, file = "data/power_cherry.csv")
 ```
 
-We also load predictors for the additional data sets. Because these take a long time to load, instead load data from a previous run.
-
-```{r}
-#| label: load-additional-nasa-power
-#| eval: false
-
-power_japan <- get_power(vars, lat = crd_japan$lat, long = crd_japan$long)
-write_csv(power_japan, file = "data/power_japan.csv")
-
-power_korea <- get_power(vars, lat = crd_korea$lat, long = crd_korea$long)
-write_csv(power_korea, file = "data/power_korea.csv")
-
-power_meteoswiss <- get_power(vars, lat = crd_meteoswiss$lat, long = crd_meteoswiss$long)
-write_csv(power_meteoswiss, file = "data/power_meteoswiss.csv")
-
-power_npn <- get_power(vars, lat = crd_npn$lat, long = crd_npn$long)
-write_csv(power_npn, file = "data/power_npn.csv")
-```
-
-Let's have a look at the NASA POWER dataset for the five locations. We change some of the column names and convert the variable names to lowercase letters.
-
-```{r}
-#| label: load-power_cherry
-#| output: false
-
-power_cherry <- read_csv("data/power_cherry.csv") |> 
-  rename_with(.fn = tolower, .cols = everything()) |> 
-  rename(date = yyyymmdd, prcp = prectotcorr) |> 
-  select(-c(lat, lon, year, mm, dd, doy)) |> 
-  relocate(location, date)
-```
-
-## Open Meteo
+### Open Meteo
 
 Use the [`{openmeteo}`](https://CRAN.R-project.org/package=openmeteo) package to retrieve weather forecasts from the [Open Meteo API](https://open-meteo.com/).
 
@@ -1258,9 +1274,11 @@ Use the `get_fcst()` function to load the weather forecasts for the five main lo
 
 ```{r}
 #| label: load-weather-forecasts
+#| warning: false
+#| message: false
 #| eval: false
 
-locations_fcst <- purrr::map_dfr(.x = locations, .f = get_fcst) |> 
+locations_fcst <- map_dfr(.x = locations, .f = get_fcst) |> 
   rename(
     t2m = hourly_temperature_2m,
     t2m_max = daily_temperature_2m_max,
@@ -1282,16 +1300,14 @@ write_csv(locations_fcst, file = "data/locations_fcst.csv")
 Read in the forecasts
 
 ```{r}
-#| label: read-locations_fcst-csv
+#| label: combine-power-openmeteo
 #| output: false
+#| warning: false
+#| message: false
+
+power_cherry <- read_csv("data/power_cherry.csv")
 
 locations_fcst <- read_csv("data/locations_fcst.csv")
-```
-
-Add the weather forecast to the predictors
-
-```{r}
-#| label: combine-power-openmeteo
 
 last_obs_date <- power_cherry |> 
   filter(!is.na(t2m)) |> 
@@ -1311,17 +1327,260 @@ Check out if the forecast was appended correctly. If not, there will be duplicat
 
 ```{r}
 power_cherry |> 
-  pivot_longer(cols = -c(location, date), names_to = "variable", values_to = "value") |> 
-  summarise(n = dplyr::n(), .by = c(location, date, variable)) |>
+  pivot_longer(cols = -c(location, country, date), names_to = "variable", values_to = "value") |> 
+  summarise(n = dplyr::n(), .by = c(location, country, date, variable)) |>
   filter(n > 1L)
 ```
 
-Unfortunately, this will only give us a couple days of weather into March. We can either extrapolate this or combine it with additional sources.
-
-
 ## Feature engineering
 
-We create some additional features from our predictors
+There are multiple methods to calculate features that may be predictive for phenological changes. Most models require hourly recording of temperatures. The **only** feature that *does not depend on hourly temperature records* is the simplest **growing degree days (GDD)** model
+
+$$
+\mathrm{GDD} = \max \Biggl\{\frac{\mathrm{T}_{\mathrm{max}}+\mathrm{T}_{\mathrm{min}}}{2}-\mathrm{T}_{\mathrm{base}}, 0\Biggr\}
+$$
+
+GDDs are typically **measured from the winter low**. Any temperature below the base temperature is set to the base temperature before calculating the average. Likewise, the maximum temperature is usually capped at 30 °C because most plants and insects do not grow any faster above that temperature.
+
+To calculate more complicated phenological features, we need to interpolate hourly temperatures from the average daily maximum and minimum temperatures.
+
+Compare this to a simple sinusiodal model for the diurnal temperature variation that does not take into account the latitude, or changing patterns over the seasons. The phase shift is the number of hours after midnight when the average daily minimum temperature occurs.
+
+During winter, the maximum temperature occurs between 1pm and 2 pm, during summer, it occurs between 4pm and 5pm.
+
+We calculate GDD contributions for each hour.
+Standard GDD with different base temperatures.
+
+Base 4°C is common for cherry blossoms.
+We divide by 24 to get daily equivalents.
+Alternative base temperatures to try are 0°C and 5°C
+
+GDD with upper threshold (some research suggests 25-30°C as upper threshold)
+
+Modified GDD using optimal growth curve
+Triangle function with optimal temperature at 15°C
+
+Beta function approximation for growth response
+More complex, smoother curve based on physiological models
+
+Exponential GDD (emphasizes higher temperatures)
+
+GDD with photoperiod modulation (if you have day length data)
+This would be a more complex implementation requiring photoperiod data
+    
+Actual evapotranspiration based GDD
+This would account for both temperature and moisture stress
+
+The classic approach in calculating GDD ([Piña, R. A. et al., 2021](https://www.mdpi.com/2223-7747/10/3/502)). If the base temperature is exceeded then the difference in degrees Celsius will be taken into account to calculate the accumulated GDD.
+
+The triangular model following ([Piña, R. A. et al., 2021](https://www.mdpi.com/2223-7747/10/3/502)) takes into account the minimum, maximum and an optimal temperature.
+
+$$
+\begin{equation}
+  GDD_{1(x_t)} = \begin{cases}
+  0\ if\ x_t < t_b \\x_t -t_b\ if\ x_t \geq t_b
+  \end{cases}
+\end{equation}
+$$
+
+ 
+$$
+\begin{equation}
+  GDD_{2(x_t)} = \begin{cases}0\ if\ x_t < t_{min} \\\frac{x_t -T_{min}}{T_{opt} - T_{min}}\ if\ T_{min} \leq x_t \leq T_{opt} \\ \frac{x_t -T_{max}}{T_{opt} - T_{max}} if\ T_{opt} \leq x_t \leq T_{max} \\ 0\ if\ x_t \geq T_{max} \end{cases}
+\end{equation}
+$$
+
+$$
+\begin{equation}
+  GDD_{3(x_t)} = \begin{cases}
+  0\ if\ \left [ \frac{T_{max} - T_{min}}{2} \right ] - t_b < t_b \\
+  \left [ \frac{T_{max} - T_{min}}{2} \right ] - t_b\ if\ \left [ \frac{T_{max} - T_{min}}{2} \right ] - t_b > t_b
+  \end{cases}
+\end{equation}
+$$
+
+With the previous equations, the $GDD_{(x_t)}$ are obtained for each day that is between the initial date $t_0$ and one day before flowering $t_{\gamma-1}$, then they are added for each coordinate and the accumulated growth degree days (`AGDD1`, `AGDD2` and `AGDD3`) are obtained.
+
+$$AGDD_i = \sum_{t_0}^{t_{\gamma-1}} GDD_i$$
+
+```{r}
+hourly_temps <- power_cherry |>
+  group_by(location, year) |>
+  mutate(
+    hourly_temps = map2(
+      .x = t2m_min, 
+      .y = t2m_max, 
+      .f = function(t2m_min, t2m_max) {
+        hours <- 0:23
+        amplitude <- (t2m_max - t2m_min) / 2
+        midpoint <- (t2m_max + t2m_min) / 2
+        phase_shift <- 3
+        period <- 24
+      
+        temps <- midpoint - amplitude * cos(2 * pi * (hours - phase_shift) / period)
+      return(temps)
+    })
+  ) |> 
+  unnest(hourly_temps) |> 
+  group_by(location, year, date, hour = rep(0:23, n() / 24)) |> 
+  mutate(
+    gdd_base4 = pmax(0, hourly_temps - 4) / 24,
+    gdd_base0 = pmax(0, hourly_temps - 0) / 24,
+    gdd_base5 = pmax(0, hourly_temps - 5) / 24,
+    gdd_base4_cap25 = case_when(
+      hourly_temps < 4 ~ 0,
+      hourly_temps > 25 ~ (25 - 4) / 24,
+      TRUE ~ (hourly_temps - 4) / 24
+    ),
+    triangle_gdd = case_when(
+      hourly_temps <= 4 ~ 0,
+      hourly_temps > 4 & hourly_temps <= 15 ~ 
+        (hourly_temps - 4) * (1 / (15 - 4)) / 24,
+      hourly_temps > 15 & hourly_temps <= 25 ~ 
+        (25 - hourly_temps) * (1 / (25 - 15)) / 24,
+      TRUE ~ 0
+    ),
+    beta_gdd = case_when(
+      hourly_temps <= 0 ~ 0,
+      hourly_temps >= 30 ~ 0,
+      TRUE ~ (((hourly_temps - 0) / (16 - 0))^1.5) * (1 - ((hourly_temps - 0) / (30 - 0))^2.5) / 24
+    ),
+    exp_gdd = if_else(
+      condition = hourly_temps > 4, 
+      true = (1.05^(hourly_temps - 4) - 1) / 24, 
+      false = 0
+      )
+  ) |> 
+  mutate(
+    # Define temperature thresholds for chilling
+    base_temp = 7.0,    # Upper threshold for chilling (°C)
+    lower_temp = 0.0,   # Lower threshold for chilling (°C)
+    
+    # Calculate chilling degree hour (CDH)
+    cdh = case_when(
+      hourly_temps <= lower_temp ~ 0,  # Too cold for effective chilling
+      hourly_temps >= base_temp ~ 0,   # Too warm for chilling
+      TRUE ~ base_temp - hourly_temps  # Chilling degrees proportional to temperature below base
+    ),
+    
+    # Utah model weights (optional enhancement - different temperature ranges have different effectiveness)
+    utah_weight = case_when(
+      hourly_temps < 1.4 ~ 0,                  # Ineffective range
+      hourly_temps >= 1.4 & hourly_temps < 2.4 ~ 0.5,  # Low efficiency
+      hourly_temps >= 2.4 & hourly_temps < 9.1 ~ 1.0,  # Optimal chilling
+      hourly_temps >= 9.1 & hourly_temps < 12.4 ~ 0.5, # Low efficiency 
+      hourly_temps >= 12.4 & hourly_temps < 15.9 ~ 0,  # Ineffective
+      hourly_temps >= 15.9 & hourly_temps < 18.0 ~ -0.5, # Negation of chilling
+      hourly_temps >= 18.0 ~ -1.0                       # Strong negation
+    ),
+    
+    # Utah model chilling units
+    utah_cu = utah_weight,
+    
+    # Dynamic Model chilling portions (simplified approximation)
+    # The actual Dynamic Model is more complex with an intermediate state
+    dynamic_weight = case_when(
+      hourly_temps < -1.0 ~ 0,                 # Too cold
+      hourly_temps >= -1.0 & hourly_temps < 13.0 ~ 
+        (exp(3.1 * (hourly_temps - (-1.0)) / (13.0 - (-1.0))) - 
+           exp(-3.1 * (hourly_temps - (-1.0)) / (13.0 - (-1.0)))) / 
+        (exp(3.1) - exp(-3.1)), # Approximately sigmoid
+      TRUE ~ 0                                  # Too warm
+    )
+  )
+
+```
+
+
+Instead of starting from the winter low, we can aggregate **from January 1st** of each year.
+
+**Chilling requirements** of plants are the minimum period of cold weather after which a fruit-bearing tree will blossom productively. They are often expressed in **chill hours**, which can be calculated in different ways, all of which essentially involve adding up the total amount of time in a winter spent at certain temperatures.
+
+Some bulbs have chilling requirements to bloom, and some seeds have chilling requirements to sprout. Biologically, the chilling requirement is a way of ensuring that vernalization occurs.
+
+Chilling temperatures extend **from freezing point** to, depending on the model, 7 °C or even 16 °C. Stone fruit trees and certain other plants of temperate climate develop next year's buds in the summer. In the **autumn** the buds become **dormant**, and the switch to proper, healthy dormancy is triggered by a certain minimum exposure to chilling temperatures. Lack of such exposure results in delayed and substandard foliation, flowering and fruiting. **One chilling unit**, in the simplest models, is equal to **one hour's exposure to the chilling temperature**. These units are **summed up for a whole season**. Advanced models assign different weights to different temperature bands.
+
+Contrary to popular belief, lack of chilling hours does not usually kill a plant, nor prevent a dormant plant from eventually leafing out. However, it may add stress that can be one factor in a plant’s demise; as such, a previously injured plant may not survive long after a warm winter. Fruit trees that do not meet chilling requirements in a given season will not leaf or flower at normal times or for normal durations, and may only produce a few or no fruit.
+
+The simplest model assigns one chilling unit for every full hour at temperatures below 7 °C.
+
+A slightly more sophisticated model excludes freezing temperatures, which do not contribute to proper dormancy cycle, and counts only hours with temperatures between 0 °C and 7 °C.
+
+The **Utah model** assigns different weight to different temperature bands. A full unit per hour is assigned only to temperatures between 3 °C and 9 °C. Maximum effect is achieved at 7 °C. Temperatures between 13 °C and 16 °C, the threshold between chilling and warm weather) have zero weight, and higher temperature have negative weights, as they reduce the beneficial effects of an already accumulated chilling hours.
+
+The model is based on chill-units, where 1 chill-unit is when the tree is exposure between 2.4°C and 9.1°C, being the optimum temperature 6°C . When the temperature is between 9.1°C and 12.4°C,
+the chill-unit is 0.5. The chill-units accumulation is 0 when occurs temperature below 1.4 and between 12.5°C and 15.9°C. When the temperature is between 16°C and 18°C, the chill-unit is -0.5. When the temperature is above 18°C, the chill-unit is -1.
+
+Sweet Cherry Model
+Quantifies the chill accumulation by means of converting temperatures to chill-units.
+The model is based on chill-units, where 1 chill-unit is when the tree is exposure between -2.1°C and 7°C. When the temperature is above 18°C the chill-unit is -1. The chill-units accumulation is 0 when occurs temperature between 14°C and 16°C
+This model was make for quantifying the chill accumulation rates to ’Sweetheart’ Sweet Cherry.
+We aren’t recommended the application for others species.
+GUAK, Sunghee & NEILSEN, Denise. (2013). Chill Unit Models for Predicting Dormancy Completion of Floral Buds in Apple and Sweet Cherry.
+
+Dynamic Model
+Quantifies the chill accumulation with dynamic equation (two-steps).
+The model is based on dynamic accumulation, by means of the relationship between temperatures.
+The dynamic model assumes that the accumulated chill-units are not annulled by high temperatures.
+FISHMAN, Svetlana, EREZ, A. & COUVILLON, G. A. (1987). The Temperature Dependence
+of Dormancy Breaking in Plants: Computer Simulation of Processes Studied Under Controlled Temperatures. J. Theor. Biol.
+
+GDH Model - Anderson - for heat accumulation
+
+The GDH Model is based on base and optimum temperature. The base temperature is 4°C. The optimum and critical temperature are 25°C and 36°C, respectively.
+
+Anderson, J. L. et al. 1986. Validation of chill unit and flower bud phenology models for "Montmorency" sour cherry. Acta Horticulturae - Modelling in Fruit Research.
+
+GDH Model - Richardson - for heat accumulation
+
+The GDH model is based on the subtraction of the base temperature of each hourly temperature between 4.5°C and 25°C. The temperature of the base is 4.5°C. Therefore, accumulation under temperatures below 4.5°C and above 25°C is zero.
+
+RICHARDSON, E.A. et al. 1975. Pheno-climatography of spring 249 peach bud development. HortScience.
+
+Southwick et al. wrote that neither of these models is accurate enough to account for application of rest-breaking agents widely used in modern farming. They advocated the use of a **dynamic model** tailored to the **two-stage** explanation of dormancy.
+
+- Utah (Richardson et al., 1974, ISSN:0018-5345)
+
+- Positive Chill Units - PCU (Linsley-Noaks et al., 1995, ISSN:1017-0316)
+
+- GDH-A - Growing Degree Hours by Anderson et al.(1986, ISSN:0567-7572)
+
+- GDH-R - Growing Degree Hours by Richardson et al.(1975, ISSN:0018-5345)
+
+- North Carolina (Shaltout e Unrath, 1983, ISSN:0003-1062)
+
+- Landsberg Model (Landsberg, 1974, ISSN:0305-7364)
+
+- Q10 Model (Bidabe, 1967, ISSN:0031-9368)
+
+- Jones Model (Jones et al., 2013 <doi:10.1111/j.1438-8677.2012.00590.x>)
+
+- Low-Chill Model (Gilreath and Buchanan, 1981, ISSN:0003-1062)
+
+- Model for Cherry "Sweetheart" (Guak and Nielsen, 2013 <doi:10.1007/s13580-013-0140-9>), 
+
+- Model for apple "Gala" (Guak and Nielsen, 2013 <doi:10.1007/s13580-013-0140-9>)
+
+- Taiwan Model (Lu et al., 2012 <doi:10.17660/ActaHortic.2012.962.35>)
+
+- Dynamic Model (Fishman et al., 1987, ISSN:0022-5193) adapted from the function Dynamic_Model() of the 'chillR' package (Luedeling, 2018)
+
+- Unified Model (Chuine et al., 2016 <doi:10.1111/gcb.13383>)
+
+- Heat Restriction model
+
+The Sweet Cherry Model uses the function `cherry_model(x, total = TRUE)` from the `{ChillModels}` package.
+
+It quantifies the chill accumulation by means of converting temperatures to chill-units.
+The argument `x` is a vector containing temperature values (Celsius-degree). For `total = TRUE`, the total value of accumulation is returned, for  `total = FALSE`, the value of `chillunit` for each temperature is returned (default is `TRUE`).
+
+The model is based on chill-units, where 1 chill-unit is when the tree is exposed to between -2.1°C and 7°C. When the temperature is above 18°C the chill-unit is -1. The chill-units accumulation is 0 when occurs temperature between 14°C and 16°C.
+
+The function returns values the chill-units for each temperature of vector (Total = FALSE), or returns the chill-units accumulation (Total = TRUE).
+
+This model was make for quantifying the chill accumulation rates to ’Sweetheart’ Sweet Cherry. We don’t recommended the application for others species.
+
+
 
 ### Midrange temperature
 
@@ -1358,7 +1617,6 @@ power_cherry <- power_cherry |>
   mutate(qlaw = if_else(is.na(qlaw), 0, qlaw))
 ```
 
-
 ### Aggregated precipitation since January 1st
 
 We use the variable daily measured precipitation (in mm) to calculate accumulated precipitation starting from January 1st of the year of the observation date. 
@@ -1367,52 +1625,461 @@ We use the variable daily measured precipitation (in mm) to calculate accumulate
 #| label: create-aprcp
 
 power_cherry <- power_cherry |> 
-  mutate(year = year(date)) |> 
   group_by(location, year) |> 
   arrange(location, year, date) |> 
   mutate(aprcp = cumsum(prcp)) |> 
-  ungroup() |> 
-  select(-year)
+  ungroup()
 ```
 
 ### Aggregated growing degree days since January 1st
+
+Convert the daily minimum and maximum temperatures to hourly temperatures based on the idealized sinusiodal curve. 
+
+```{r}
+kyoto_weather <- power_cherry |> 
+  filter(location == "kyoto") |> 
+  select(Year = year,	Month = month, Day = day,	Tmax = t2m_max,	Tmin = t2m_min)
+
+kyoto_hourly_temps <- stack_hourly_temps(kyoto_weather, latitude = crd_kyoto$lat)
+
+kyoto_coeffs <- Empirical_daily_temperature_curve(kyoto_hourly_temps$hourtemps)
+
+kyoto_hours <- Empirical_hourly_temperatures(kyoto_hourly_temps$hourtemps, kyoto_coeffs)
+
+kyoto_hours <- kyoto_hours[, c("Year", "Month", "Day", "Hour", "Temp")]
+
+colnames(kyoto_hours)[ncol(kyoto_hours)] <- "Temp_empirical"
+
+kyoto_ideal <- stack_hourly_temps(kyoto_weather, latitude = crd_kyoto$lat)$hourtemps
+
+kyoto_ideal <- kyoto_ideal[, c("Year", "Month", "Day", "Hour", "Temp")]
+colnames(kyoto_ideal)[ncol(kyoto_ideal)] <- "Temp_ideal"
+
+station_list_kyoto <- handle_gsod(
+  action = "list_stations",
+  location = c(crd_kyoto$long, crd_kyoto$lat),
+  time_interval = c(1970, 2025)
+)
+
+station_list_kyoto |> 
+  filter(chillR_code == "47759099999")
+
+
+weather_kyoto <- handle_gsod(
+  action = "download_weather",
+  location = station_list_kyoto$chillR_code[1],
+  time_interval = c(1970, 2025)
+)
+
+cleaned_weather_kyoto <- handle_gsod(weather_kyoto)
+cleaned_weather_kyoto[[1]][1:20, ]
+
+weather_kyoto <- KA_weather |>
+  make_all_day_table()
+
+Tmin_int <- interpolate_gaps(weather[,"Tmin"])
+
+weather <- weather %>% mutate(Tmin = Tmin_int$interp,
+                              Tmin_interpolated = Tmin_int$missing)
+
+Tmax_int <- interpolate_gaps(weather[,"Tmax"])
+
+weather <- weather %>% mutate(Tmax = Tmax_int$interp,
+                              Tmax_interpolated = Tmax_int$missing)
+```
+
+
+There are multiple ways to use growing degree days.
+
+To simplify the calculation, we use January 1 of each year as the starting date for the calculations.
+
+We need to define a base temperature, $t_{b}$ at which the cherry trees start to "absorb" thermal energy. Temperatures between 3°C and 5°C are commonly chosen.
+
+The daily temperatures have to be derived from the available air temperatures `t2m`, `t2m_max`, `t2m_min` and `t2m_range`.
+
+Software exists that will optimize the temperature threshold, but 
+
+I choose the *basal temperature* or limit $(t_b)$ to consider thermal absorption as 5°C, however, the function in question has an argument named `t_base` that allows testing with different values. The daily temperatures $x_t$ (variables `TS`, `TS_MAX`, `TS_MIN`) are used for this calculation. Due to time issues I was not able to experiment enough to estimate optimal values of $t_b$ and $t_0$. The three ways of calculating GDD are described below ([Piña, R. A. et al., 2021](https://www.mdpi.com/2223-7747/10/3/502); [McCaster, G. S. & Wilhelm , W.W., 1997](https://www.sciencedirect.com/science/article/abs/pii/S0168192397000270#:~:text=The%20basic%20equation%20used%20is,BASE%20is%20the%20base%20temperature .)):
+     - **Equation 1:** classic approach in calculating GDD ([Piña, R. A. et al., 2021](https://www.mdpi.com/2223-7747/10/3/502)). If a basal temperature $t_b = 5$ is exceeded then the difference in degrees Celsius will be taken into account to calculate the accumulated GDD (`AGDD1`).
+     - **Equation 2:** Equation 2 ([Piña, R. A. et al., 2021](https://www.mdpi.com/2223-7747/10/3/502)) represents the *triangular model of GDD*, this model represents a non-linear triangular function based on temperatures. This equation takes into account the minimum, maximum temperature and an *optimal temperature*. Since I do not have enough information to consider an optimal temperature, I use the same basal temperature with a value of 5°C.
+     - **Equation 3:** this equation is another classic approximation ([McCaster, G. S. & Wilhelm, W.W., 1997](https://www.sciencedirect.com/science/article/abs/pii/S0168192397000270#:~: text=The%20basic%20equation%20used%20is,BASE%20is%20the%20base%20temperature.)) for the calculation of GDD, where the maximum and minimum temperature is used. In this case *equation 1* coincides with this, however, for the first I use the average temperature directly, in *equation 2* I use the average of the maximum and minimum temperatures. I verified that the results are not the same from the three methods.
+
+$$
+\begin{equation}
+  GDD_{1(x_t)} = \begin{cases}
+  0\ if\ x_t < t_b \\x_t -t_b\ if\ x_t \geq t_b
+  \end{cases}
+\end{equation}
+$$
+
+ 
+$$
+\begin{equation}
+  GDD_{2(x_t)} = \begin{cases}0\ if\ x_t < t_{min} \\\frac{x_t -T_{min}}{T_{opt} - T_{min}}\ if\ T_{min} \leq x_t \leq T_{opt} \\ \frac{x_t -T_{max}}{T_{opt} - T_{max}} if\ T_{opt} \leq x_t \leq T_{max} \\ 0\ if\ x_t \geq T_{max} \end{cases}
+\end{equation}
+$$
+
+$$
+\begin{equation}
+  GDD_{3(x_t)} = \begin{cases}
+  0\ if\ \left [ \frac{T_{max} - T_{min}}{2} \right ] - t_b < t_b \\
+  \left [ \frac{T_{max} - T_{min}}{2} \right ] - t_b\ if\ \left [ \frac{T_{max} - T_{min}}{2} \right ] - t_b > t_b
+  \end{cases}
+\end{equation}
+$$
+
+With the previous equations, the $GDD_{(x_t)}$ are obtained for each day that is between the initial date $t_0$ and one day before flowering $t_{\gamma-1}$, then they are added for each coordinate and the accumulated growth degree days (`AGDD1`, `AGDD2` and `AGDD3`) are obtained.
+
+$$AGDD_i = \sum_{t_0}^{t_{\gamma-1}} GDD_i$$
+
+Growing Degree Day calculations.
+
+First calculate hourly temperatures by interpolating daily average minimum and maximum temperatures with a sinusoidal model for diurnal temperature curve.
+
+For each day, create 24 hourly estimates.
+
+Consider the phase shift, the number of hours after midnight when minimum occurs
+
+
+```{r}
+power_cherry |> 
+  group_by(location, year) |> 
+  mutate(
+    hourly_temps = map2(temp_min, temp_max, function(tmin, tmax) {
+  
+      hours <- 0:23
+      amplitude <- (tmax - tmin) / 2
+      midpoint <- (tmax + tmin) / 2
+      phase_shift <- 4
+      period <- 24
+      
+      temps <- midpoint + amplitude * sin(2 * pi * (hours - phase_shift) / period)
+      return(temps)
+    })
+  ) %>%
+  # Unnest to get hourly data
+  unnest(hourly_temps) %>%
+  group_by(location_id, year, date, hour = rep(0:23, n() / 24)) %>%
+  # Calculate GDD contributions for each hour
+  mutate(
+    # Standard GDD with different base temperatures
+    # Base 4°C is common for cherry blossoms
+    gdd_base4 = pmax(0, hourly_temps - 4) / 24,  # Divide by 24 to get daily equivalent
+    
+    # Alternative base temperatures to try
+    gdd_base0 = pmax(0, hourly_temps - 0) / 24,
+    gdd_base5 = pmax(0, hourly_temps - 5) / 24,
+    
+    # GDD with upper threshold (some research suggests 25-30°C as upper threshold)
+    gdd_base4_cap25 = case_when(
+      hourly_temps < 4 ~ 0,
+      hourly_temps > 25 ~ (25 - 4) / 24,
+      TRUE ~ (hourly_temps - 4) / 24
+    ),
+    
+    # Modified GDD using optimal growth curve
+    # Triangle function with optimal temperature at 15°C
+    triangle_gdd = case_when(
+      hourly_temps <= 4 ~ 0,
+      hourly_temps > 4 & hourly_temps <= 15 ~ 
+        (hourly_temps - 4) * (1 / (15 - 4)) / 24,
+      hourly_temps > 15 & hourly_temps <= 25 ~ 
+        (25 - hourly_temps) * (1 / (25 - 15)) / 24,
+      TRUE ~ 0
+    ),
+    
+    # Beta function approximation for growth response
+    # More complex, smoother curve based on physiological models
+    beta_gdd = case_when(
+      hourly_temps <= 0 ~ 0,
+      hourly_temps >= 30 ~ 0,
+      TRUE ~ (((hourly_temps - 0) / (16 - 0))^1.5) * 
+             (1 - ((hourly_temps - 0) / (30 - 0))^2.5) / 24
+    ),
+    
+    # Exponential GDD (emphasizes higher temperatures)
+    exp_gdd = ifelse(hourly_temps > 4, 
+                    (1.05^(hourly_temps - 4) - 1) / 24, 
+                    0),
+    
+    # GDD with photoperiod modulation (if you have day length data)
+    # This would be a more complex implementation requiring photoperiod data
+    
+    # Actual evapotranspiration based GDD (simplified)
+    # This would account for both temperature and moisture stress
+    aet_gdd = case_when(
+      hourly_temps <= 4 ~ 0,
+      TRUE ~ (hourly_temps - 4) / 24 # This would be multiplied by a moisture factor
+    )
+  )
+
+# Aggregate by day
+gdd_daily <- weather_features %>%
+  group_by(location_id, year, date) %>%
+  summarize(
+    # Sum hourly contributions to get daily values
+    daily_gdd_base4 = sum(gdd_base4),
+    daily_gdd_base0 = sum(gdd_base0),
+    daily_gdd_base5 = sum(gdd_base5),
+    daily_gdd_base4_cap25 = sum(gdd_base4_cap25),
+    daily_triangle_gdd = sum(triangle_gdd),
+    daily_beta_gdd = sum(beta_gdd),
+    daily_exp_gdd = sum(exp_gdd),
+    daily_aet_gdd = sum(aet_gdd),
+    
+    # Daily mean temperature (for reference)
+    daily_mean_temp = mean(hourly_temps),
+    
+    # Day-night temperature difference (can affect development)
+    temp_range = max(hourly_temps) - min(hourly_temps),
+    
+    .groups = "drop"
+  ) %>%
+  # Calculate cumulative values
+  group_by(location_id, year) %>%
+  arrange(date) %>%
+  mutate(
+    # Standard cumulative GDD
+    cum_gdd_base4 = cumsum(daily_gdd_base4),
+    cum_gdd_base0 = cumsum(daily_gdd_base0),
+    cum_gdd_base5 = cumsum(daily_gdd_base5),
+    cum_gdd_base4_cap25 = cumsum(daily_gdd_base4_cap25),
+    cum_triangle_gdd = cumsum(daily_triangle_gdd),
+    cum_beta_gdd = cumsum(daily_beta_gdd),
+    cum_exp_gdd = cumsum(daily_exp_gdd),
+    cum_aet_gdd = cumsum(daily_aet_gdd),
+    
+    # Rate of GDD accumulation (1-week moving average)
+    gdd_rate = slider::slide_dbl(daily_gdd_base4, mean, .before = 6, .complete = TRUE),
+    
+    # Create seasonal restart of GDD (e.g., after Jan 1)
+    # For areas where winter GDD might not be relevant
+    doy = yday(date),
+    seasonal_start = doy == 1,
+    season_group = cumsum(seasonal_start),
+    
+    # Calculate GDD since seasonal start
+    season_gdd = cumsum(ifelse(!is.na(season_group) & season_group == season_group[1], 
+                               daily_gdd_base4, 0))
+  )
+```
+
+
+```{r}
+# Extract monthly GDD summaries
+monthly_gdd <- gdd_daily %>%
+  mutate(month = month(date)) %>%
+  group_by(location_id, year, month) %>%
+  summarize(
+    # Monthly totals
+    monthly_gdd_base4 = sum(daily_gdd_base4, na.rm = TRUE),
+    monthly_gdd_base0 = sum(daily_gdd_base0, na.rm = TRUE),
+    monthly_gdd_base5 = sum(daily_gdd_base5, na.rm = TRUE),
+    monthly_gdd_base4_cap25 = sum(daily_gdd_base4_cap25, na.rm = TRUE),
+    monthly_triangle_gdd = sum(daily_triangle_gdd, na.rm = TRUE),
+    monthly_beta_gdd = sum(daily_beta_gdd, na.rm = TRUE),
+    monthly_exp_gdd = sum(daily_exp_gdd, na.rm = TRUE),
+    
+    # End of month cumulative values
+    end_of_month_cum_gdd_base4 = last(cum_gdd_base4),
+    end_of_month_cum_triangle_gdd = last(cum_triangle_gdd),
+    end_of_month_cum_beta_gdd = last(cum_beta_gdd),
+    
+    # Average daily GDD rate for the month
+    avg_gdd_rate = mean(gdd_rate, na.rm = TRUE),
+    
+    # Temperature extremes
+    max_temp = max(daily_mean_temp, na.rm = TRUE),
+    min_temp = min(daily_mean_temp, na.rm = TRUE),
+    
+    # Day-night variation average
+    avg_temp_range = mean(temp_range, na.rm = TRUE),
+    
+    .groups = "drop"
+  ) %>%
+  # Convert to wide format for model features
+  pivot_wider(
+    id_cols = c(location_id, year),
+    names_from = month,
+    values_from = c(monthly_gdd_base4, monthly_gdd_base0, monthly_gdd_base5, 
+                   monthly_gdd_base4_cap25, monthly_triangle_gdd, monthly_beta_gdd,
+                   monthly_exp_gdd, end_of_month_cum_gdd_base4, 
+                   end_of_month_cum_triangle_gdd, end_of_month_cum_beta_gdd,
+                   avg_gdd_rate, max_temp, min_temp, avg_temp_range),
+    names_prefix = "month"
+  )
+
+# Join with your model data
+model_data_enhanced <- model_data %>%
+  left_join(monthly_gdd, by = c("location_id", "year"))
+```
+
 
 We create the accumulated growing degree days (AGDD) as the sum of growing degree days (GDD) since January 1st, where GDD are calculated as the number of degrees C by which each day's midrange temperature exceeds a base temperature, which can be 0 degrees C, or a species-specific base temperature, such as 4.3 degrees C for Yoshino cherry trees. If the midrange temperature does not exceed the base temperature on a given day, no growing degree days are counted. See more at <https://en.wikipedia.org/wiki/Growing_degree-day>.
 
 ```{r}
 #| label: create-agdd
 
-base_temp <- 4.3
+base_temp <- 4.0
 
 power_cherry <- power_cherry |> 
-  mutate(gdd = pmax(t2m_range - base_temp, 0)) |>
-  mutate(year = year(date)) |> 
   group_by(location, year) |> 
   arrange(location, year, date) |> 
-  mutate(agdd = cumsum(gdd)) |> 
-  ungroup() |>
-  select(-c(year, gdd))
+  mutate(agdd = cumsum(pmax(t2m_range - base_temp, 0))) |> 
+  ungroup()
 ```
 
 
-### Aggregated chilling degree days since October 1st
+### Aggregated Chilling hours (temperatures between 0-7°C) since October 1st
 
-We can calculate chilling degree days (CDD)** and accumulated chilling degree days (ACDD) since October 1st. We count CDDs whenever the midrange temperature is below a threshold of 7 degrees Celsius, and we accumulate until December 31st of each year. If the midrange temperature stays above the threshold, no GDDs are counted. See more at <https://en.wikipedia.org/wiki/Chilling_requirement>.
+Key Differences Between Chilling Methods
+
+Chilling Hours (CH): Simple count of hours below a threshold (typically 7°C)
+
+Easiest to calculate but least physiologically accurate
+
+
+Chilling Degree Hours (CDH): Accumulation of degrees below the threshold
+
+Example: 3°C for one hour = 4 CDH (7°C - 3°C = 4 degrees × 1 hour)
+More accurate as it accounts for temperature intensity
+
+
+Utah Model: Assigns weights to different temperature ranges
+
+Recognizes that chilling isn't simply linear with temperature
+Accounts for negation of chilling by warm temperatures
+
+
+Dynamic Model: Most physiologically accurate
+
+Models a two-step process in the plant
+Better performs across diverse climates
 
 ```{r}
-#| label: create-acdd
+# Calculate chilling degree hours (CDH)
+weather_features <- weather %>%
+  group_by(location_id, year = year(date)) %>%
+  mutate(
+    # First calculate hourly temperatures using a simple interpolation
+    # For each day, create 24 hourly estimates
+    hourly_temps = map2(temp_min, temp_max, function(tmin, tmax) {
+      # Simple sinusoidal model for diurnal temperature curve
+      # Minimum temperature typically occurs around 4am, maximum around 2pm
+      hours <- 0:23
+      amplitude <- (tmax - tmin) / 2
+      midpoint <- (tmax + tmin) / 2
+      phase_shift <- 4  # Hours after midnight when minimum occurs
+      period <- 24      # Hours
+      
+      temps <- midpoint + amplitude * sin(2 * pi * (hours - phase_shift) / period)
+      return(temps)
+    })
+  ) %>%
+  # Unnest to get hourly data
+  unnest(hourly_temps) %>%
+  group_by(location_id, year, date, hour = rep(0:23, n() / 24)) %>%
+  # Calculate chilling contribution for each hour
+  mutate(
+    # Define temperature thresholds for chilling
+    base_temp = 7.0,    # Upper threshold for chilling (°C)
+    lower_temp = 0.0,   # Lower threshold for chilling (°C)
+    
+    # Calculate chilling degree hour (CDH)
+    cdh = case_when(
+      hourly_temps <= lower_temp ~ 0,  # Too cold for effective chilling
+      hourly_temps >= base_temp ~ 0,   # Too warm for chilling
+      TRUE ~ base_temp - hourly_temps  # Chilling degrees proportional to temperature below base
+    ),
+    
+    # Utah model weights (optional enhancement - different temperature ranges have different effectiveness)
+    utah_weight = case_when(
+      hourly_temps < 1.4 ~ 0,                  # Ineffective range
+      hourly_temps >= 1.4 & hourly_temps < 2.4 ~ 0.5,  # Low efficiency
+      hourly_temps >= 2.4 & hourly_temps < 9.1 ~ 1.0,  # Optimal chilling
+      hourly_temps >= 9.1 & hourly_temps < 12.4 ~ 0.5, # Low efficiency 
+      hourly_temps >= 12.4 & hourly_temps < 15.9 ~ 0,  # Ineffective
+      hourly_temps >= 15.9 & hourly_temps < 18.0 ~ -0.5, # Negation of chilling
+      hourly_temps >= 18.0 ~ -1.0                       # Strong negation
+    ),
+    
+    # Utah model chilling units
+    utah_cu = utah_weight,
+    
+    # Dynamic Model chilling portions (simplified approximation)
+    # The actual Dynamic Model is more complex with an intermediate state
+    dynamic_weight = case_when(
+      hourly_temps < -1.0 ~ 0,                 # Too cold
+      hourly_temps >= -1.0 & hourly_temps < 13.0 ~ 
+        (exp(3.1 * (hourly_temps - (-1.0)) / (13.0 - (-1.0))) - 
+           exp(-3.1 * (hourly_temps - (-1.0)) / (13.0 - (-1.0)))) / 
+        (exp(3.1) - exp(-3.1)), # Approximately sigmoid
+      TRUE ~ 0                                  # Too warm
+    )
+  )
 
-temp_threshold <- 7
+# Aggregate by day and calculate cumulative values
+chilling_daily <- weather_features %>%
+  group_by(location_id, year, date) %>%
+  summarize(
+    daily_cdh = sum(cdh),
+    daily_utah = sum(utah_cu),
+    daily_dynamic = sum(dynamic_weight) / 24,  # Convert to portions (approx)
+    .groups = "drop"
+  ) %>%
+  group_by(location_id, year) %>%
+  arrange(date) %>%
+  mutate(
+    cum_cdh = cumsum(daily_cdh),
+    cum_utah = cumsum(daily_utah),
+    cum_dynamic = cumsum(daily_dynamic)
+  )
 
-power_acdd <- power_cherry |> 
-  mutate(year = year(date)) |> 
+# Extract monthly chilling summaries
+monthly_chilling <- chilling_daily %>%
+  mutate(month = month(date)) %>%
+  group_by(location_id, year, month) %>%
+  summarize(
+    monthly_cdh = sum(daily_cdh),
+    monthly_utah = sum(daily_utah),
+    monthly_dynamic = sum(daily_dynamic),
+    end_of_month_cum_cdh = last(cum_cdh),
+    end_of_month_cum_utah = last(cum_utah),
+    end_of_month_cum_dynamic = last(cum_dynamic),
+    .groups = "drop"
+  ) %>%
+  # Convert to wide format for model features
+  pivot_wider(
+    id_cols = c(location_id, year),
+    names_from = month,
+    values_from = c(monthly_cdh, monthly_utah, monthly_dynamic, 
+                   end_of_month_cum_cdh, end_of_month_cum_utah, end_of_month_cum_dynamic),
+    names_prefix = "month"
+  )
+
+# Join with your existing model data
+model_data_enhanced <- model_data %>%
+  left_join(monthly_chilling, by = c("location_id", "year"))
+```
+
+
+We can calculate chilling hours (CDD) and accumulated chilling degree days (ACDD) since October 1st. We count CDDs whenever the midrange temperature is below a threshold of 7 degrees Celsius, and we accumulate until December 31st of each year. If the midrange temperature stays above the threshold, no GDDs are counted. See more at <https://en.wikipedia.org/wiki/Chilling_requirement>.
+
+```{r}
+#| label: create-achill
+
+power_achill <- power_cherry |> 
   filter(date >= paste0(year, "-09-01")) |> 
-  mutate(cdd = pmax(0, temp_threshold - t2m_range)) |> 
+  mutate(
+    chill = ifelse(t2m_min >= 0 & t2m_max <= 7, 24, 
+                   ifelse(t2m_min < 0 & t2m_max > 7, 0,
+                   ifelse(t2m_min < 0, (t2m_max - 0)/(t2m_max - t2m_min) * 24,
+                   (7 - t2m_min)/(t2m_max - t2m_min) * 24)))
+  ) |>
   group_by(location, year) |> 
   arrange(location, year, date) |> 
-  mutate(acdd = cumsum(cdd)) |> 
-  ungroup() |> 
-  select(-year)
+  mutate(achill = cumsum(chill)) |> 
+  ungroup()
 
 power_cherry <- power_cherry |> 
   left_join(y = power_acdd |> select(location, date, acdd), join_by(location, date))
@@ -1436,8 +2103,8 @@ last_fcst_date <- power_cherry |>
 power_cherry <- power_cherry |> 
   mutate(day = yday(date)) |> 
   relocate(location, date, day) |> 
-  filter(day %in% c(1:yday(last_fcst_date)))
-  # filter(day %in% c(yday(date("1980-09-01")):366, 1:yday(last_fcst_date)))
+  # filter(day %in% c(1:yday(last_fcst_date)))
+  filter(day %in% c(yday(date("1980-09-01")):366, 1:yday(last_fcst_date)))
 ```
 
 ## Temporal aggregation
@@ -1709,10 +2376,15 @@ set.seed(123)
 
 cherry_data <- cherry_days
 
-data_split <- initial_split(data = cherry_data, prop = 2/3, strata = bloom_doy)
+data_split <- initial_split(
+  data = cherry_data |> 
+    filter(year < year(Sys.Date())), 
+  prop = 2/3, 
+  strata = bloom_doy
+)
 
 data_train <- training(data_split)
-data_test <- testing(data_split)
+data_test  <- testing(data_split)
 ```
 
 ### Pre-processing
