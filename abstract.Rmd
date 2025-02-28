@@ -1,0 +1,20 @@
+---
+title: "abstract"
+author: "econmaett"
+date: "2025-02-28"
+output: html_document
+---
+
+## Abstract
+
+Cherry blossom viewing, known as Hanami in Japan, is a centuries-old tradition symbolizing the transition from winter to spring. Beyond its cultural significance, cherry blossom festivals in cities like Washington, D.C., and Vancouver generate substantial economic benefits through tourism. Accurately predicting the peak bloom day is thus essential for festival planners and travel agencies. Long-term historical records of cherry blossom bloom dates also provide valuable data for studying climate change and they serve as a communication tool, illustrating the effects of global warming. 
+
+I had three long time series for Kyoto, Liestal, and Washington, D.C Vancouver initially had only three recorded peak bloom dates, while New York City had just one. To extend the Vancouver time series, I searched through the VCBF Neighbourhood Blog for reports of peak bloom dates in Maple Grove Park. I corroborated these findings with historical newspaper records of unusually warm or cold winters to improve data reliability.
+
+Instead of relying on weather data from the NOAA GHCN, which suffered from API throttling and large gaps in the data, I opted for the NASA POWER database. Unlike GHCN, the POWER database does not have rate limits, allowing for more seamless and efficient data retrieval.
+
+I tried various modelling approaches, including chilling hour models and Growing Degree Days (GDD), as well as using a sinusoidal function to interpolate hourly temperatures from daily minima and maxima. I also explored the temporal aggregation of weather variables by at seasonal, monthly, weekly, and daily aggregates. I found monthly aggregates provided the best predictive performance, with no significant improvement when using more granular frequencies. This finding is consistent with the practices of meteorological agencies such as the Japanese Meteorological Agency (JMA), the US National Parks Service, and the Washington Post National Weather Gang, all of which use monthly aggregates for their cherry blossom forecasts.
+
+During modelling no single method dominated over the others. Random forests often yielded the best performance, given the large uncertainty in the data and the small number of observations. However, simpler models like linear regression or penalized versions also provided a decent fit. More sophisticated approaches like XGBoost and LightGBM tended to overfit the data. These models' performance was highly sensitive to the random split of the data into training and test sets, which led to inconsistent results. In the end I opted for Cubist regression—a model that combines the advantages of both linear regression and tree-based models. Though it took the longest to train, it had the most stable performance. To obtain prediction intervals for the 2025 peak bloom day, I employed the bootstrap algorithm.
+
+I would like to thank Dariia Mykhailyshyna's "Workshops for Ukraine" series, where Frank Hull introduced me to the tidymodels framework. I also thank everyone who helped organize this challenge and I wish you all a wonderful spring filled with beautiful cherry blossoms. I look forward to participating again next year and, hopefully, submitting a much better prediction!
