@@ -11,6 +11,17 @@ toc: true
 editor: source
 ---
 
+```{r}
+#| label: setup
+#| include: false
+knitr::opts_chunk$set(
+  echo = TRUE, warning = FALSE, error = FALSE,
+  message = FALSE,
+  fig.align = "center",
+  out.width = "80%"
+)
+```
+
 ## Packages
 
 First we load all the packages necessary to run this analysis.
@@ -35,7 +46,6 @@ library(kernlab)
 library(corrr)
 library(rpart.plot)
 library(vip)
-library(stacks)
 library(gt)
 library(nasapower)
 library(openmeteo)
@@ -812,7 +822,7 @@ cherry_months <- cherry |>
   arrange(bloom_date) |> 
   fill(country, location, lat, long, alt, .direction = "down") |> 
   ungroup() |> 
-  filter(year >= 1981) |> 
+  filter(year >= 2000) |> 
   mutate(year2 = year^2, year3 = year^3) |> 
   select(-c(bloom_date, lat, long))
 
@@ -1327,20 +1337,18 @@ gc()
 
 cub_pred <- predict(object = final_cub_fit, new_data = cherry_months_2025)
 
-# Bootstrap Training Data
+# Bootstrap
 set.seed(123)
 boot_resamples <- bootstraps(cherry_months_2024, times = 200)
 
-# Fit Model & Predict on Each Resample
+# Fit the models on each resample
 boot_preds <- boot_resamples %>%
   mutate(
     model = map(splits, ~ fit(object = final_cub_fit, data = analysis(.x))),
     pred = map(model, ~ predict(.x, new_data = cherry_months_2025)$.pred)
   )
 
-
-
-# Compute 90% Interval Using `{probably}`
+# Compute 90% prediction interval
 predictions <- boot_preds |> 
   unnest(pred) |> 
   bind_cols(tibble(location = rep(cherry_months_2025 |> select(location) |> pull(), times = 200))) |> 
@@ -1355,6 +1363,7 @@ predictions <- boot_preds |>
 
 
 ```{r}
+#| label: save-predicitons
 predictions |> 
   rename(prediction = bloom_doy_pred, lower = lower_90, upper = upper_90) |> 
   write_csv("cherry-predictions.csv")
